@@ -1,7 +1,10 @@
+NAME = server
 SOURCES = demo.cpp
 
-server: $(SOURCES)
-	c++ $(SOURCES) -o server
+$(NAME): $(SOURCES)
+	c++ $(SOURCES) -o $(NAME)
 
-test: server
-	@./server
+test: $(NAME)
+	@./$(NAME)git
+
+.PHONY: test
