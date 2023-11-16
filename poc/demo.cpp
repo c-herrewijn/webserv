@@ -49,6 +49,10 @@ int main() {
         connectionFd = accept(serverFd, (sockaddr*)&intServerSockAddr, &socketSize);
         std::cout << "connection established!" << std::endl;
 
+        // todo:
+        // - get info from request
+        // - create + send response
+
         close(connectionFd); // closing connection
         break; // dummy,server stops after first connection has been established, normally, it should keep running
     }
