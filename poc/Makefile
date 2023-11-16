@@ -5,6 +5,6 @@ $(NAME): $(SOURCES)
 	c++ $(SOURCES) -o $(NAME)
 
 test: $(NAME)
-	@./$(NAME)git
+	@./$(NAME)
 
 .PHONY: test
