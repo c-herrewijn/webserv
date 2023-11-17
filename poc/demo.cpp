@@ -19,7 +19,7 @@ int main() {
     // define specific ip and port
     struct sockaddr_in intServerSockAddr;
     intServerSockAddr.sin_family = AF_INET;
-    intServerSockAddr.sin_addr.s_addr = inet_addr("0.0.0.0");
+    intServerSockAddr.sin_addr.s_addr = INADDR_ANY;
     intServerSockAddr.sin_port = htons(8080);
 
     // bind the socket to the ip and port
