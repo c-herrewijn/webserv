@@ -3,7 +3,9 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <iostream>
-#include <stdio.h> // used for perror
+#include <string.h>
+
+#define BUFFER_SIZE 10000 // hardcoded for poc
 
 int main() {
     // default settings to create web socket
@@ -14,7 +16,14 @@ int main() {
     // creating socket for webserver (returns a file descriptor)
     std::cout << "launching webserver..." << std::endl;
     int serverFd = socket(domain, type, protocol);
-    std::cout << "server fd: " << serverFd << std::endl;
+
+    // set additional option: SO_REUSEADDR to prevent time-out
+    int optvalTrue = true;
+    if(setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &optvalTrue, sizeof(optvalTrue)) < 0)
+    {
+        std::cerr << "Error: " << strerror(errno) << std::endl;
+        return 1;
+    }
 
     // define specific ip and port
     struct sockaddr_in intServerSockAddr;
@@ -27,7 +36,7 @@ int main() {
     std::cout << "binding... " << std::endl;
     if(bind(serverFd, (sockaddr*)&intServerSockAddr, socketSize) < 0)
     {
-        perror("");
+        std::cerr << "Error: " << strerror(errno) << std::endl;
         return 1;
     }
 
@@ -36,7 +45,7 @@ int main() {
     std::cout << "listening... " << std::endl;
     if (listen(serverFd, maxNrOfConnections) < 0)
     {
-        perror("");
+        std::cerr << "Error: " << strerror(errno) << std::endl;
         return 1;
     }
 
@@ -44,13 +53,17 @@ int main() {
     // accept incoming connections (server waits for connections in a loop)
     std::cout << "wait for incoming connections..." << std::endl;
     int connectionFd;
+    char buffer[BUFFER_SIZE] = {0};
+    int bytesReceived;
     while (true)
     {
         connectionFd = accept(serverFd, (sockaddr*)&intServerSockAddr, &socketSize);
         std::cout << "connection established!" << std::endl;
 
+        bytesReceived = read(connectionFd, buffer, BUFFER_SIZE);
+        std::cout << std::endl << "data received: " << std::endl<< buffer << std::endl;
+
         // todo:
-        // - get info from request
         // - create + send response
 
         close(connectionFd); // closing connection
