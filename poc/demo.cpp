@@ -50,11 +50,13 @@ int main() {
     }
 
     // server can now be reached via browser on addr: http://0.0.0.0:8080
-    // accept incoming connections (server waits for connections in a loop)
-    std::cout << "wait for incoming connections..." << std::endl;
     int connectionFd;
     char buffer[BUFFER_SIZE] = {0};
     int bytesReceived;
+    std::string responseStr = "myTestResponse!";
+
+    // accept incoming connections (server waits for connections in a loop)
+    std::cout << "wait for incoming connections..." << std::endl;
     while (true)
     {
         connectionFd = accept(serverFd, (sockaddr*)&intServerSockAddr, &socketSize);
@@ -63,8 +65,14 @@ int main() {
         bytesReceived = read(connectionFd, buffer, BUFFER_SIZE);
         std::cout << std::endl << "data received: " << std::endl<< buffer << std::endl;
 
-        // todo:
-        // - create + send response
+        // write response: (for now without html headers, this is considered html v0.9)
+        // NOTE: web-browsers don't accept a response without html headers, but you can see the response via curl:
+        // $ curl --http0.9 -d "myRequestFromCurl" localhost:8080
+        if(write(connectionFd, (void *)responseStr.c_str(), strlen(responseStr.c_str())) < 0)
+        {
+            std::cerr << "Error: " << strerror(errno) << std::endl;
+            return 1;
+        }
 
         close(connectionFd); // closing connection
         break; // dummy,server stops after first connection has been established, normally, it should keep running
