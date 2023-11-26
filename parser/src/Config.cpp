@@ -21,9 +21,10 @@ Config::~Config(void)
 	file_content.clear();
 }
 
-Config::Config(std::string &file)
+Config::Config(char* file)
 {
-	tokenizeFile(readFile(file));
+	readFile(file);
+	tokenizeFile();
 	parseContent();
 }
 
@@ -53,25 +54,24 @@ std::vector<std::string>&	Config::getFileContent(void)
 	return (file_content);
 }
 
-std::string&	Config::readFile(std::string& file_path)
+void	Config::readFile(char* file_path)
 {
 	std::ifstream inputFile(file_path);
 	if (!inputFile.is_open())
-		throw ErrorCatch(("Error opening the file: " + file_path).c_str());
+		throw ErrorCatch(("Error opening the file: " + std::string(file_path)).c_str());
 
 	std::ostringstream	fileContentStream;
 	fileContentStream << inputFile.rdbuf();
 	if (inputFile.bad())
-		throw ErrorCatch(("Error reading the file: " + file_path).c_str());
+		throw ErrorCatch(("Error reading the file: " + std::string(file_path)).c_str());
 
-	std::string	fileContent = fileContentStream.str();
+	raw_input = fileContentStream.str();
 	inputFile.close();
-	if (fileContent.empty())
-		throw ErrorCatch(("The file is empty: " + file_path).c_str());
-	return (fileContent);
+	if (raw_input.empty())
+		throw ErrorCatch(("The file is empty: " + std::string(file_path)).c_str());
 }
 
-size_t	Config::doComment(std::string& raw_input, size_t &i)
+size_t	Config::doComment(size_t &i)
 {
 	if (raw_input[i] != '#')
 		return (i);
@@ -80,11 +80,11 @@ size_t	Config::doComment(std::string& raw_input, size_t &i)
 	return (i);
 }
 
-void	Config::doQuote(std::string& raw_input, size_t& i, size_t& j)
+void	Config::doQuote(size_t& i, size_t& j)
 {
 	if (raw_input[i] != '\'' && raw_input[i] != '"')
 		return ;
-	j++;
+	j = i + 1;
 	while (j < raw_input.size() && raw_input[j] != raw_input[i])
 		j++;
 	if (j >= raw_input.size())
@@ -93,25 +93,24 @@ void	Config::doQuote(std::string& raw_input, size_t& i, size_t& j)
 	i = j;
 }
 
-size_t	Config::doSpaces(std::string& raw_input, size_t& i)
+size_t	Config::doSpace(size_t& i)
 {
 	if (!std::isspace(raw_input[i]))
 		return (i);
 	while (i < raw_input.size() && std::isspace(raw_input[i]))
 		i++;
-	if (file_content.size() == 0)
-		return (i);
-	file_content.push_back(" ");
+	if (file_content.size() != 0)
+		file_content.push_back(" ");
 	return (i);
 }
 
-void	Config::doExceptions(std::string& raw_input, size_t& i)
+void	Config::doExceptions(size_t& i)
 {
 	if ((raw_input[i] >= 1 && 8 <= raw_input[i]) || (raw_input[i] >= 14 && raw_input[i] <= 31))
 		throw ErrorCatch("Invalid character in the file.");
 }
 
-void	Config::doToken(std::string& raw_input, size_t& i, size_t& j)
+void	Config::doToken(size_t& i, size_t& j)
 {
 	if (j >= raw_input.size()
 		|| std::isspace(raw_input[j])
@@ -125,28 +124,30 @@ void	Config::doToken(std::string& raw_input, size_t& i, size_t& j)
 		&& raw_input[j] != '\''
 		&& raw_input[j] != '#'
 		&& raw_input[j] != ';')
-		j++;
-	if (j == i)
-		return ;
+			j++;
 	if (j - 1 >= i)
-		file_content.emplace_back(raw_input.cbegin() + i, raw_input.cbegin() + j - 1);
+		file_content.emplace_back(raw_input.cbegin() + i, raw_input.cbegin() + j);
 	if (raw_input[j] == ';')
+	{
+		j++;
 		file_content.emplace_back(";");
-	i = j;	
+	}
+	i = j;
 }
 
-void	Config::tokenizeFile(std::string& raw_input)
+void	Config::tokenizeFile(void)
 {
 	size_t	i = 0, j = 0;
 	while (i < raw_input.size())
 	{
-		doExceptions(raw_input, i);
-		j = doSpaces(raw_input, i);
-		j = doComment(raw_input, i);
-		doQuote(raw_input, i, j);
-		doToken(raw_input, i, j);
+		j = doSpace(i);
+		j = doComment(i);
+		j = doSpace(i);
+		doQuote(i, j);
+		j = doSpace(i);
+		doToken(i, j);
 	}
-	if (!file_content.size())
+	if (file_content.size() == 0)
 		throw ErrorCatch("No valuable input found in given config file.");
 }
 
@@ -155,6 +156,8 @@ void	Config::parseContent(void)
 	size_t i = 0, j = 0;
 	while (i < file_content.size())
 	{
+		std::cout << file_content[i];
 		i++;
 	}
+	std::cout << std::endl;
 }

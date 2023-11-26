@@ -20,28 +20,29 @@
 # include <vector>
 # include <cctype>
 # include <stack>
-class Server;
+# include "Server.hpp"
 class Config
 {
 	private:
 		// Form
 		Config(void);
-		virtual	~Config();
 		Config(const Config& copy);
 		Config&	operator=(const Config& assign);
 		// Subject
-		size_t	doComment(std::string& raw_input, size_t &i);
-		size_t	doSpaces(std::string& raw_input, size_t& i);
-		void	doQuote(std::string& raw_input, size_t& i, size_t& j);
-		void	doToken(std::string& raw_input, size_t& i, size_t& j);
-		void	doExceptions(std::string& raw_input, size_t& i);
-		void	tokenizeFile(std::string& raw_input);
+		size_t	doComment(size_t &i);
+		size_t	doSpace(size_t& i);
+		void	doQuote(size_t& i, size_t& j);
+		void	doToken(size_t& i, size_t& j);
+		void	doExceptions(size_t& i);
+		void	tokenizeFile(void);
 		void	parseContent(void);
-		std::string&	readFile(std::string& file_path);
+		void	readFile(char* file_path);
 		std::vector<std::string>	file_content;
 		std::vector<Server>	pool;
+		std::string raw_input;
 	public:
-		Config(std::string &file);
+		virtual	~Config();
+		Config(char* file);
 		std::vector<Server>&	getPool(void);
 		std::vector<std::string>&	getFileContent(void);
 		class ErrorCatch : public std::exception {

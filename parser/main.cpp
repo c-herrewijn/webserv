@@ -1,33 +1,24 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        ::::::::            */
-/*   Server.hpp                                         :+:    :+:            */
+/*   main.cpp                                           :+:    :+:            */
 /*                                                     +:+                    */
 /*   By: itopchu <itopchu@student.codam.nl>           +#+                     */
 /*                                                   +#+                      */
-/*   Created: 2023/11/26 05:34:59 by itopchu       #+#    #+#                 */
-/*   Updated: 2023/11/26 05:34:59 by itopchu       ########   odam.nl         */
+/*   Created: 2023/11/26 14:13:43 by itopchu       #+#    #+#                 */
+/*   Updated: 2023/11/26 14:13:43 by itopchu       ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef SERVER_HPP
-# define SERVER_HPP
-# include <string>
-class Server
-{
-	private:
-	public:
-		Server(void);
-		~Server(void);
-		class ErrorCatch : public std::exception {
-			public:
-				ErrorCatch(const char* message) : errorMessage(message) {}
-				const char* what() const throw() override {
-					return errorMessage.c_str();
-				}
-			private:
-				std::string errorMessage;
-		};
-};
+#include "Config.hpp"
 
-#endif
+int main(int ac, char **av)
+{
+	if (ac != 2)
+	{
+		std::cout << "Only 1 argument accepted" << std::endl;
+		return (1);
+	}
+	Config config(av[1]);
+	return (0);
+}
