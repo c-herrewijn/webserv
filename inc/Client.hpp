@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 20:16:40 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/26 21:02:06 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/26 23:26:42 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 class ClientException : std::exception
 {
 	public:
-		ClientException( std::string const& msg) noexcept : std::exception() , _msg(msg) {};
+		ClientException( std::initializer_list<const char*> prompts) noexcept;
 		virtual const char* what() const noexcept override {return (this->_msg.c_str());}
 		virtual ~ClientException( void ) noexcept {}
 	
@@ -31,13 +31,13 @@ class Client
 		Client( const char*, const char* );
 		~Client( void );
 
-		void	findServer( void );
-		void	sendRequest( const char* ) const ;
-		void	printAddress( struct sockaddr_storage*, const char* preMsg=nullptr ) const noexcept ;
+		void		findServer( void );
+		void		sendRequest( const char* ) const ;
+		std::string	getAddress( const struct sockaddr_storage*) const noexcept ;
 
 	private:
 		int 						_sockfd = -1;
-		const char					*_port, *_connectTo;
+		const char					*_connectTo, *_port;
 		struct sockaddr_storage 	_serverAddr;
 		struct addrinfo 			_filter;
 

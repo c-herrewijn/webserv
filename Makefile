@@ -6,7 +6,7 @@
 #    By: fra <fra@student.codam.nl>                   +#+                      #
 #                                                    +#+                       #
 #    Created: 2023/11/25 18:04:49 by fra           #+#    #+#                  #
-#    Updated: 2023/11/26 21:21:25 by fra           ########   odam.nl          #
+#    Updated: 2023/11/26 21:51:21 by fra           ########   odam.nl          #
 #                                                                              #
 # **************************************************************************** #
 
@@ -35,13 +35,13 @@ RESET = \x1b[0m
 
 all: $(SERVER) $(CLIENT)
 
-server: all
+server: $(SERVER)
 	@clear
 	@./$(SERVER)
 
-client: all
+client: $(CLIENT)
 	@clear
-	@./$(CLIENT) "4243" "localhost"
+	@./$(CLIENT) "192.168.0.102" "4242"
 
 $(CLIENT): $(OBJECTS) $(MAIN_CLI)
 	@$(CC) $(CPPFLAGS) $(IFLAGS) $^ -o $@

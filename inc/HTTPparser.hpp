@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/26 19:55:51 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/26 22:41:12 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,10 +29,14 @@ class HTTPparser
 		void	parse( int connfd );
 		void	parseHeader( char* );
 		void	parseBody( int );
+		void	printData( void ) const ;
+		std::string const&	getRequest( void ) const;
+		std::string const&	getBody( void ) const;
+		std::string 		getHeader( void ) const;
 
 	private:
-		std::string		_body, _httpReq, _httpResp;
-		HTTPlist_t*		_header = nullptr;
+		std::string		_body, _httpReq;
+		HTTPlist_t*		_optionalHead = nullptr;
 
 		void	_addNode( char* );
 		void	_freeNodes( void );

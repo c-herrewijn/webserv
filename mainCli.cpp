@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 20:50:27 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/26 21:15:34 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/26 21:45:05 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,7 @@ void runWebClient( const char *port, const char *host )
 int main( int argc, char** argv)
 {
 	if (argc != 3)
-		std::cout << "wrong parameters: port and host needed\n";
+		std::cout << "wrong parameters: host and port needed\n";
 	else
 		runWebClient(argv[1], argv[2]);
 	return (0);
