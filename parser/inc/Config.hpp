@@ -34,6 +34,7 @@ class Config
 		void	doQuote(size_t& i, size_t& j);
 		void	doToken(size_t& i, size_t& j);
 		void	doExceptions(size_t& i);
+		void	doClean(void);
 		void	tokenizeFile(void);
 		void	parseContent(void);
 		void	readFile(char* file_path);

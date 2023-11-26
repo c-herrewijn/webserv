@@ -84,12 +84,17 @@ void	Config::doQuote(size_t& i, size_t& j)
 {
 	if (raw_input[i] != '\'' && raw_input[i] != '"')
 		return ;
+	char	type = raw_input[i];
 	j = i + 1;
-	while (j < raw_input.size() && raw_input[j] != raw_input[i])
+	while (raw_input[j] && raw_input[j] != type)
 		j++;
-	if (j >= raw_input.size())
+	if (raw_input[j] == type)
+	{
+		j++;
+		file_content.push_back(raw_input.substr(i, j - i));
+	}
+	else
 		throw ErrorCatch("Non-matching quote.");
-	file_content.emplace_back(raw_input.cbegin() + i, raw_input.cbegin() + j);
 	i = j;
 }
 
@@ -135,6 +140,38 @@ void	Config::doToken(size_t& i, size_t& j)
 	i = j;
 }
 
+void	Config::doClean()
+{
+	size_t pos = 0;
+	size_t consecutiveSpaces;
+
+	while (pos < file_content.size())
+	{
+		if (file_content[pos] == " ")
+		{
+			consecutiveSpaces = 0;
+			while (pos + consecutiveSpaces < file_content.size() && file_content[pos + consecutiveSpaces] == " ")
+				consecutiveSpaces++;
+			if (consecutiveSpaces > 1)
+				file_content.erase(file_content.begin() + pos + 1, file_content.begin() + pos + consecutiveSpaces);
+		}
+		pos++;
+	}
+	pos = 0;
+	while (pos < file_content.size())
+	{
+		if (file_content[pos].front() == '\'' || file_content[pos].front() == '\"')
+			file_content[pos].erase(file_content[pos].begin());
+		if (!file_content[pos].empty()
+			&& (file_content[pos].back() == '\'' || file_content[pos].back() == '\"'))
+			file_content[pos].pop_back();
+		if (file_content[pos].empty())
+			file_content.erase(file_content.begin() + pos);
+		else
+			pos++;
+	}
+}
+
 void	Config::tokenizeFile(void)
 {
 	size_t	i = 0, j = 0;
@@ -149,6 +186,7 @@ void	Config::tokenizeFile(void)
 	}
 	if (file_content.size() == 0)
 		throw ErrorCatch("No valuable input found in given config file.");
+	doClean();
 }
 
 void	Config::parseContent(void)

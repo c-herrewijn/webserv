@@ -16,9 +16,16 @@ int main(int ac, char **av)
 {
 	if (ac != 2)
 	{
-		std::cout << "Only 1 argument accepted" << std::endl;
+		std::cout << "1 argument accepted" << std::endl;
 		return (1);
 	}
-	Config config(av[1]);
+	try
+	{
+		Config config(av[1]);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
 	return (0);
 }
