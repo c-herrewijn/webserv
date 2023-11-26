@@ -6,110 +6,164 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 17:56:25 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/25 21:41:17 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/26 02:27:21 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 
-void getStrIP( struct sockaddr_storage *addr )
+Server::Server ( void ) : 
+	_port(_testPort("80"))
 {
+	this->_readfd = -1;
+	this->_writefd = -1;
+	memset(&this->_filter, 0, sizeof(this->_filter));
+	this->_filter.ai_flags = AI_PASSIVE;
+	this->_filter.ai_family = AF_UNSPEC;
+	this->_filter.ai_protocol = IPPROTO_TCP;
+	this->_backlog = BACKLOG;
+	memset(&this->_host, 0, sizeof(struct sockaddr));
+	memset(&this->_client, 0, sizeof(struct sockaddr_storage));
+}
+
+Server::Server ( const char *port, struct addrinfo *filter) : 
+	_port(_testPort(port))
+{
+	this->_readfd = -1;
+	this->_writefd = -1;
+	if (filter == nullptr)
+	{
+		memset(&this->_filter, 0, sizeof(this->_filter));
+		this->_filter.ai_flags = AI_PASSIVE;
+		this->_filter.ai_family = AF_UNSPEC;
+		this->_filter.ai_protocol = IPPROTO_TCP;
+	}
+	else
+		this->_filter = *filter;
+	this->_backlog = BACKLOG;
+	memset(&this->_host, 0, sizeof(struct sockaddr));
+	memset(&this->_client, 0, sizeof(struct sockaddr_storage));
+}
+
+Server::Server ( Server const& other ) noexcept : _port("")
+{
+	// ofc shallow copy of port and IP attributes would be problematic because
+	// of the cuncurrency of two servers accessing the same ip:port, if fact it 
+	// makes no sense to create copies of servers
+	(void) other;
+}
+
+Server::~Server ( void ) noexcept
+{
+	if (this->_readfd != -1)
+		close(this->_readfd);
+	if (this->_writefd != -1)
+		close(this->_writefd);
+}
+
+Server& Server::operator=( Server const& other ) noexcept
+{
+	// see copy constructor
+	(void) other;
+	return (*this);
+}
+
+const char*	Server::getPort( void ) const noexcept
+{
+	return (this->_port);
+}
+
+struct addrinfo	Server::getFilter( void ) const noexcept
+{
+	return(this->_filter);
+}
+
+void	Server::setFilter( struct addrinfo const& newFilter ) noexcept
+{
+	this->_filter = newFilter;
+}
+
+void	Server::bindPort( void )
+{
+	struct addrinfo *list, *tmp;
+
+	if (getaddrinfo(NULL, this->_port, &this->_filter, &list) == -1)
+		throw(ServerException("error: failed to get addresses"));
+	for (tmp=list; tmp!=nullptr; tmp=tmp->ai_next)
+	{
+		this->_readfd = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
+		if (this->_readfd == -1)
+			continue;
+		try
+		{
+			_clearUsage(SOL_SOCKET, SO_REUSEADDR, 1);
+		}
+		catch (ServerException const& e)
+		{
+			freeaddrinfo(list);
+			throw(e);
+		}
+		if (bind(this->_readfd, tmp->ai_addr, tmp->ai_addrlen) == -1)
+		{
+			close(this->_readfd);
+			continue;
+		}
+		break;
+	}
+	if (tmp == nullptr)
+	{
+		freeaddrinfo(list);
+		throw(ServerException("error : no available IP host found"));
+	}
+	this->_host = *(tmp->ai_addr);
+	printAddress((struct sockaddr_storage *) tmp->ai_addr, "binded on: ");
+	freeaddrinfo(list);
+}
+
+void	Server::start( void )
+{
+	unsigned int sizeAddr = sizeof(this->_client);
+	if (listen(this->_readfd, this->_backlog) == -1)
+		throw(ServerException("error : listening failed"));
+	this->_writefd = accept(this->_readfd, (struct sockaddr *) &this->_client, &sizeAddr);
+	if (this->_writefd == -1)
+		throw(ServerException("error : failed connection with client"));
+	printAddress(&this->_client,"connection established with client: ");
+}
+
+void	Server::interactWithClient( void )
+{
+}
+
+void	Server::printAddress( struct sockaddr_storage *addr, const char* preMsg ) const noexcept
+{
+	if (preMsg != nullptr)
+		std::cout << preMsg;
 	if (addr->ss_family == AF_INET)
 	{
 		char ipv4[INET_ADDRSTRLEN];
-		// ipv4[INET_ADDRSTRLEN] = '\0';
 		struct sockaddr_in *addr_v4 = (struct sockaddr_in*) addr;
-		// std::cout << "size v4: " << addr->ai_addrlen << "\n";
 		inet_ntop(addr_v4->sin_family, &(addr_v4->sin_addr), ipv4, sizeof(ipv4));
-		// write (1, ipv4, INET_ADDRSTRLEN);
-		std::cout << ipv4 << "\n";
-		// return (ipv4);
+		std::cout << ipv4 << ":" << ntohs(addr_v4->sin_port) << "\n";
 	}
 	else if (addr->ss_family == AF_INET6)
 	{
 		char ipv6[INET6_ADDRSTRLEN];
-		// ipv6[INET6_ADDRSTRLEN] = '\0';
 		struct sockaddr_in6 *addr_v6 = (struct sockaddr_in6*) addr;
-		// std::cout << "size v6: " << addr->ai_addrlen << "\n";
 		inet_ntop(addr_v6->sin6_family, &(addr_v6->sin6_addr), ipv6, sizeof(ipv6));
-		// write (1, ipv6, INET6_ADDRSTRLEN);
-		std::cout << ipv6 << "\n";
-		// return (ipv6);
+		std::cout << ipv6 << ":" << ntohs(addr_v6->sin6_port) << "\n";
 	}
-	// else
-	// 	return ("porca madonna");        // throw smt
-
 }
 
-int createSocket( void )
+const char*	Server::_testPort(const char *port) const
 {
-	int sockfd, connfd;
-	int yes = 1;
-	struct addrinfo hints, *list, *servAddr;
-	struct sockaddr_storage tmp;
-	struct sockaddr_in *cliAddr;
-	struct sockaddr_in6 *cliAddr6;
-	unsigned int tmpSize = sizeof(tmp);
+	if (socket(PF_INET, SOCK_STREAM, 0) == -1)
+		throw(ServerException("error: port not available"));
+	return (port);
+}
 
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_flags = AI_PASSIVE;
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_protocol = IPPROTO_TCP;
-	if (getaddrinfo(NULL, PORT, &hints, &list) == -1)
-		return (-1);
-	for (servAddr=list; servAddr!=nullptr; servAddr=servAddr->ai_next)
-	{
-		// std::cout << "found address: ";
-		// getStrIP((sockaddr_storage *) servAddr->ai_addr);
-		sockfd = socket(servAddr->ai_family, servAddr->ai_socktype, servAddr->ai_protocol);
-		if (sockfd == -1)
-			continue;
-		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
-		{
-			close(sockfd);
-			freeaddrinfo(list);
-			return (-1);
-		}
-		if (bind(sockfd, servAddr->ai_addr, servAddr->ai_addrlen) == -1)
-		{
-			close(sockfd);
-			continue;
-		}
-		else
-			break;
-	}
-	if (servAddr == nullptr)
-	{
-		freeaddrinfo(list);
-		return (-1);
-	}
-	// memset(&tmp, 0, sizeof(tmp));
-	// tmp = (struct sockaddr_storage *) servAddr->ai_addr;
-	// std::cout << "found available ip for connection: " << getStrIP((struct sockaddr_storage *) servAddr->ai_addr) << "\n";
-	std::cout << "found address: ";
-	getStrIP((sockaddr_storage *) servAddr->ai_addr);
-	freeaddrinfo(list);
-	if (listen(sockfd, BACKLOG) == -1)
-	{
-		close(sockfd);
-		return (-1);
-	}
-	// memset(tmp, 0, sizeof(*tmp));
-	connfd = accept(sockfd, (struct sockaddr *) &tmp, &tmpSize);
-	if (connfd == -1)
-	{
-		close(sockfd);
-		return (-1);
-	}
-	std::cout << "connection to client: ";
-	getStrIP(&tmp);
-	if (tmp.ss_family == AF_INET)
-		cliAddr = (struct sockaddr_in *) &tmp;
-	else if (tmp.ss_family == AF_INET6)
-		cliAddr6 = (struct sockaddr_in6 *) &tmp;
-	(void) cliAddr6;
-	(void) cliAddr;
-	close(connfd);
-	close(sockfd);
-	return (1);
+void	Server::_clearUsage(int level, int optname, int value)
+{
+	if (setsockopt(this->_readfd, level, optname, &value, sizeof(value)) == -1)
+		throw(ServerException("error: socket update failed"));
 }
