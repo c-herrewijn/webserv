@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/26 02:28:18 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/26 03:04:37 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,8 +43,7 @@ class Server
 		int 			_readfd, _writefd, _backlog;
 		const char*		_port;
 		struct addrinfo _filter;
-		struct sockaddr	_host;
-		struct sockaddr_storage	_client;
+		struct sockaddr_storage	_host, _client;
 
 		const char*	_testPort(const char *) const ;
 		void		_clearUsage(int, int, int);

@@ -6,14 +6,13 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 17:56:25 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/26 02:27:21 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/26 03:05:42 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 
-Server::Server ( void ) : 
-	_port(_testPort("80"))
+Server::Server ( void ) : _port(_testPort("80"))
 {
 	this->_readfd = -1;
 	this->_writefd = -1;
@@ -26,8 +25,7 @@ Server::Server ( void ) :
 	memset(&this->_client, 0, sizeof(struct sockaddr_storage));
 }
 
-Server::Server ( const char *port, struct addrinfo *filter) : 
-	_port(_testPort(port))
+Server::Server ( const char *port, struct addrinfo *filter) : _port(_testPort(port))
 {
 	this->_readfd = -1;
 	this->_writefd = -1;
@@ -115,8 +113,8 @@ void	Server::bindPort( void )
 		freeaddrinfo(list);
 		throw(ServerException("error : no available IP host found"));
 	}
-	this->_host = *(tmp->ai_addr);
-	printAddress((struct sockaddr_storage *) tmp->ai_addr, "binded on: ");
+	memmove(&this->_host, tmp->ai_addr, std::min(sizeof(struct sockaddr), sizeof(struct sockaddr_storage)));
+	printAddress(&this->_host, "binded on: ");
 	freeaddrinfo(list);
 }
 
@@ -133,6 +131,11 @@ void	Server::start( void )
 
 void	Server::interactWithClient( void )
 {
+	char buf[MAX_INPUT];
+	memset(buf, 0, MAX_INPUT);
+	send(this->_writefd, "Halo!\n", 6, 0);
+	recv(this->_writefd, buf, MAX_INPUT, 0);
+	std::cout << buf;
 }
 
 void	Server::printAddress( struct sockaddr_storage *addr, const char* preMsg ) const noexcept
