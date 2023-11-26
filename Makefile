@@ -6,17 +6,19 @@
 #    By: fra <fra@student.codam.nl>                   +#+                      #
 #                                                    +#+                       #
 #    Created: 2023/11/25 18:04:49 by fra           #+#    #+#                  #
-#    Updated: 2023/11/25 19:41:13 by fra           ########   odam.nl          #
+#    Updated: 2023/11/26 21:21:25 by fra           ########   odam.nl          #
 #                                                                              #
 # **************************************************************************** #
 
 SHELL := /bin/bash
 
-NAME := webserv
+SERVER := webserv
+CLIENT := webclient
 SRC_DIR := src
 OBJ_DIR := obj
 INCLUDE := inc
-MAIN := main.cpp
+MAIN_SERV := mainServ.cpp
+MAIN_CLI := mainCli.cpp
 HEADERS := $(wildcard $(INCLUDE)/*.hpp)
 SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS := $(patsubst $(SRC_DIR)%,$(OBJ_DIR)%,$(SOURCES:.cpp=.o))	
@@ -31,15 +33,23 @@ BLUE = \x1b[34;01m
 RESET = \x1b[0m
 
 
-all: $(NAME)
+all: $(SERVER) $(CLIENT)
 
-run: all
+server: all
 	@clear
-	@./$(NAME)
+	@./$(SERVER)
 
-$(NAME): $(OBJ_DIR) $(OBJECTS)
-	@$(CC) $(CPPFLAGS) $(IFLAGS) $(OBJECTS) $(MAIN) -o $(NAME)
-	@printf "(WebServ) $(GREEN)Created program $(NAME)$(RESET)\n"
+client: all
+	@clear
+	@./$(CLIENT) "4243" "localhost"
+
+$(CLIENT): $(OBJECTS) $(MAIN_CLI)
+	@$(CC) $(CPPFLAGS) $(IFLAGS) $^ -o $@
+	@printf "(WebServ) $(GREEN)Created program $@$(RESET)\n"
+
+$(SERVER): $(OBJECTS) $(MAIN_SERV)
+	@$(CC) $(CPPFLAGS) $(IFLAGS) $^ -o $@
+	@printf "(WebServ) $(GREEN)Created program $@$(RESET)\n"
 
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
@@ -56,8 +66,10 @@ clean:
 	done
 
 fclean: clean
-	@-rm -f $(NAME)
-	@printf "(WebServ) $(RED)Removed executable $(NAME)$(RESET)\n"
+	@-rm -f $(SERVER)
+	@printf "(WebServ) $(RED)Removed executable $(SERVER)$(RESET)\n"
+	@-rm -f $(CLIENT)
+	@printf "(WebServ) $(RED)Removed executable $(CLIENT)$(RESET)\n"
 
 re: fclean all
 

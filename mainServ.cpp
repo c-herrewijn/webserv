@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 17:56:34 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/26 03:33:44 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/26 17:59:32 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@ int runWebServer( void )
 	{
 		Server webServ("4242");
 		webServ.bindPort();
-		webServ.start();
+		webServ.handleSequentialConn();
 		return (0);
 	}
 	catch(ServerException const& e)

@@ -12,7 +12,7 @@
 
 #pragma once
 #include <unistd.h>           // execve, dup, dup2, pipe, fork, access
-#include <string.h>           // strerror
+#include <cstring>           // strerror
 #include <netdb.h>            // gai_strerror, getaddrinfo, freeaddrinfo
 #include <errno.h>            // errno
 #include <sys/socket.h>       // socketpair, htons, htonl, ntohs, ntohl, select, poll

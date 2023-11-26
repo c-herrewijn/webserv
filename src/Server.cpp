@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 17:56:25 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/26 06:19:49 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/26 18:51:02 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -110,38 +110,40 @@ void	Server::bindPort( void )
 	memmove(&this->_host, tmp->ai_addr, std::min(sizeof(struct sockaddr), sizeof(struct sockaddr_storage)));
 	printAddress(&this->_host, "binded on: ");
 	freeaddrinfo(list);
+	if (listen(this->_sockfd, this->_backlog) == -1)
+		throw(ServerException("error : listening failed"));
 }
 
-void	Server::start( void )
+void	Server::handleSequentialConn( void )
 {
 	int connfd;
 	struct sockaddr_storage client;
 	unsigned int sizeAddr = sizeof(client);
 
-	if (listen(this->_sockfd, this->_backlog) == -1)
-		throw(ServerException("error : listening failed"));
 	while (true)
 	{
 		connfd = accept(this->_sockfd, (struct sockaddr *) &client, &sizeAddr);
 		if (connfd == -1)
-			throw(ServerException("error : failed connection with client"));
+		{
+			printAddress(&client,"error : failed connection with client: ");
+			continue;
+		}
 		printAddress(&client,"connection established with client: ");
 		try
 		{
-			_parseHTTP(connfd);
+			parseRequest(connfd);
 		}
-		catch(ServerException const& e)
+		catch (ServerException const& e)
 		{
-			close(connfd);
-			throw(e);
+			std::cout << e.what() << "\n";
 		}
 		close(connfd);
 	}
 }
 
-void	Server::_interactWithClient( int connfd )
+void	Server::parseRequest( int connfd )
 {
-	(void) connfd;
+	this->_parser.parse(connfd);
 }
 
 void	Server::printAddress( struct sockaddr_storage *addr, const char* preMsg ) const noexcept
@@ -173,38 +175,6 @@ const char*	Server::_testPort(const char *port) const
 
 void	Server::_clearUsage(int level, int optname, int value)
 {
-if (setsockopt(this->_sockfd, level, optname, &value, sizeof(value)) == -1)
-throw(ServerException("error: socket update failed"));
-}
-
-void	Server::_parseHTTP( int fd ) const
-{
-	// GET / HTTP/1.1\r\nhaloo1\r\nhaloo2\r\n\r\nmuch body very http\r\n\r\n
-	// ssize_t read;
-	// char *eoh, *eol, *buf, *body;
-	size_t eoh = 0, eol = 0;
-	char cHeader[HEADER_MAX_SIZE];
-	// char *buf;
-	std::string header;
-	memset(cHeader, 0, HEADER_MAX_SIZE);
-	if (recv(fd, cHeader, HEADER_MAX_SIZE, 0) < 0)
-		throw(ServerException("error: failed reading client socket"));
-	header = cHeader;
-	eoh = header.find("\\r\\n\\r\\n");
-	if (eoh == std::string::npos)
-		throw(ServerException("error: header exceeds 8 KB maximum"));
-	// header[eoh] = '\0';
-	
-	
-	while (true)
-	{
-		eol = header.find("\\r\\n", eol);
-		// if (eol != std::string::npos)
-		// 	header[eol] = '\0';
-		std::cout << "buf line: " << header << "\n";
-		if (eol != std::string::npos)
-			header = header.substr(eol + 2);
-		else
-			break;
-	}
+	if (setsockopt(this->_sockfd, level, optname, &value, sizeof(value)) == -1)
+		throw(ServerException("error: socket update failed"));
 }
