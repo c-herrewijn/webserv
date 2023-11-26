@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/26 03:04:37 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/26 05:43:44 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,17 +36,18 @@ class Server
 		void			setFilter( struct addrinfo const& ) noexcept;
 		void			bindPort( void );
 		void			start( void );
-		void			interactWithClient( void );
 		void			printAddress( struct sockaddr_storage*, const char* preMsg=nullptr ) const noexcept ;
 
 	private:
-		int 			_readfd, _writefd, _backlog;
+		int 			_sockfd, _backlog;
 		const char*		_port;
 		struct addrinfo _filter;
-		struct sockaddr_storage	_host, _client;
+		struct sockaddr_storage	_host;
 
 		const char*	_testPort(const char *) const ;
 		void		_clearUsage(int, int, int);
+		void		_interactWithClient( int );
+		void		_parseHTTP( int ) const;
 		Server ( Server const& ) noexcept;
 		Server& operator=( Server const& ) noexcept;
 };

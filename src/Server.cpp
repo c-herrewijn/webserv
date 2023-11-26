@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 17:56:25 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/26 03:05:42 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/26 06:19:49 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,21 +14,18 @@
 
 Server::Server ( void ) : _port(_testPort("80"))
 {
-	this->_readfd = -1;
-	this->_writefd = -1;
+	this->_sockfd = -1;
 	memset(&this->_filter, 0, sizeof(this->_filter));
 	this->_filter.ai_flags = AI_PASSIVE;
 	this->_filter.ai_family = AF_UNSPEC;
 	this->_filter.ai_protocol = IPPROTO_TCP;
 	this->_backlog = BACKLOG;
 	memset(&this->_host, 0, sizeof(struct sockaddr));
-	memset(&this->_client, 0, sizeof(struct sockaddr_storage));
 }
 
 Server::Server ( const char *port, struct addrinfo *filter) : _port(_testPort(port))
 {
-	this->_readfd = -1;
-	this->_writefd = -1;
+	this->_sockfd = -1;
 	if (filter == nullptr)
 	{
 		memset(&this->_filter, 0, sizeof(this->_filter));
@@ -40,7 +37,6 @@ Server::Server ( const char *port, struct addrinfo *filter) : _port(_testPort(po
 		this->_filter = *filter;
 	this->_backlog = BACKLOG;
 	memset(&this->_host, 0, sizeof(struct sockaddr));
-	memset(&this->_client, 0, sizeof(struct sockaddr_storage));
 }
 
 Server::Server ( Server const& other ) noexcept : _port("")
@@ -53,10 +49,8 @@ Server::Server ( Server const& other ) noexcept : _port("")
 
 Server::~Server ( void ) noexcept
 {
-	if (this->_readfd != -1)
-		close(this->_readfd);
-	if (this->_writefd != -1)
-		close(this->_writefd);
+	if (this->_sockfd != -1)
+		close(this->_sockfd);
 }
 
 Server& Server::operator=( Server const& other ) noexcept
@@ -89,8 +83,8 @@ void	Server::bindPort( void )
 		throw(ServerException("error: failed to get addresses"));
 	for (tmp=list; tmp!=nullptr; tmp=tmp->ai_next)
 	{
-		this->_readfd = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
-		if (this->_readfd == -1)
+		this->_sockfd = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
+		if (this->_sockfd == -1)
 			continue;
 		try
 		{
@@ -101,9 +95,9 @@ void	Server::bindPort( void )
 			freeaddrinfo(list);
 			throw(e);
 		}
-		if (bind(this->_readfd, tmp->ai_addr, tmp->ai_addrlen) == -1)
+		if (bind(this->_sockfd, tmp->ai_addr, tmp->ai_addrlen) == -1)
 		{
-			close(this->_readfd);
+			close(this->_sockfd);
 			continue;
 		}
 		break;
@@ -120,22 +114,34 @@ void	Server::bindPort( void )
 
 void	Server::start( void )
 {
-	unsigned int sizeAddr = sizeof(this->_client);
-	if (listen(this->_readfd, this->_backlog) == -1)
+	int connfd;
+	struct sockaddr_storage client;
+	unsigned int sizeAddr = sizeof(client);
+
+	if (listen(this->_sockfd, this->_backlog) == -1)
 		throw(ServerException("error : listening failed"));
-	this->_writefd = accept(this->_readfd, (struct sockaddr *) &this->_client, &sizeAddr);
-	if (this->_writefd == -1)
-		throw(ServerException("error : failed connection with client"));
-	printAddress(&this->_client,"connection established with client: ");
+	while (true)
+	{
+		connfd = accept(this->_sockfd, (struct sockaddr *) &client, &sizeAddr);
+		if (connfd == -1)
+			throw(ServerException("error : failed connection with client"));
+		printAddress(&client,"connection established with client: ");
+		try
+		{
+			_parseHTTP(connfd);
+		}
+		catch(ServerException const& e)
+		{
+			close(connfd);
+			throw(e);
+		}
+		close(connfd);
+	}
 }
 
-void	Server::interactWithClient( void )
+void	Server::_interactWithClient( int connfd )
 {
-	char buf[MAX_INPUT];
-	memset(buf, 0, MAX_INPUT);
-	send(this->_writefd, "Halo!\n", 6, 0);
-	recv(this->_writefd, buf, MAX_INPUT, 0);
-	std::cout << buf;
+	(void) connfd;
 }
 
 void	Server::printAddress( struct sockaddr_storage *addr, const char* preMsg ) const noexcept
@@ -167,6 +173,38 @@ const char*	Server::_testPort(const char *port) const
 
 void	Server::_clearUsage(int level, int optname, int value)
 {
-	if (setsockopt(this->_readfd, level, optname, &value, sizeof(value)) == -1)
-		throw(ServerException("error: socket update failed"));
+if (setsockopt(this->_sockfd, level, optname, &value, sizeof(value)) == -1)
+throw(ServerException("error: socket update failed"));
+}
+
+void	Server::_parseHTTP( int fd ) const
+{
+	// GET / HTTP/1.1\r\nhaloo1\r\nhaloo2\r\n\r\nmuch body very http\r\n\r\n
+	// ssize_t read;
+	// char *eoh, *eol, *buf, *body;
+	size_t eoh = 0, eol = 0;
+	char cHeader[HEADER_MAX_SIZE];
+	// char *buf;
+	std::string header;
+	memset(cHeader, 0, HEADER_MAX_SIZE);
+	if (recv(fd, cHeader, HEADER_MAX_SIZE, 0) < 0)
+		throw(ServerException("error: failed reading client socket"));
+	header = cHeader;
+	eoh = header.find("\\r\\n\\r\\n");
+	if (eoh == std::string::npos)
+		throw(ServerException("error: header exceeds 8 KB maximum"));
+	// header[eoh] = '\0';
+	
+	
+	while (true)
+	{
+		eol = header.find("\\r\\n", eol);
+		// if (eol != std::string::npos)
+		// 	header[eol] = '\0';
+		std::cout << "buf line: " << header << "\n";
+		if (eol != std::string::npos)
+			header = header.substr(eol + 2);
+		else
+			break;
+	}
 }

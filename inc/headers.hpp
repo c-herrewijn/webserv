@@ -29,5 +29,6 @@
 #include <sys/wait.h>         // waitpid
 #include <signal.h>           // kill, signal
 #include <iostream>
+#include <string>
 #include "colors.hpp"
 #include "define.hpp"
