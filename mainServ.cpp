@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        ::::::::            */
-/*   main.cpp                                           :+:    :+:            */
+/*   mainServ.cpp                                       :+:    :+:            */
 /*                                                     +:+                    */
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 17:56:34 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/26 17:59:32 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/29 17:01:45 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@ int runWebServer( void )
 	}
 	catch(ServerException const& e)
 	{
-		std::cout << "Webserver - " << e.what() << "\n";
+		std::cout << e.what() << "\n";
 		return (-1);
 	}
 }

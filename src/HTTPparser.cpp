@@ -6,13 +6,13 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/26 23:56:26 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/30 01:31:24 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPparser.hpp"
 
-HTTPparser::~HTTPparser( void )
+HTTPparser::~HTTPparser( void ) noexcept
 {
 	this->_freeNodes();
 }
@@ -23,62 +23,65 @@ void	HTTPparser::parse( int connfd )
 	char	buffer[HEADER_MAX_SIZE + 1];
 	ssize_t readChar;
 
-	if (this->_optionalHead != nullptr)
-		this->_freeNodes();
 	memset(buffer, 0, HEADER_MAX_SIZE + 1);
 	readChar = read(connfd, buffer, HEADER_MAX_SIZE);
 	if (readChar <= 0)
 		throw(ServerException({"socket not available or empty"}));
 	eoh = strstr(buffer, "\r\n\r\n");
-	if (eoh == NULL)
+	if (eoh == nullptr)
 		throw(ServerException({"header exceeds 8 KB maximum"}));
 	else if (eoh == buffer)
 		throw(ServerException({"empty header"}));
 	eoh[2] = '\0';
 	this->parseHeader(buffer);
-	this->_body = eoh + 4;
-	if (readChar == HEADER_MAX_SIZE)
-		this->parseBody(connfd);
+	this->parseBody(eoh + 4, connfd);
 }
 
 void	HTTPparser::parseHeader( char *buffer )
 {
-	char *eol, *line;
+	char *eol, *line, *colon;
 
 	eol = strstr(buffer, "\r\n");
 	eol[0] = '\0';
 	this->_httpReq = buffer;
 	line = eol + 2;
+	if (this->_optionalHead != nullptr)
+		this->_freeNodes();
 	while (true)
 	{
 		eol = strstr(line, "\r\n");
-		if (eol == NULL)
+		if (eol == nullptr)
 			break;
 		eol[0] = '\0';
-		_addNode(line);
+		colon = strchr(line, ':');
+		if (colon == nullptr)
+			throw(ServerException({"bad format option header line: -", line}));
+		*colon = '\0';
+		_addNode(line, colon + 2);
 		line = eol + 2;
 	}
 }
 
-void	HTTPparser::parseBody( int connfd )
+void	HTTPparser::parseBody( char *startBody, int connfd )
 {
 	ssize_t	readChar;
 	char	buffer[HEADER_MAX_SIZE + 1];
 
+	this->_body = startBody;
 	while (true)
 	{
 		memset(buffer, 0, HEADER_MAX_SIZE + 1);
 		readChar = read(connfd, buffer, HEADER_MAX_SIZE);
 		if (readChar < 0)
 			throw(ServerException({"socket not available"}));
+		else if (readChar == 0)
+			break ;
 		buffer[readChar] = '\0';
 		this->_body += buffer;
-		if (readChar < 1)
-			break ;
 	}
 }
 
-void	HTTPparser::printData( void ) const
+void	HTTPparser::printData( void ) const noexcept
 {
 	std::cout << "request: " << this->_httpReq << "\n";
 	for(auto tmp = this->_optionalHead; tmp != nullptr; tmp = tmp->next)
@@ -86,17 +89,17 @@ void	HTTPparser::printData( void ) const
 	std::cout << "body: " << this->_body << "\n";
 }
 
-std::string const&	HTTPparser::getRequest( void ) const
+std::string const&	HTTPparser::getRequest( void ) const noexcept
 {
 	return (this->_httpReq);
 }
 
-std::string const&	HTTPparser::getBody( void ) const
+std::string const&	HTTPparser::getBody( void ) const noexcept
 {
 	return (this->_body);
 }
 
-std::string			HTTPparser::getHeader( void ) const
+std::string			HTTPparser::getHeader( void ) const noexcept
 {
 	std::string fullHeader = this->_httpReq;
 	fullHeader += "\r\n";
@@ -106,18 +109,13 @@ std::string			HTTPparser::getHeader( void ) const
 	return (fullHeader);
 }
 
-void	HTTPparser::_addNode( char* nodeContent )
+void	HTTPparser::_addNode( char *key, char *content ) noexcept
 {
-	char		*colon;
 	HTTPlist_t	*newNode, *tmp;
 
-	colon = strchr(nodeContent, ':');
-	if (colon == nullptr)
-		throw(ServerException({"bad format option header line: -", nodeContent}));
 	newNode = new HTTPlist_t();
-	*colon = '\0';
-	newNode->key = nodeContent;
-	newNode->content = colon + 2;
+	newNode->key = key;
+	newNode->content = content;
 	newNode->next = nullptr;
 	if (this->_optionalHead == nullptr)
 		this->_optionalHead = newNode;
@@ -130,7 +128,7 @@ void	HTTPparser::_addNode( char* nodeContent )
 	}
 }
 
-void	HTTPparser::_freeNodes( void )
+void	HTTPparser::_freeNodes( void ) noexcept
 {
 	HTTPlist_t	*toDrop;
 	while (this->_optionalHead)
@@ -141,12 +139,12 @@ void	HTTPparser::_freeNodes( void )
 	}
 }
 
-HTTPparser::HTTPparser( HTTPparser const& other )
+HTTPparser::HTTPparser( HTTPparser const& other ) noexcept
 {
 	(void) other;
 }
 
-HTTPparser& HTTPparser::operator=( HTTPparser const& other )
+HTTPparser& HTTPparser::operator=( HTTPparser const& other ) noexcept
 {
 	(void) other;
 	return (*this);

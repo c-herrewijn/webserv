@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 20:16:40 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/26 23:26:42 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/29 22:36:58 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,9 +27,9 @@ class ClientException : std::exception
 class Client
 {
 	public:
-		Client( void );
-		Client( const char*, const char* );
-		~Client( void );
+		Client( void ) noexcept;
+		Client( const char*, const char* ) noexcept;
+		~Client( void ) noexcept;
 
 		void		findServer( void );
 		void		sendRequest( const char* ) const ;
@@ -41,6 +41,6 @@ class Client
 		struct sockaddr_storage 	_serverAddr;
 		struct addrinfo 			_filter;
 
-		Client( Client const& );
-		Client&	operator=( Client const& );
+		Client( Client const& ) noexcept;
+		Client&	operator=( Client const& ) noexcept;
 };

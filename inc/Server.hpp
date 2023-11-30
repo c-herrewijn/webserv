@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/26 23:50:36 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/30 01:38:24 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,6 +38,7 @@ class Server
 		void			bindPort( void );
 		void			handleSequentialConn( void );
 		void			parseRequest( int ) ;
+		void			handleRequest( void ) ;
 		std::string		getAddress( const struct sockaddr_storage*) const noexcept ;
 
 	private:

@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/26 22:41:12 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/30 01:34:04 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,25 +23,26 @@ class HTTPparser
 	} HTTPlist_t;
 
 	public:
-		HTTPparser( void ) {};
-		~HTTPparser( void );
+		HTTPparser( void ) noexcept {};
+		~HTTPparser( void ) noexcept;
 
 		void	parse( int connfd );
 		void	parseHeader( char* );
-		void	parseBody( int );
-		void	printData( void ) const ;
-		std::string const&	getRequest( void ) const;
-		std::string const&	getBody( void ) const;
-		std::string 		getHeader( void ) const;
+		void	parseBody( char *, int );
+		void	printData( void ) const noexcept;
+		std::string const&	getRequest( void ) const noexcept;
+		std::string const&	getBody( void ) const noexcept;
+		std::string 		getHeader( void ) const noexcept;
 
 	private:
 		std::string		_body, _httpReq;
 		HTTPlist_t*		_optionalHead = nullptr;
 
-		void	_addNode( char* );
-		void	_freeNodes( void );
-		HTTPparser( HTTPparser const& );
-		HTTPparser& operator=( HTTPparser const& );
+		void	_addNode( char*, char * ) noexcept;
+		void	_freeNodes( void ) noexcept;
+
+		HTTPparser( HTTPparser const& ) noexcept;
+		HTTPparser& operator=( HTTPparser const& ) noexcept;
 };
 
 #include "Server.hpp"

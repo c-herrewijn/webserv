@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 20:22:27 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/26 23:27:08 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/29 22:37:49 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@ ClientException::ClientException( std::initializer_list<const char*> prompts) no
 		this->_msg += std::string(prompt) + " ";
 }
 
-Client::Client( void ) : _connectTo("localhost") , _port("80")
+Client::Client( void ) noexcept : _connectTo("localhost") , _port("80")
 {
 	memset(&this->_filter, 0, sizeof(this->_filter));
 	this->_filter.ai_family = AF_UNSPEC;
@@ -28,7 +28,7 @@ Client::Client( void ) : _connectTo("localhost") , _port("80")
 	this->_filter.ai_socktype = SOCK_STREAM;
 }
 
-Client::Client( const char* host, const char* port ) : _connectTo(host) , _port(port) 
+Client::Client( const char* host, const char* port ) noexcept : _connectTo(host) , _port(port) 
 {
 	memset(&this->_filter, 0, sizeof(this->_filter));
 	this->_filter.ai_family = AF_UNSPEC;
@@ -36,35 +36,26 @@ Client::Client( const char* host, const char* port ) : _connectTo(host) , _port(
 	this->_filter.ai_socktype = SOCK_STREAM;
 }
 
-Client::Client( Client const& other )
-{
-	(void) other;
-}
 
-Client::~Client( void )
+Client::~Client( void ) noexcept
 {
 	if (this->_sockfd != -1)
 		close(this->_sockfd);
 }
 
-Client&	Client::operator=( Client const& other )
-{
-	(void) other;
-	return (*this);
-}
 
 void	Client::findServer( void )
 {
 	struct addrinfo *list, *tmp;
 
-	if (getaddrinfo(this->_connectTo, this->_port, &this->_filter, &list) == -1)
+	if (getaddrinfo(this->_connectTo, this->_port, &this->_filter, &list) != 0)
 		throw(ClientException({"error: failed to find ", this->_connectTo, ":", this->_port}));
 	for (tmp=list; tmp!=nullptr; tmp=tmp->ai_next)
 	{
 		this->_sockfd = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
 		if (this->_sockfd == -1)
 			continue;
-		if (connect(this->_sockfd, tmp->ai_addr, tmp->ai_addrlen) != -1)
+		if (connect(this->_sockfd, tmp->ai_addr, tmp->ai_addrlen) == 0)
 			break;
 		close(this->_sockfd);
 	}
@@ -106,4 +97,15 @@ std::string	Client::getAddress( const struct sockaddr_storage *addr ) const noex
 		ipAddress = std::string(ipv6) + std::string(":") + std::to_string(ntohs(addr_v6->sin6_port));
 	}
 	return (ipAddress);
+}
+
+Client::Client( Client const& other ) noexcept
+{
+	(void) other;
+}
+
+Client&	Client::operator=( Client const& other ) noexcept
+{
+	(void) other;
+	return (*this);
 }

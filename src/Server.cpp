@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 17:56:25 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/26 23:56:15 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/30 01:38:08 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,14 +50,6 @@ Server::Server ( const char *port, struct addrinfo *filter) : _port(port)
 	memset(&this->_host, 0, sizeof(struct sockaddr));
 }
 
-Server::Server ( Server const& other ) noexcept : _port("")
-{
-	// ofc shallow copy of port and IP attributes would be problematic because
-	// of the cuncurrency of two servers accessing the same ip:port, if fact it 
-	// makes no sense to create copies of servers
-	(void) other;
-}
-
 Server::~Server ( void ) noexcept
 {
 	if (this->_sockfd != -1)
@@ -66,12 +58,6 @@ Server::~Server ( void ) noexcept
 		close(this->_connfd);
 }
 
-Server& Server::operator=( Server const& other ) noexcept
-{
-	// see copy constructor
-	(void) other;
-	return (*this);
-}
 
 const char*	Server::getPort( void ) const noexcept
 {
@@ -101,7 +87,7 @@ void	Server::bindPort( void )
 		if (this->_sockfd == -1)
 			continue;
 		if (setsockopt(this->_sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) != 0)
-			std::cout << "failed to update socket, binding anyway... \n";
+			std::cout << "failed to update socket, trying to bind anyway... \n";
 		if (bind(this->_sockfd, tmp->ai_addr, tmp->ai_addrlen) == 0)
 			break;
 		close(this->_sockfd);
@@ -120,12 +106,13 @@ void	Server::bindPort( void )
 
 void	Server::handleSequentialConn( void )
 {
-	struct sockaddr_storage client;
-	unsigned int sizeAddr = sizeof(client);
+	struct sockaddr_storage 	client;
+	unsigned int 				sizeAddr = sizeof(client);
+	int							connfd = -1;
 	while (true)
 	{
-		this->_connfd = accept(this->_sockfd, (struct sockaddr *) &client, &sizeAddr);
-		if (this->_connfd == -1)
+		connfd = accept(this->_sockfd, (struct sockaddr *) &client, &sizeAddr);
+		if (connfd == -1)
 		{
 			std::cout << "failed connection with: " << this->getAddress(&client) << '\n';
 			continue;
@@ -133,22 +120,50 @@ void	Server::handleSequentialConn( void )
 		std::cout << "connected to " << this->getAddress(&client) << '\n';
 		try
 		{
-			parseRequest(this->_connfd);
+			this->parseRequest(connfd);
+			this->handleRequest();
 		}
 		catch(ServerException const& err)
 		{
-			std::cerr << err.what() << '\n';
+			close(connfd);
+			throw(err);	
 		}
-		close(this->_connfd);
+		close(connfd);
 	}
 }
 
 void	Server::parseRequest( int connfd )
 {
-	this->_parser.parse(connfd);
-	// this->_parser.printData();
-	std::cout << this->_parser.getHeader();
-	std::cout << this->_parser.getBody();
+	try
+	{
+		this->_parser.parse(connfd);
+	}
+	catch(ServerException const& err)
+	{
+		std::cerr << err.what() << '\n';
+		return ;
+	}
+	this->_parser.printData();
+}
+
+void	Server::handleRequest( void )
+{
+	pid_t 	child = -1;
+	int		exitStat = 0;
+
+	child = fork();
+	if (child == -1)
+		throw(ServerException({"fork failed"}));
+	else if (child == 0)
+	{
+		// do stuff ...
+	}
+	if (waitpid(child, &exitStat, 0) < 0)
+		throw(ServerException({"error while terminating process"}));
+	else if (WIFEXITED(exitStat) == 0)
+		std::cout << "child process killed by signal (unexpected)\n";
+	else if (WEXITSTATUS(exitStat) == 1)
+		std::cout << "bad request format\n";
 }
 
 std::string	Server::getAddress( const struct sockaddr_storage *addr ) const noexcept
@@ -169,4 +184,19 @@ std::string	Server::getAddress( const struct sockaddr_storage *addr ) const noex
 		ipAddress = std::string(ipv6) + std::string(":") + std::to_string(ntohs(addr_v6->sin6_port));
 	}
 	return (ipAddress);
+}
+
+Server::Server ( Server const& other ) noexcept : _port("")
+{
+	// ofc shallow copy of port and IP attributes would be problematic because
+	// of the cuncurrency of two servers accessing the same ip:port, if fact it 
+	// makes no sense to create copies of servers
+	(void) other;
+}
+
+Server& Server::operator=( Server const& other ) noexcept
+{
+	// see copy constructor
+	(void) other;
+	return (*this);
 }
