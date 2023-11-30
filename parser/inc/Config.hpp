@@ -17,7 +17,6 @@
 # include <sstream>
 # include <string>
 # include <exception>
-# include <vector>
 # include <cctype>
 # include <stack>
 # include "Server.hpp"
