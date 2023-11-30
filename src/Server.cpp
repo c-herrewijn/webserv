@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 17:56:25 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/30 01:38:08 by fra           ########   odam.nl         */
+/*   Updated: 2023/11/30 22:51:24 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,7 +58,6 @@ Server::~Server ( void ) noexcept
 		close(this->_connfd);
 }
 
-
 const char*	Server::getPort( void ) const noexcept
 {
 	return (this->_port);
@@ -109,6 +108,7 @@ void	Server::handleSequentialConn( void )
 	struct sockaddr_storage 	client;
 	unsigned int 				sizeAddr = sizeof(client);
 	int							connfd = -1;
+
 	while (true)
 	{
 		connfd = accept(this->_sockfd, (struct sockaddr *) &client, &sizeAddr);
@@ -130,6 +130,16 @@ void	Server::handleSequentialConn( void )
 		}
 		close(connfd);
 	}
+}
+
+void	Server::handleMultipleConn( void )
+{
+	struct pollfd				fds;
+	struct sockaddr_storage 	client;
+	unsigned int 				sizeAddr = sizeof(client);
+	int							connfd = -1;
+
+	
 }
 
 void	Server::parseRequest( int connfd )
@@ -156,7 +166,8 @@ void	Server::handleRequest( void )
 		throw(ServerException({"fork failed"}));
 	else if (child == 0)
 	{
-		// do stuff ...
+		// pipe setup (create a pipe and then dup one end to the client fd?)
+		// execve stuff ...
 	}
 	if (waitpid(child, &exitStat, 0) < 0)
 		throw(ServerException({"error while terminating process"}));
