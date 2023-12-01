@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/01 02:14:10 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/01 02:57:20 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,10 +16,10 @@
 typedef enum HTTPreqStatus_s
 {
     FMT_OK,
-    FMT_UNSET,			//"request not fully parsed"
-    FMT_EMPTY,			//"empty header"
+    FMT_BADFMT,			//"empty header"
     FMT_BIGHEAD,		//"header exceeds 8 KB maximum"
     FMT_BADOPT,			//"bad format option header line"
+	FMT_EOF,			//"closed connection"
 } HTTPreqStatus_t;
 
 typedef struct HTTPrequest_f

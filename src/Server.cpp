@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 17:56:25 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/01 02:34:03 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/01 03:14:04 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -101,6 +101,20 @@ void	Server::bindPort( void )
 		throw(ServerException({"listening on", this->getAddress(&this->_host).c_str()}));
 }
 
+int		Server::acceptConnection( void )
+{
+	struct sockaddr_storage 	client;
+	unsigned int 				sizeAddr = sizeof(client);
+	int							connfd = -1;
+
+	connfd = accept(this->_listener, (struct sockaddr *) &client, &sizeAddr);
+	if (connfd == -1)
+		std::cout << "failed connection with: " << this->getAddress(&client) << '\n';
+	else
+		std::cout << "connected to " << this->getAddress(&client) << '\n';
+	return (connfd);
+}
+
 void	Server::handleSequentialConn( void )
 {
 	int							connfd = -1;
@@ -125,25 +139,12 @@ void	Server::handleSequentialConn( void )
 	}
 }
 
-int		Server::acceptConnection( void )
-{
-	struct sockaddr_storage 	client;
-	unsigned int 				sizeAddr = sizeof(client);
-	int							connfd = -1;
-
-	connfd = accept(this->_listener, (struct sockaddr *) &client, &sizeAddr);
-	if (connfd == -1)
-		std::cout << "failed connection with: " << this->getAddress(&client) << '\n';
-	else
-		std::cout << "connected to " << this->getAddress(&client) << '\n';
-	return (connfd);
-}
-
 void	Server::handleMultipleConn( void )
 {
-	struct pollfd				newfd;
-	HTTPrequest_t				req;
-	int							nConn;
+	struct pollfd	newfd;
+	HTTPrequest_t	req;
+	HTTPreqStatus_t status;
+	int				nConn;
 
 	newfd.fd = this->_listener;
 	newfd.events = POLLIN;
@@ -151,6 +152,7 @@ void	Server::handleMultipleConn( void )
 	this->_connfds.push_back(newfd);
 	while (true)
 	{
+		std::cout << "call poll\n";
 		nConn = poll(this->_connfds.data(), this->_connfds.size(), 60000);
 		if (nConn == -1)
 			throw(ServerException({"poll failure"}));
@@ -170,9 +172,12 @@ void	Server::handleMultipleConn( void )
 				}
 				else			// new message
 				{
-					// if first read is zero then the connection is closed (?) nb check HTTPparser.parse()
-					if (this->parseRequest(socket.fd, req) == FMT_OK)
-						this->handleRequest(req);
+					status = this->parseRequest(socket.fd, req);
+					if (status == FMT_EOF)
+					{
+						close(socket.fd);
+						socket.fd = -1;
+					}
 				}
 			}
 		}
@@ -184,8 +189,11 @@ HTTPreqStatus_t	Server::parseRequest( int connfd, HTTPrequest_t& req )
 	HTTPreqStatus_t	status;
 
 	status = HTTPparser::parse(connfd, req);
-	if (status != FMT_OK)
+	if (status == FMT_EOF)
+		std::cout << "end connection\n";
+	else if (status != FMT_OK)
 		std::cout << "parse request error: " << HTTPparser::printStatus(status) << '\n';
+	HTTPparser::printData(req);
 	return (status);
 }
 

@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/01 02:29:01 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/01 02:58:08 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,11 +23,13 @@ HTTPreqStatus_t	HTTPparser::parse( int connfd, HTTPrequest_t &req )
 	readChar = read(connfd, buffer, HEADER_MAX_SIZE);
 	if (readChar < 0)
 		throw(ServerException({"socket not available or empty"}));
+	else if (readChar == 0)
+		return (FMT_EOF);
 	eoh = strstr(buffer, "\r\n\r\n");
 	if (eoh == nullptr)
 		return (FMT_BIGHEAD);
 	else if (eoh == buffer)
-		return (FMT_EMPTY);
+		return (FMT_BADFMT);
 	eoh[0] = '\0';
 	newReq.request = buffer;
 	eol = strstr(buffer, "\r\n");
