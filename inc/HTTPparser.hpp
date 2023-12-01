@@ -6,41 +6,44 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/30 01:34:04 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/01 02:14:10 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 #include "headers.hpp"
 
+typedef enum HTTPreqStatus_s
+{
+    FMT_OK,
+    FMT_UNSET,			//"request not fully parsed"
+    FMT_EMPTY,			//"empty header"
+    FMT_BIGHEAD,		//"header exceeds 8 KB maximum"
+    FMT_BADOPT,			//"bad format option header line"
+} HTTPreqStatus_t;
+
+typedef struct HTTPrequest_f
+{
+	std::string			request;
+	std::list<std::pair<std::string, std::string> > options;
+	std::string			body;
+	bool				hasOpts = false;
+	bool				hasBody = false;
+} HTTPrequest_t;
+
 class HTTPparser
 {
-	typedef struct HTTPlist_f
-	{
-		std::string			key;
-		std::string			content;
-		struct HTTPlist_f	*next;
-	} HTTPlist_t;
-
 	public:
-		HTTPparser( void ) noexcept {};
-		~HTTPparser( void ) noexcept;
-
-		void	parse( int connfd );
-		void	parseHeader( char* );
-		void	parseBody( char *, int );
-		void	printData( void ) const noexcept;
-		std::string const&	getRequest( void ) const noexcept;
-		std::string const&	getBody( void ) const noexcept;
-		std::string 		getHeader( void ) const noexcept;
+		static HTTPreqStatus_t	parse( int connfd, HTTPrequest_t& ) ;
+		static void				printData( HTTPrequest_t ) noexcept;
+		static const char*		printStatus( HTTPreqStatus_t ) noexcept;
 
 	private:
-		std::string		_body, _httpReq;
-		HTTPlist_t*		_optionalHead = nullptr;
+		static HTTPreqStatus_t	_getOptions( char*, std::list<std::pair<std::string, std::string> >& ) noexcept;
+		static std::string		_getBody( char *, int );
 
-		void	_addNode( char*, char * ) noexcept;
-		void	_freeNodes( void ) noexcept;
-
+		HTTPparser( void ) noexcept {};
+		~HTTPparser( void ) noexcept;
 		HTTPparser( HTTPparser const& ) noexcept;
 		HTTPparser& operator=( HTTPparser const& ) noexcept;
 };

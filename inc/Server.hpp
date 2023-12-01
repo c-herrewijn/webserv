@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/30 22:49:41 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/01 02:19:49 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,18 +36,19 @@ class Server
 		struct addrinfo	getFilter( void ) const noexcept ;
 		void			setFilter( struct addrinfo const& ) noexcept;
 		void			bindPort( void );
+		int				acceptConnection( void ) ;
 		void			handleSequentialConn( void );
 		void			handleMultipleConn( void );
-		void			parseRequest( int ) ;
-		void			handleRequest( void ) ;
+		HTTPreqStatus_t	parseRequest( int, HTTPrequest_t& ) ;
+		void			handleRequest( HTTPrequest_t ) ;
 		std::string		getAddress( const struct sockaddr_storage*) const noexcept ;
 
 	private:
-		int 			_sockfd, _connfd, _backlog;
+		int 			_listener, _backlog;
+		std::vector<struct pollfd> _connfds;
 		const char*		_port;
 		struct addrinfo _filter;
 		struct sockaddr_storage	_host;
-		HTTPparser		_parser;
 
 		Server ( Server const& ) noexcept;
 		Server& operator=( Server const& ) noexcept;

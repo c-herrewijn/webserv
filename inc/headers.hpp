@@ -15,8 +15,9 @@
 #include <cstring>           // strerror
 #include <netdb.h>            // gai_strerror, getaddrinfo, freeaddrinfo
 #include <cerrno>            // errno
-#include <sys/socket.h>       // socketpair, htons, htonl, ntohs, ntohl, select, poll
-// #include <sys/epoll.h>     // epoll_create, epoll_ctl, epoll_wait
+#include <sys/socket.h>       // socketpair, htons, htonl, ntohs, ntohl, select
+#include <sys/epoll.h>     // epoll_create, epoll_ctl, epoll_wait
+#include <sys/poll.h>     // poll
 // #include <sys/event.h>     // kqueue, kevent
 #include <netinet/in.h>       // socket, accept, listen, bind, connect
 #include <arpa/inet.h>        // htons, htonl, ntohs, ntohl
@@ -33,6 +34,7 @@
 #include <string>
 #include <vector>
 #include <set>
-#include <array>
+#include <list>
+// #include <pair>
 #include "colors.hpp"
 #include "define.hpp"
