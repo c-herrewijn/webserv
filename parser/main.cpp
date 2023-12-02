@@ -14,18 +14,43 @@
 
 int main(int ac, char **av)
 {
-	if (ac != 2)
-	{
-		std::cout << "1 argument accepted" << std::endl;
-		return (1);
-	}
+	Config *config;
+
+	config = new Config();
 	try
 	{
-		Config config(av[1]);
+		if (av[1])
+			config->fillConfig(av[1]);
+		else
+			config->fillConfig(DEF_CONF);
 	}
 	catch(const std::exception& e)
 	{
 		std::cerr << e.what() << '\n';
+		delete config;
+		return (1);
 	}
+	std::vector<std::vector<std::string>> separated = config->divideContent();
+	delete config;
+	std::vector<Server> servers;
+	for (std::vector<std::vector<std::string>>::iterator it = separated.begin(); it != separated.end(); it++)
+	{
+		Server tmp;
+		try
+		{
+			tmp.parseBlock(*it);
+			servers.push_back(tmp);
+		}
+		catch(const std::exception& e)
+		{
+			std::cerr << "Failure on Server index: " << std::distance(separated.begin(), it) << "\n";
+			std::cerr << C_RED << e.what() << C_RESET "\n";
+			std::cerr << "Continuing with parsing other servers...\n";
+		}
+	}
+	// "servers" must contain valid servers
 	return (0);
 }
+
+// c++ -L../inc -I../inc src/Config.cpp src/Server.cpp main.cpp -Iinc -Linc -o runner
+// ./runner /default/default.conf

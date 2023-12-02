@@ -13,62 +13,74 @@
 #include "Config.hpp"
 #include "Server.hpp"
 
-Config::Config(void) {}
+Config::Config(void) { }
 
-Config::~Config(void)
-{
-	pool.clear();
-	file_content.clear();
-}
+Config::~Config(void) { }
 
-Config::Config(char* file)
+void	Config::fillConfig(const std::string& file)
 {
 	readFile(file);
 	tokenizeFile();
-	parseContent();
+	checkBrackets();
+}
+
+std::vector<std::vector<std::string>>	Config::divideContent(void)
+{
+	std::vector<std::vector<std::string>>	ret;
+	std::vector<std::string> tmp;
+	int	bracks = 0;
+	for (std::vector<std::string>::iterator it = file_content.begin(); it != file_content.end(); it++)
+	{
+		tmp.push_back(*it);
+		if (*it == "{")
+			bracks++;
+		else if (*it == "}")
+		{
+			bracks--;
+			if (bracks == 0)
+			{
+				ret.push_back(std::move(tmp));
+				tmp.clear();
+			}
+		}
+	}
+	ret.push_back(std::move(tmp));
+	return (ret);
 }
 
 Config& Config::operator=(const Config& assign)
 {
-	pool.clear();
 	file_content.clear();
-	pool = assign.pool;
 	file_content = assign.file_content;
 	return (*this);
 }
 
 Config::Config(const Config& copy) :
-	file_content(copy.file_content),
-	pool(copy.pool)
+	file_content(copy.file_content)
 {
 
 }
 
-std::vector<Server>&	Config::getPool(void)
-{
-	return (pool);
-}
-
-std::vector<std::string>&	Config::getFileContent(void)
+std::vector<std::string>	Config::getFileContent(void)
 {
 	return (file_content);
 }
 
-void	Config::readFile(char* file_path)
+void	Config::readFile(const std::string& file_path)
 {
 	std::ifstream inputFile(file_path);
 	if (!inputFile.is_open())
-		throw ErrorCatch(("Error opening the file: " + std::string(file_path)).c_str());
+		throw ErrorCatch("Error opening the file: " + file_path);
 
 	std::ostringstream	fileContentStream;
 	fileContentStream << inputFile.rdbuf();
 	if (inputFile.bad())
-		throw ErrorCatch(("Error reading the file: " + std::string(file_path)).c_str());
+		throw ErrorCatch("Error reading the file: " + file_path);
 
 	raw_input = fileContentStream.str();
 	inputFile.close();
 	if (raw_input.empty())
-		throw ErrorCatch(("The file is empty: " + std::string(file_path)).c_str());
+		throw ErrorCatch("The file is empty: " + file_path);
 }
 
 size_t	Config::doComment(size_t &i)
@@ -142,22 +154,14 @@ void	Config::doToken(size_t& i, size_t& j)
 
 void	Config::doClean()
 {
-	size_t pos = 0;
-	size_t consecutiveSpaces;
-
-	while (pos < file_content.size())
+	for (std::vector<std::string>::iterator it = file_content.begin(); it != file_content.end();)
 	{
-		if (file_content[pos] == " ")
-		{
-			consecutiveSpaces = 0;
-			while (pos + consecutiveSpaces < file_content.size() && file_content[pos + consecutiveSpaces] == " ")
-				consecutiveSpaces++;
-			if (consecutiveSpaces > 1)
-				file_content.erase(file_content.begin() + pos + 1, file_content.begin() + pos + consecutiveSpaces);
-		}
-		pos++;
+		if (*it == " ")
+			it = file_content.erase(it);
+		else
+			it++;
 	}
-	pos = 0;
+	size_t pos = 0;
 	while (pos < file_content.size())
 	{
 		if (file_content[pos].front() == '\'' || file_content[pos].front() == '\"')
@@ -189,7 +193,25 @@ void	Config::tokenizeFile(void)
 	doClean();
 }
 
-void	Config::parseContent(void)
+void	Config::checkBrackets(void)
+{
+	int bracks = 0;
+	std::vector<std::string>::iterator it;
+	for (it = file_content.begin(); it != file_content.end(); ++it)
+	{
+		if (*it == "{")
+			bracks++;
+		else if (*it == "}")
+		{
+			if (--bracks < 0)
+				throw ErrorCatch("Mismatched brackets");
+		}
+	}
+	if (bracks)
+		throw ErrorCatch("Missing brackets");
+}
+
+void	Config::printContent(void)
 {
 	size_t i = 0, j = 0;
 	while (i < file_content.size())
