@@ -108,12 +108,24 @@ void	Server::parseAlias(std::vector<std::string>& block)
 
 void	Server::fillServer(std::vector<std::string>& block)
 {
-	
+	std::map<std::string, ParserFunction>::iterator index;
+
+	for (std::vector<std::string>::iterator it = block.begin(); it != block.end(); it++)
+	{
+		index = serverMap.find(*it);
+		if (index == serverMap.end())
+		{
+			index = locatMap.find(*it);
+			if (index == locatMap.end())
+				throw ErrorCatch("\"" + *it + "\" is not a valid keyword in this context");
+		}
+		(this->*(index->second))(block);
+	}
 }
 
 bool	Server::clearEmpty(std::vector<std::string>& block)
 {
-	for (std::vector<std::string>::iterator it = block.begin(); it != block.end(); )
+	for (std::vector<std::string>::iterator it = block.begin(); it != block.end();)
 	{
 		if (*it == " ")
 			it = block.erase(it);

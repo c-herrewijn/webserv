@@ -120,7 +120,7 @@ class Server
 		std::vector<Location>	location; // declared Locations
 		class ErrorCatch : public std::exception {
 			public:
-				ErrorCatch(const char* message) : errorMessage(message) {}
+				ErrorCatch(const std::string& message) : errorMessage(message) {}
 				const char* what() const throw() override {
 					return errorMessage.c_str();
 				}

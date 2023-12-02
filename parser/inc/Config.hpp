@@ -54,7 +54,7 @@ class Config
 				}
 			private:
 				std::string errorMessage;
-	};
+		};
 };
 
 #endif
