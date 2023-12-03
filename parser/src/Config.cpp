@@ -50,13 +50,15 @@ std::vector<std::vector<std::string>>	Config::divideContent(void)
 
 Config& Config::operator=(const Config& assign)
 {
+	raw_input = assign.raw_input;
 	file_content.clear();
 	file_content = assign.file_content;
 	return (*this);
 }
 
 Config::Config(const Config& copy) :
-	file_content(copy.file_content)
+	file_content(copy.file_content),
+	raw_input(copy.raw_input)
 {
 
 }

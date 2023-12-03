@@ -20,7 +20,7 @@
 # include <cctype>
 # include <stack>
 # include "Server.hpp"
-# define DEF_CONF "default/default.conf"
+
 class Config
 {
 	private:

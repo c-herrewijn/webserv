@@ -1,0 +1,74 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        ::::::::            */
+/*   Parameters.hpp                                     :+:    :+:            */
+/*                                                     +:+                    */
+/*   By: itopchu <itopchu@student.codam.nl>           +#+                     */
+/*                                                   +#+                      */
+/*   Created: 2023/12/02 21:03:01 by itopchu       #+#    #+#                 */
+/*   Updated: 2023/12/02 21:03:01 by itopchu       ########   odam.nl         */
+/*                                                                            */
+/* ************************************************************************** */
+
+#ifndef PARAMETERS_HPP
+# define PARAMETERS_HPP
+# include <vector>
+# include <string>
+# include <unordered_set>
+# include <unordered_map>
+# define DEF_SIZE 32
+# define DEF_SIZE_TYPE "M"
+
+class Parameters
+{
+	private:
+		std::pair<size_t, char> max_size;	// Will be overwriten by last found
+		bool	autoindex;	// FALSE in default, will be overwriten.
+		std::unordered_set<std::string>	indexes;	// Will be searched in given order
+		std::string	root;		// Last found will be used.
+		std::unordered_map<size_t, std::string>	error_pages;	// Same status codes will be overwriten
+		std::unordered_map<size_t, std::string>	returns;	// Same reponse codes are overwriten by the last
+		// cgi_extension
+		// // upload
+
+	public:
+		void	fill(std::vector<std::string>& block);
+		void	parseRoot(std::vector<std::string>& block);
+		void	parseBodySize(std::vector<std::string>& block);
+		void	parseAutoindex(std::vector<std::string>& block);
+		void	parseIndex(std::vector<std::string>& block);
+		void	parseErrorPage(std::vector<std::string>& block);
+		void	parseReturn(std::vector<std::string>& block);
+
+		void	setRoot(std::string& val);
+		void	setSize(long val, int c);
+		void	setAutoindex(bool status);
+		void	addIndex(const std::string& val);
+		const std::unordered_set<std::string>& getIndexes(void);
+		/*
+			To Do:
+			setErrorPages
+			setReturns
+			getMaxSize
+			getAutoindex
+			getRoot
+			getErrorPages
+			getReturns
+		*/
+		Parameters(void);
+		virtual ~Parameters(void);
+		Parameters(const Parameters& copy);
+		Parameters&	operator=(const Parameters& assign);
+		class ErrorCatch : public std::exception
+		{
+			public:
+				ErrorCatch(const std::string& message) : errorMessage(message) {}
+				const char* what() const throw() override {
+					return errorMessage.c_str();
+				}
+			private:
+				std::string errorMessage;
+		};
+};
+
+#endif

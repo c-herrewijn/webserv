@@ -14,27 +14,21 @@
 
 Server::Server(void)
 {
-	serverMap["listen"] = &Server::parseListen;
-	serverMap["server_name"] = &Server::parseServerName;
-	serverMap["location"] = &Server::parseLocation;
 
-	paramMap["root"] = &Server::parseRoot;
-	paramMap["client_max_body_size"] = &Server::parseBodySize;
-	paramMap["autoindex"] = &Server::parseAutoindex;
-	paramMap["index"] = &Server::parseIndex;
-	paramMap["error_page"] = &Server::parseErrorPage;
-	paramMap["return"] = &Server::parseReturn;
-
-	locatMap["allowedMethods"] = &Server::parseAllowedMethod;
-	locatMap["alias"] = &Server::parseAlias;
-	locatMap["location"] = &Server::parseLocation;
 }
 
-Server::~Server(void) { }
+Server::~Server(void)
+{
+	listens.clear();
+	names.clear();
+	names.clear();
+	location.clear();
+}
 
 Server::Server(const Server& copy) :
 	listens(copy.listens),
 	names(copy.names),
+	params(copy.params),
 	location(copy.location)
 {
 
@@ -48,78 +42,96 @@ Server&	Server::operator=(const Server& assign)
 	listens = assign.listens;
 	names = assign.names;
 	location = assign.location;
+	params = assign.params;
 	return (*this);
 }
 
 void	Server::parseListen(std::vector<std::string>& block)
 {
-
+	block.erase(block.begin());
+	if (block.front() == ";")
+		throw ErrorCatch("Can't use ';' after keyword 'listen'");
+	if (block.front() == "default_server")
+		throw ErrorCatch("Before 'default_server' an ip/port expected");
+	for (std::vector<std::string>::iterator it = block.begin(); it != block.end();)
+	{
+		Listen	tmp;
+		tmp.fillValues(block);
+		if (*it == "default_server")
+		{
+			tmp.setDef(true);
+			block.erase(block.begin());
+			if (*it != ";")
+				throw ErrorCatch("After 'default_server' a ';' expected");
+		}
+		listens.push_back(tmp);
+		if (*it == ";")
+		{
+			block.erase(block.begin());
+			break ;
+		}
+	}
 }
 
 void	Server::parseServerName(std::vector<std::string>& block)
 {
-
+	// THIS PART IS SUS. What about asterix?
+	block.erase(block.begin());
+	for (std::vector<std::string>::iterator it = block.begin(); it != block.end();)
+	{
+		if (*it == ";")
+		{
+			block.erase(block.begin());
+			break ;
+		}
+		if (block.front().find_first_not_of("abcdefghijklmnoprstuvyzwxqABCDEFGHIJKLMNOPRSTUVYZWXQ0123456789-.") != std::string::npos)
+			throw ErrorCatch("Only 'alpha' 'digit' '-' and '.' characters are accepted in 'server_name'");
+		names.push_back(block.front());
+		block.erase(block.begin());
+	}
 }
 
 void	Server::parseLocation(std::vector<std::string>& block)
 {
-
+	Location	local(block, params);
+	location.push_back(local);
 }
 
-void	Server::parseRoot(std::vector<std::string>& block)
+void	Server::parseParams(std::vector<std::string>& block)
 {
-
-}
-
-void	Server::parseBodySize(std::vector<std::string>& block)
-{
-
-}
-
-void	Server::parseAutoindex(std::vector<std::string>& block)
-{
-
-}
-
-void	Server::parseIndex(std::vector<std::string>& block)
-{
-
-}
-
-void	Server::parseErrorPage(std::vector<std::string>& block)
-{
-
-}
-
-void	Server::parseReturn(std::vector<std::string>& block)
-{
-
-}
-
-void	Server::parseAllowedMethod(std::vector<std::string>& block)
-{
-
-}
-
-void	Server::parseAlias(std::vector<std::string>& block)
-{
-
+	if (block.front() == "root")
+		params.parseRoot(block);
+	else if (block.front() == "client_max_body_size")
+		params.parseBodySize(block);
+	else if (block.front() == "autoindex")
+		params.parseAutoindex(block);
+	else if (block.front() == "index")
+		params.parseIndex(block);
+	else if (block.front() == "error_page")
+		params.parseErrorPage(block);
+	else if (block.front() == "return")
+		params.parseReturn(block);
+	else
+		throw ErrorCatch("\"" + block.front() + "\" is not a valid keyword");
 }
 
 void	Server::fillServer(std::vector<std::string>& block)
 {
-	std::map<std::string, ParserFunction>::iterator index;
-
-	for (std::vector<std::string>::iterator it = block.begin(); it != block.end(); it++)
+	// Parser keyword separations
+	for (std::vector<std::string>::iterator it = block.begin(); it != block.end();)
 	{
-		index = serverMap.find(*it);
-		if (index == serverMap.end())
-		{
-			index = locatMap.find(*it);
-			if (index == locatMap.end())
-				throw ErrorCatch("\"" + *it + "\" is not a valid keyword in this context");
-		}
-		(this->*(index->second))(block);
+		if (*it == "listen")
+			parseListen(block);
+		else if (*it == "server_name")
+			parseServerName(block);
+		else if (*it == "location")
+			parseLocation(block);
+		else if (*it == "allowMethods" || *it == "root" ||
+				*it == "client_max_body_size" || *it == "autoindex" ||
+				*it == "index" || *it == "error_page" || *it == "return")
+			parseParams(block);
+		else
+			throw ErrorCatch("\"" + block.front() + "\" is not a valid parameter");
 	}
 }
 
@@ -139,7 +151,7 @@ void	Server::parseBlock(std::vector<std::string>& block)
 {
 	if (clearEmpty(block))
 		return ;
-	std::cout << "-------Printing the block-------\n";
+	std::cout << "-------Parsing a Block-------\n";
 	if (block.front() != "server")
 		throw ErrorCatch("First arg is not 'server'");
     block.erase(block.begin());
