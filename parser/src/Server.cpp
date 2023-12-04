@@ -22,14 +22,14 @@ Server::~Server(void)
 	listens.clear();
 	names.clear();
 	names.clear();
-	location.clear();
+	locations.clear();
 }
 
 Server::Server(const Server& copy) :
 	listens(copy.listens),
 	names(copy.names),
 	params(copy.params),
-	location(copy.location)
+	locations(copy.locations)
 {
 
 }
@@ -38,10 +38,10 @@ Server&	Server::operator=(const Server& assign)
 {
 	listens.clear();
 	names.clear();
-	location.clear();
+	locations.clear();
 	listens = assign.listens;
 	names = assign.names;
-	location = assign.location;
+	locations = assign.locations;
 	params = assign.params;
 	return (*this);
 }
@@ -94,25 +94,7 @@ void	Server::parseServerName(std::vector<std::string>& block)
 void	Server::parseLocation(std::vector<std::string>& block)
 {
 	Location	local(block, params);
-	location.push_back(local);
-}
-
-void	Server::parseParams(std::vector<std::string>& block)
-{
-	if (block.front() == "root")
-		params.parseRoot(block);
-	else if (block.front() == "client_max_body_size")
-		params.parseBodySize(block);
-	else if (block.front() == "autoindex")
-		params.parseAutoindex(block);
-	else if (block.front() == "index")
-		params.parseIndex(block);
-	else if (block.front() == "error_page")
-		params.parseErrorPage(block);
-	else if (block.front() == "return")
-		params.parseReturn(block);
-	else
-		throw ErrorCatch("\"" + block.front() + "\" is not a valid keyword");
+	locations.push_back(local);
 }
 
 void	Server::fillServer(std::vector<std::string>& block)
@@ -129,7 +111,7 @@ void	Server::fillServer(std::vector<std::string>& block)
 		else if (*it == "allowMethods" || *it == "root" ||
 				*it == "client_max_body_size" || *it == "autoindex" ||
 				*it == "index" || *it == "error_page" || *it == "return")
-			parseParams(block);
+			params.fill(block);
 		else
 			throw ErrorCatch("\"" + block.front() + "\" is not a valid parameter");
 	}
@@ -162,4 +144,24 @@ void	Server::parseBlock(std::vector<std::string>& block)
 		throw ErrorCatch("Last element is not '}");
 	block.pop_back();
 	fillServer(block);
+}
+
+const std::vector<Listen>& Server::getListens(void)
+{
+	return (listens);
+}
+
+const std::vector<std::string>& Server::getNames(void)
+{
+	return (names);
+}
+
+const Parameters&	Server::getParams(void)
+{
+	return (params);
+}
+
+const std::vector<Location>&	Server::getLocations()
+{
+	return (locations);
 }

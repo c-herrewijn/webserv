@@ -27,11 +27,14 @@
 class Server
 {
 	private:
+		std::vector<Listen> listens; // Listens
+		std::vector<std::string> names; // is the given "server_name".
+		Parameters	params; // Default parameters for whole server block
+		std::vector<Location>	locations; // declared Locations
 		// Parsers
 		void	parseListen(std::vector<std::string>& block);
 		void	parseServerName(std::vector<std::string>& block);
 		void	parseLocation(std::vector<std::string>& block);
-		void	parseParams(std::vector<std::string>& block);
 		// Setup
 		bool	clearEmpty(std::vector<std::string>& block);
 		void	fillServer(std::vector<std::string>& block);
@@ -43,18 +46,11 @@ class Server
 		virtual ~Server(void);
 		// Subject
 		void	parseBlock(std::vector<std::string>& block);
-		std::vector<Listen> listens;
-		std::vector<std::string> names; // is the given "server_name".
-		Parameters	params; // Default parameters for whole server block
-		std::vector<Location>	location; // declared Locations
-		/*
-			To Do:
-			getListens
-			getNames
-			getParams
-			getLocation
-		*/
-
+		// Getters
+		const std::vector<Listen>& getListens(void);
+		const std::vector<std::string>& getNames(void);
+		const Parameters&	getParams(void);
+		const std::vector<Location>&	getLocations();
 		class ErrorCatch : public std::exception {
 			public:
 				ErrorCatch(const std::string& message) : errorMessage(message) {}

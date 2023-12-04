@@ -163,6 +163,31 @@ const std::unordered_set<std::string>& Parameters::getIndexes(void)
 	return (indexes);
 }
 
+const std::pair<size_t, char>& Parameters::getMaxSize(void)
+{
+	return (max_size);
+}
+
+const std::unordered_map<size_t, std::string>& Parameters::getErrorPages(void)
+{
+	return (error_pages);
+}
+
+const std::unordered_map<size_t, std::string>& Parameters::getReturns(void)
+{
+	return (returns);
+}
+
+const bool& Parameters::getAutoindex(void)
+{
+	return (autoindex);
+}
+
+const std::string& Parameters::getRoot(void)
+{
+	return (root);
+}
+
 void	Parameters::setAutoindex(bool status)
 {
 	autoindex = status;
@@ -177,4 +202,22 @@ void	Parameters::setSize(long val, int c)
 void	Parameters::setRoot(std::string& val)
 {
 	root = val;
+}
+
+void	Parameters::fill(std::vector<std::string>& block)
+{
+	if (block.front() == "root")
+		parseRoot(block);
+	else if (block.front() == "client_max_body_size")
+		parseBodySize(block);
+	else if (block.front() == "autoindex")
+		parseAutoindex(block);
+	else if (block.front() == "index")
+		parseIndex(block);
+	else if (block.front() == "error_page")
+		parseErrorPage(block);
+	else if (block.front() == "return")
+		parseReturn(block);
+	else
+		throw ErrorCatch("\"" + block.front() + "\" is not a valid keyword");
 }

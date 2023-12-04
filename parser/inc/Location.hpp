@@ -17,16 +17,17 @@
 # include <string>
 # include <vector>
 
-# define M_GET 1
-# define M_POST 2
-# define M_DELETE 3
+# define M_GET 0
+# define M_POST 1
+# define M_DELETE 2
 # define M_SIZE 3 // amount of methodes used in our program
 
 class Location
 {
 	private:
 		std::bitset<M_SIZE> allowedMethods;	// Allowed methods
-		std::string	URL; // Default "location" param else last given alias
+		std::string	URL; // Default "location" param
+		std::string alias; // Last given alias
 		Parameters	params; // Local values to use. If default it will be a copy of "server" context
 		std::vector<Location> nested; // Possible nested locations
 		void	parseAllowedMethod(std::vector<std::string>& block);
@@ -37,15 +38,9 @@ class Location
 		virtual ~Location(void);
 		Location(const Location& copy);
 		Location&	operator=(const Location& assign);
-		/*
-			To Do:
-			parseAllowedMethod
-			parseAlias
-			getNested
-			getParams
-			getURL
-			getAllowed
-		*/
+		const std::vector<Location>& getNested(void);
+		const Parameters&	getParams(void);
+		const std::bitset<M_SIZE>&	getAllowedMethods(void);
 		class ErrorCatch : public std::exception {
 			public:
 				ErrorCatch(const std::string& message) : errorMessage(message) {}

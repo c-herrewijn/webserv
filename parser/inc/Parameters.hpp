@@ -28,32 +28,32 @@ class Parameters
 		std::string	root;		// Last found will be used.
 		std::unordered_map<size_t, std::string>	error_pages;	// Same status codes will be overwriten
 		std::unordered_map<size_t, std::string>	returns;	// Same reponse codes are overwriten by the last
-		// cgi_extension
-		// // upload
-
-	public:
-		void	fill(std::vector<std::string>& block);
 		void	parseRoot(std::vector<std::string>& block);
 		void	parseBodySize(std::vector<std::string>& block);
 		void	parseAutoindex(std::vector<std::string>& block);
 		void	parseIndex(std::vector<std::string>& block);
 		void	parseErrorPage(std::vector<std::string>& block);
 		void	parseReturn(std::vector<std::string>& block);
+		// cgi_extension
+		// // upload
 
+	public:
+		void	fill(std::vector<std::string>& block);
 		void	setRoot(std::string& val);
 		void	setSize(long val, int c);
 		void	setAutoindex(bool status);
 		void	addIndex(const std::string& val);
+
 		const std::unordered_set<std::string>& getIndexes(void);
+		const std::pair<size_t, char>& getMaxSize(void);
+		const std::unordered_map<size_t, std::string>& getErrorPages(void);
+		const std::unordered_map<size_t, std::string>& getReturns(void);
+		const bool& getAutoindex(void);
+		const std::string& getRoot(void);
 		/*
 			To Do:
 			setErrorPages
 			setReturns
-			getMaxSize
-			getAutoindex
-			getRoot
-			getErrorPages
-			getReturns
 		*/
 		Parameters(void);
 		virtual ~Parameters(void);
