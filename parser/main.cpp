@@ -52,5 +52,5 @@ int main(int ac, char **av)
 	return (0);
 }
 
-// c++ -L../inc -I../inc src/Config.cpp src/Server.cpp main.cpp -Iinc -Linc -o runner
-// ./runner /default/default.conf
+// c++ main.cpp src/*.cpp -Linc -Iinc -I../inc -L../inc -o runner
+// ./runner default/default.conf

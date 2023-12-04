@@ -71,7 +71,7 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 				block.front() == "error_page" || block.front() == "return")
 			params.fill(block);
 		else
-			throw ErrorCatch("\'" + block.front() + "\" is not a valid parameter in 'location' context");
+			throw ErrorCatch("\'" + block.front() + "\' is not a valid parameter in 'location' context");
 	}
 	block.erase(block.begin());
 }
@@ -107,7 +107,7 @@ void	Location::parseAllowedMethod(std::vector<std::string>& block)
 void	Location::parseAlias(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
-	if (block.front().find_first_of(" "))
+	if (block.front().find_first_of(" ") != std::string::npos)
 		throw ErrorCatch("Unwanted space found in '" + block.front() + "' while parsing alias");
 	if (block.front()[0] != '/')
 		throw ErrorCatch("Improper alias without '/' found on '" + block.front() + "'");

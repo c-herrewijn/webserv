@@ -16,8 +16,9 @@
 # include <string>
 # include <unordered_set>
 # include <unordered_map>
+# include <climits>
 # define DEF_SIZE 32
-# define DEF_SIZE_TYPE "M"
+# define DEF_SIZE_TYPE 'M'
 
 class Parameters
 {

@@ -73,7 +73,7 @@ void	Parameters::parseBodySize(std::vector<std::string>& block)
 		throw ErrorCatch("'client_max_body_size' must be formated as '(unsigned int)|(type=K||M||G)'");
 	if (endPtr)
 	{
-		if (endPtr + 1 || (*endPtr != 'K' && *endPtr != 'M' && *endPtr != 'G'))
+		if (endPtr + 1 && (*endPtr != 'K' && *endPtr != 'M' && *endPtr != 'G'))
 			throw ErrorCatch("'client_max_body_size' must be formated as '(unsigned int)|(type=K||M||G)'");
 		setSize(convertedValue, *endPtr);
 	}

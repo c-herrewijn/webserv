@@ -36,7 +36,7 @@ class Listen
 		const std::string&	getIpString(void);
 		const std::vector<uint8_t>&	getIpInt(void);
 		const std::string&	getPortString(void);
-		const int&	getPortInt(void);
+		const uint16_t&	getPortInt(void);
 		const bool&	getDef(void);
 		const bool&	getAll(void);
 		Listen(const Listen& copy);

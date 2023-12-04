@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "Listen.hpp"
+#include <iostream>
 
 Listen::Listen(const Listen& copy) :
 	i_ip(copy.i_ip),
@@ -29,6 +30,7 @@ Listen&	Listen::operator=(const Listen& assign)
 	s_ip = assign.s_ip;
 	s_port = assign.s_port;
 	def = assign.def;
+	return (*this);
 }
 
 Listen::Listen(void)
@@ -141,13 +143,13 @@ void	Listen::fillPort(std::vector<std::string>& block)
 
 void	Listen::fillValues(std::vector<std::string>& block)
 {
-	if (block.front().find_first_not_of("*:0123456789"))
+	if (block.front().find_first_not_of("*:0123456789") != std::string::npos)
 		ErrorCatch("Unexpected character in listen '" + block.front() + "'");
 	bool hasDot = false;
 	bool hasColumn = false;
-	if (block.front().find_first_of("."))
+	if (block.front().find_first_of(".") != std::string::npos)
 		hasDot = true;
-	if (block.front().find_first_of(":"))
+	if (block.front().find_first_of(":") != std::string::npos)
 		hasColumn = true;
 	if (hasDot && hasColumn)
 		fillFull(block);
@@ -172,7 +174,7 @@ const std::string&	Listen::getPortString(void)
 	return (s_port);
 }
 
-const int&	Listen::getPortInt(void)
+const uint16_t&	Listen::getPortInt(void)
 {
 	return (i_port);
 }
