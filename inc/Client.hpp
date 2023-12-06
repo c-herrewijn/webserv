@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 20:16:40 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/29 22:36:58 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/06 19:50:37 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,10 +28,9 @@ class Client
 {
 	public:
 		Client( void ) noexcept;
-		Client( const char*, const char* ) noexcept;
 		~Client( void ) noexcept;
 
-		void		findServer( void );
+		void		connectTo( const char*, const char* );
 		void		sendRequest( const char* ) const ;
 		std::string	getAddress( const struct sockaddr_storage*) const noexcept ;
 

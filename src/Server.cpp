@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 17:56:25 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/01 03:14:04 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/06 21:04:41 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 ServerException::ServerException( std::initializer_list<const char*> prompts) noexcept 
 	: std::exception()
 {
-	this->_msg = " Webserver exception: ";
+	this->_msg = "Webserver exception: ";
 	for (const char *prompt : prompts)
 		this->_msg += std::string(prompt) + " ";
 }
@@ -50,10 +50,8 @@ Server::Server ( const char *port, struct addrinfo *filter) : _port(port)
 
 Server::~Server ( void ) noexcept
 {
-	if (this->_listener != -1)
-		close(this->_listener);
-	for (auto socket : this->_connfds)
-		close(socket.fd);
+	while(this->_connfds.empty() == false)
+		this->_dropConn(0);
 }
 
 const char*	Server::getPort( void ) const noexcept
@@ -99,124 +97,81 @@ void	Server::bindPort( void )
 	std::cout << "binded on: " << this->getAddress(&this->_host) << "\n";
 	if (listen(this->_listener, this->_backlog) != 0)
 		throw(ServerException({"listening on", this->getAddress(&this->_host).c_str()}));
+	this->_addConn(this->_listener);
 }
 
-int		Server::acceptConnection( void )
+int		Server::_acceptConnection( int listener )
 {
 	struct sockaddr_storage 	client;
 	unsigned int 				sizeAddr = sizeof(client);
 	int							connfd = -1;
 
-	connfd = accept(this->_listener, (struct sockaddr *) &client, &sizeAddr);
+	connfd = accept(listener, (struct sockaddr *) &client, &sizeAddr);
 	if (connfd == -1)
 		std::cout << "failed connection with: " << this->getAddress(&client) << '\n';
 	else
 		std::cout << "connected to " << this->getAddress(&client) << '\n';
+	this->_addConn(connfd);
 	return (connfd);
-}
-
-void	Server::handleSequentialConn( void )
-{
-	int							connfd = -1;
-	HTTPrequest_t				req;
-
-	while (true)
-	{
-		connfd = this->acceptConnection();
-		if (connfd == -1)
-			continue;
-		try
-		{
-			if (this->parseRequest(connfd, req) == FMT_OK)
-				this->handleRequest(req);
-		}
-		catch(ServerException const& err)
-		{
-			close(connfd);
-			throw(err);	
-		}
-		close(connfd);
-	}
 }
 
 void	Server::handleMultipleConn( void )
 {
-	struct pollfd	newfd;
-	HTTPrequest_t	req;
-	HTTPreqStatus_t status;
-	int				nConn;
+	int	nConn;
 
-	newfd.fd = this->_listener;
-	newfd.events = POLLIN;
-	newfd.revents = 0;
-	this->_connfds.push_back(newfd);
 	while (true)
 	{
-		std::cout << "call poll\n";
 		nConn = poll(this->_connfds.data(), this->_connfds.size(), 60000);
 		if (nConn == -1)
 			throw(ServerException({"poll failure"}));
 		else if (nConn == 0)
 			break;
-		for(auto socket : this->_connfds)
+		for (size_t i=0; i<this->_connfds.size(); i++)
 		{
-			if (socket.revents & POLLIN)
+			if (this->_connfds[i].revents & POLLIN)
 			{
-				if (socket.fd == this->_listener) // new connection
-				{
-					newfd.fd = this->acceptConnection();
-					newfd.events = POLLIN;
-					newfd.revents = 0;
-					if (newfd.fd != -1)
-						this->_connfds.push_back(newfd);
-				}
+				if (this->_connfds[i].fd == this->_listener) // new connection
+					this->_acceptConnection(this->_listener);
 				else			// new message
 				{
-					status = this->parseRequest(socket.fd, req);
-					if (status == FMT_EOF)
-					{
-						close(socket.fd);
-						socket.fd = -1;
-					}
+					this->_handleRequest(this->_connfds[i].fd);
+					this->_dropConn(i--);
 				}
 			}
 		}
 	}
 }
 
-HTTPreqStatus_t	Server::parseRequest( int connfd, HTTPrequest_t& req )
+void	Server::_handleRequest( int connfd ) const
 {
+	HTTPrequest_t	req;
 	HTTPreqStatus_t	status;
+	// pid_t 			child = -1;
+	// int				exitStat = 0;
 
-	status = HTTPparser::parse(connfd, req);
-	if (status == FMT_EOF)
-		std::cout << "end connection\n";
-	else if (status != FMT_OK)
+	status = HTTPparser::parse(connfd, &req);
+	if (status != FMT_OK)
 		std::cout << "parse request error: " << HTTPparser::printStatus(status) << '\n';
-	HTTPparser::printData(req);
-	return (status);
-}
+	else
+		std::cout << "request received\n";
 
-void	Server::handleRequest( HTTPrequest_t request )
-{
-	pid_t 	child = -1;
-	int		exitStat = 0;
-
-	(void) request;
-	child = fork();
-	if (child == -1)
-		throw(ServerException({"fork failed"}));
-	else if (child == 0)
-	{
-		// pipe setup (create a pipe and then dup one end to the client fd?)
-		// execve stuff ...
-	}
-	if (waitpid(child, &exitStat, 0) < 0)
-		throw(ServerException({"error while terminating process"}));
-	else if (WIFEXITED(exitStat) == 0)
-		std::cout << "child process killed by signal (unexpected)\n";
-	else if (WEXITSTATUS(exitStat) == 1)
-		std::cout << "bad request format\n";
+	// child = fork();
+	// if (child == -1)
+	// 	throw(ServerException({"fork failed"}));
+	// else if (child == 0)
+	// {
+	// 	sleep(1);
+	// 	// pipe setup (create a pipe and then dup one end to the client fd?)
+	// 	// execve stuff ...
+	// }
+	// if (waitpid(child, &exitStat, 0) < 0)
+	// 	throw(ServerException({"error while terminating process"}));
+	// else if (WIFEXITED(exitStat) == 0)
+	// 	std::cout << "child process killed by signal (unexpected)\n";
+	// else if (WEXITSTATUS(exitStat) == 1)
+	// 	std::cout << "bad request format\n";
+	// HTTPparser::printData(req);
+	// return (status);
 }
 
 std::string	Server::getAddress( const struct sockaddr_storage *addr ) const noexcept
@@ -252,4 +207,24 @@ Server& Server::operator=( Server const& other ) noexcept
 	// see copy constructor
 	(void) other;
 	return (*this);
+}
+
+void	Server::_dropConn(size_t pos) noexcept
+{
+	shutdown(this->_connfds[pos].fd, SHUT_RDWR);
+	close(this->_connfds[pos].fd);
+	this->_connfds.erase(this->_connfds.begin() + pos);
+}
+
+void	Server::_addConn( int newSocket ) noexcept
+{
+	struct pollfd	newfd;
+
+	if (newSocket != -1)
+	{
+		newfd.fd = newSocket;
+		newfd.events = POLLIN;
+		newfd.revents = 0;
+		this->_connfds.push_back(newfd);
+	}
 }

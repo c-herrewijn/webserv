@@ -6,12 +6,12 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 17:56:34 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/01 02:48:08 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/06 18:54:10 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
-
+#include<cmath>
 int runWebServer( void )
 {
 	try

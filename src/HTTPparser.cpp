@@ -6,43 +6,41 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/01 02:58:08 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/06 21:05:28 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPparser.hpp"
 
-HTTPreqStatus_t	HTTPparser::parse( int connfd, HTTPrequest_t &req )
+HTTPreqStatus_t	HTTPparser::parse( int connfd, HTTPrequest_t *req )
 {
 	char	*eoh, *eol;
 	char	buffer[HEADER_MAX_SIZE + 1];
 	ssize_t readChar;
-	HTTPrequest_t	newReq;
 
 	memset(buffer, 0, HEADER_MAX_SIZE + 1);
 	readChar = read(connfd, buffer, HEADER_MAX_SIZE);
 	if (readChar < 0)
 		throw(ServerException({"socket not available or empty"}));
 	else if (readChar == 0)
-		return (FMT_EOF);
+		return (FMT_OK);
 	eoh = strstr(buffer, "\r\n\r\n");
 	if (eoh == nullptr)
 		return (FMT_BIGHEAD);
 	else if (eoh == buffer)
 		return (FMT_BADFMT);
 	eoh[0] = '\0';
-	newReq.request = buffer;
+	req->request = buffer;
 	eol = strstr(buffer, "\r\n");
-	if (eol != nullptr) // there are options
+	if (eol != nullptr) // if there are options
 	{
 		eol[0] = '\0';
-		newReq.hasOpts = true;
-		if (_getOptions(eol + 2, newReq.options) == FMT_BADOPT)
+		req->hasOpts = true;
+		if (_getOptions(eol + 2, req->options) == FMT_BADOPT)
 			return (FMT_BADOPT);
 	}
-	newReq.body = _getBody(eoh + 4, connfd);
-	newReq.hasBody = !newReq.body.empty();
-	req = newReq;
+	req->body = _getBody(eoh + 4, connfd);
+	req->hasBody = !req->body.empty();
 	return (FMT_OK);
 }
 
@@ -59,9 +57,10 @@ const char*	HTTPparser::printStatus( HTTPreqStatus_t stat ) noexcept
 	(void) stat;
 	return ("error!");
 	// mapping enum -> char*, print msg
+	// overload of << operator instead of class method
 }
 
-HTTPreqStatus_t	HTTPparser::_getOptions( char *line, std::list<std::pair<std::string, std::string> >& options ) noexcept
+HTTPreqStatus_t	HTTPparser::_getOptions( char *line, std::map<std::string, std::string>& options ) noexcept
 {
 	char *eol, *colon;
 
@@ -75,7 +74,7 @@ HTTPreqStatus_t	HTTPparser::_getOptions( char *line, std::list<std::pair<std::st
 		if (colon == nullptr)
 			return (FMT_BADOPT);
 		*colon = '\0';
-		options.push_back({line, colon + 2});
+		options.insert({line, colon + 2});
 		line = eol + 2;
 	}
 	return (FMT_OK);

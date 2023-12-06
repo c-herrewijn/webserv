@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 20:50:27 by fra           #+#    #+#                 */
-/*   Updated: 2023/11/30 01:30:52 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/06 20:06:04 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,8 +17,8 @@ void runClient( const char *host, const char *port )
 	try
 	{
 		std::cout << "running client on process: " << getpid() << '\n'; 
-		Client webClient(host, port);
-		webClient.findServer();
+		Client webClient;
+		webClient.connectTo(host, port);
 		webClient.sendRequest("GET / HTTP/1.1\r\nkey1: value1\r\nkey2: value2\r\n\r\nmuch body very http\n");
 	}
 	catch(ClientException const& e)
@@ -72,6 +72,6 @@ int main( int argc, char** argv)
 	if (argc != 3)
 		std::cout << "wrong parameters: host and port needed\n";
 	else
-		runClient(argv[1], argv[2]);
+		runClients(argv[1], argv[2]);
 	return (0);
 }
