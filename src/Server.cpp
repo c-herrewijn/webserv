@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 17:56:25 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/06 23:19:58 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/06 23:44:18 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -165,7 +165,7 @@ void	Server::_handleRequest( int connfd ) const
 		// pipe setup (create a pipe and then dup one end to the client fd?)
 		// execve stuff ...
 	}
-	if (waitpid(NULL, &exitStat, 0) < 0)
+	if (waitpid(child, &exitStat, 0) < 0)
 		throw(ServerException({"error while terminating process"}));
 	// else if (WIFEXITED(exitStat) == 0)
 	// 	std::cout << "child process killed by signal (unexpected)\n";
