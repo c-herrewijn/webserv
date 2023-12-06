@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 17:56:25 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/06 21:04:41 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/06 23:19:58 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -146,8 +146,8 @@ void	Server::_handleRequest( int connfd ) const
 {
 	HTTPrequest_t	req;
 	HTTPreqStatus_t	status;
-	// pid_t 			child = -1;
-	// int				exitStat = 0;
+	pid_t 			child = -1;
+	int				exitStat = 0;
 
 	status = HTTPparser::parse(connfd, &req);
 	if (status != FMT_OK)
@@ -155,22 +155,23 @@ void	Server::_handleRequest( int connfd ) const
 	else
 		std::cout << "request received\n";
 
-	// child = fork();
-	// if (child == -1)
-	// 	throw(ServerException({"fork failed"}));
-	// else if (child == 0)
-	// {
-	// 	sleep(1);
-	// 	// pipe setup (create a pipe and then dup one end to the client fd?)
-	// 	// execve stuff ...
-	// }
-	// if (waitpid(child, &exitStat, 0) < 0)
-	// 	throw(ServerException({"error while terminating process"}));
+	child = fork();
+	if (child == -1)
+		throw(ServerException({"fork failed"}));
+	else if (child == 0)
+	{
+		sleep(1);
+		exit(0);
+		// pipe setup (create a pipe and then dup one end to the client fd?)
+		// execve stuff ...
+	}
+	if (waitpid(NULL, &exitStat, 0) < 0)
+		throw(ServerException({"error while terminating process"}));
 	// else if (WIFEXITED(exitStat) == 0)
 	// 	std::cout << "child process killed by signal (unexpected)\n";
 	// else if (WEXITSTATUS(exitStat) == 1)
 	// 	std::cout << "bad request format\n";
-	// HTTPparser::printData(req);
+	HTTPparser::printData(req);
 	// return (status);
 }
 
