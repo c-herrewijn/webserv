@@ -1,2 +1,4 @@
 .vscode
-server
+webserv
+webclient
+obj/
