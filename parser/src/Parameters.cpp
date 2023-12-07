@@ -105,15 +105,13 @@ void	Parameters::parseAutoindex(std::vector<std::string>& block)
 void	Parameters::parseIndex(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
+	if (block.front() == ";")
+		throw ErrorCatch("'index' can't have an empty parameter");
 	while (1)
 	{
-		if (block.front() == ";")
-			throw ErrorCatch("'index' can't have an empty parameter");
 		if (block.front().find_first_of(" ") != std::string::npos)
 			throw ErrorCatch("'index' parameter \"" + block.front() + "\" has a space in it");
-		std::unordered_set<std::string> tmp = getIndexes();
-		if (tmp.find(block.front()) == tmp.end())
-			addIndex(block.front());
+		addIndex(block.front());
 		block.erase(block.begin());
 		if (block.front() == ";")
 		{
@@ -125,37 +123,58 @@ void	Parameters::parseIndex(std::vector<std::string>& block)
 
 void	Parameters::parseErrorPage(std::vector<std::string>& block)
 {
-	// THIS PART IS NOT DONE YET
 	block.erase(block.begin());
-	while (1)
-	{
-		if (block.front() == ";")
-		{
-			block.erase(block.begin());
-			break ;
-		}
+	if (block.front() == ";")
+		throw ErrorCatch("'error_page' can't have an empty parameter");
+	int code;
+	try {
+		code = std::stoi(block.front());
+		if (code < 100 || code > 599)
+			throw std::out_of_range("Value is not in the range of 100-599");
 		block.erase(block.begin());
+	} catch (const std::invalid_argument& e) {
+		throw ErrorCatch("Error code is not a valid integer");
+	} catch (const std::out_of_range& e) {
+		throw ErrorCatch("Given value is out of range: " + block.front());
 	}
+	if (block.front() == ";")
+		throw ErrorCatch("After error code expected a file");
+	if (block.front().front() != '/')
+		throw ErrorCatch("Error code file must start with a '/':" + block.front());
+	error_pages[code] = block.front();
+	if (block.front() != ";")
+		throw ErrorCatch("Error page can only contain 2 arguments");
+	block.erase(block.begin());
 }
 
 void	Parameters::parseReturn(std::vector<std::string>& block)
 {
-	// THIS PART IS NOT DONE YET
+	int code;
 	block.erase(block.begin());
-	while (1)
-	{
-		if (block.front() == ";")
-		{
-			block.erase(block.begin());
-			break ;
-		}
+	try {
+		code = std::stoi(block.front());
+		if (code < 100 || code > 599)
+			throw std::out_of_range("Value is not in the range of 100-599");
 		block.erase(block.begin());
+	} catch (const std::invalid_argument& e) {
+		throw ErrorCatch("Invalid argument. The input is not a valid integer");
+	} catch (const std::out_of_range& e) {
+		throw ErrorCatch("Given value is out of range: " + block.front());
 	}
+	if (block.front() != ";")
+	    returns[(size_t)code] = block.front();
+	else
+		returns[(size_t)code] = "";
+	block.erase(block.begin());
+	if (block.front() != ";")
+		throw ErrorCatch("'return' keyword can have maximum 2 parameters");
+	block.erase(block.begin());
 }
 
 void	Parameters::addIndex(const std::string& val)
 {
-	indexes.insert(val);
+	if (indexes.find(val) == indexes.end())
+		indexes.insert(val);
 }
 
 const std::unordered_set<std::string>& Parameters::getIndexes(void)
