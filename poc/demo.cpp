@@ -4,10 +4,46 @@
 #include <unistd.h>
 #include <iostream>
 #include <string.h>
+#include <sys/wait.h>
 
 // fra branch
 
 #define BUFFER_SIZE 10000 // hardcoded for poc
+
+std::string runCgi()
+{
+    extern char **environ;
+    const std::string cgiFileName = "cgi.sh";
+    const std::string cgiPath = "./cgi.sh";
+    int p1[2];
+	char read_buff[BUFFER_SIZE];
+    bzero(read_buff, BUFFER_SIZE);
+
+    // run cgi, and write result into pipe
+	pipe(p1);
+	pid_t childPid = fork();
+	if (childPid == 0)
+	{
+	    close(p1[0]);
+        dup2(p1[1], STDOUT_FILENO);
+        char *argv[2] = {(char*)cgiFileName.c_str(), NULL};
+        int res = execve("./cgi.sh", argv, environ);
+        if (res != 0)
+        {
+            close(p1[1]);
+            std::cerr << "execve error!" << std::endl;
+            exit(1);
+        }
+	}
+
+    // return cgi response
+    close(p1[1]);
+    wait(NULL);
+    read(p1[0], read_buff, BUFFER_SIZE);
+    close(p1[0]);
+    std::string response = read_buff;
+    return response;
+}
 
 int main() {
     // default settings to create web socket
@@ -55,13 +91,6 @@ int main() {
     int connectionFd;
     char buffer[BUFFER_SIZE] = {0};
     int bytesReceived;
-    std::string responseStr = "";
-
-    responseStr += "HTTP/1.0 200 OK\n";
-    responseStr += "\n"; // newline between header and body
-    responseStr += "<html>";
-    responseStr += "<body><h1>My response!</h1></body>";
-    responseStr += "</html>";
 
     // accept incoming connections (server waits for connections in a loop)
     std::cout << "wait for incoming connections..." << std::endl;
@@ -73,15 +102,17 @@ int main() {
         bytesReceived = read(connectionFd, buffer, BUFFER_SIZE);
         std::cout << std::endl << "data received: " << std::endl<< buffer << std::endl;
 
-        // write response: (for now without html headers, this is considered html v0.9)
-        // NOTE: web-browsers don't accept a response without html headers, but you can see the response via curl:
-        // $ curl --http0.9 -d "myRequestFromCurl" localhost:8080
+        // run CGI to determine te response string
+        std::string responseStr = runCgi();
+
+        // write response:
+        // - check via browser: http://localhost:8080/
+        // - check via curl: $ curl -d "myRequestFromCurl" localhost:8080
         if(write(connectionFd, (void *)responseStr.c_str(), strlen(responseStr.c_str())) < 0)
         {
             std::cerr << "Error: " << strerror(errno) << std::endl;
             return 1;
         }
-
         close(connectionFd); // closing connection
         break; // dummy,server stops after first connection has been established, normally, it should keep running
     }
