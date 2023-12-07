@@ -55,7 +55,13 @@ int main() {
     int connectionFd;
     char buffer[BUFFER_SIZE] = {0};
     int bytesReceived;
-    std::string responseStr = "myTestResponse!";
+    std::string responseStr = "";
+
+    responseStr += "HTTP/1.0 200 OK\n";
+    responseStr += "\n"; // newline between header and body
+    responseStr += "<html>";
+    responseStr += "<body><h1>My response!</h1></body>";
+    responseStr += "</html>";
 
     // accept incoming connections (server waits for connections in a loop)
     std::cout << "wait for incoming connections..." << std::endl;
