@@ -52,7 +52,7 @@ void	Parameters::parseRoot(std::vector<std::string>& block)
 	setRoot(block.front());
 	block.erase(block.begin());
 	if (block.front() != ";")
-		throw ErrorCatch("'root' can't have multiple parameters");
+		throw ErrorCatch("'root' can't have multiple parameters '" + block.front() + "'");
 	block.erase(block.begin());
 }
 
@@ -142,6 +142,7 @@ void	Parameters::parseErrorPage(std::vector<std::string>& block)
 	if (block.front().front() != '/')
 		throw ErrorCatch("Error code file must start with a '/':" + block.front());
 	error_pages[code] = block.front();
+	block.erase(block.begin());
 	if (block.front() != ";")
 		throw ErrorCatch("Error page can only contain 2 arguments");
 	block.erase(block.begin());
@@ -151,13 +152,14 @@ void	Parameters::parseReturn(std::vector<std::string>& block)
 {
 	int code;
 	block.erase(block.begin());
+	// return /old-url /new-url; is not valid right now
 	try {
 		code = std::stoi(block.front());
 		if (code < 100 || code > 599)
 			throw std::out_of_range("Value is not in the range of 100-599");
 		block.erase(block.begin());
 	} catch (const std::invalid_argument& e) {
-		throw ErrorCatch("Invalid argument. The input is not a valid integer");
+		throw ErrorCatch("Input is not a valid integer: '" + block.front() + "'");
 	} catch (const std::out_of_range& e) {
 		throw ErrorCatch("Given value is out of range: " + block.front());
 	}
@@ -177,32 +179,32 @@ void	Parameters::addIndex(const std::string& val)
 		indexes.insert(val);
 }
 
-const std::unordered_set<std::string>& Parameters::getIndexes(void)
+const std::unordered_set<std::string>& Parameters::getIndexes(void) const
 {
 	return (indexes);
 }
 
-const std::pair<size_t, char>& Parameters::getMaxSize(void)
+const std::pair<size_t, char>& Parameters::getMaxSize(void) const
 {
 	return (max_size);
 }
 
-const std::unordered_map<size_t, std::string>& Parameters::getErrorPages(void)
+const std::unordered_map<size_t, std::string>& Parameters::getErrorPages(void) const
 {
 	return (error_pages);
 }
 
-const std::unordered_map<size_t, std::string>& Parameters::getReturns(void)
+const std::unordered_map<size_t, std::string>& Parameters::getReturns(void) const
 {
 	return (returns);
 }
 
-const bool& Parameters::getAutoindex(void)
+const bool& Parameters::getAutoindex(void) const
 {
 	return (autoindex);
 }
 
-const std::string& Parameters::getRoot(void)
+const std::string& Parameters::getRoot(void) const
 {
 	return (root);
 }
@@ -239,4 +241,32 @@ void	Parameters::fill(std::vector<std::string>& block)
 		parseReturn(block);
 	else
 		throw ErrorCatch("\"" + block.front() + "\" is not a valid keyword");
+}
+
+std::ostream& operator<<(std::ostream& os, const Parameters& params)
+{
+	os << "Root: " << params.getRoot() << "\n";
+	os << "Max Size: " << params.getMaxSize().first << ", " << params.getMaxSize().second << "\n";
+	os << "Autoindex: " << (params.getAutoindex() ? "true" : "false") << "\n";
+
+	os << "Indexes: ";
+	const auto& indexes = params.getIndexes();
+	for (const auto& index : indexes) {
+		os << index << " ";
+	}
+	os << "\n";
+
+	os << "Error Pages:" << "\n";
+	const auto& errorPages = params.getErrorPages();
+	for (const auto& entry : errorPages) {
+		os << "  " << entry.first << ": " << entry.second << "\n";
+	}
+
+	os << "Returns:" << "\n";
+	const auto& returns = params.getReturns();
+	for (const auto& entry : returns) {
+		os << "  " << entry.first << ": " << entry.second << "\n";
+	}
+
+	return os;
 }

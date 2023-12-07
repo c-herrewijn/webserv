@@ -33,12 +33,12 @@ class Listen
 		void	fillValues(std::vector<std::string>& block);
 		void	setDef(bool	status);
 		void	setAll(bool status);
-		const std::string&	getIpString(void);
-		const std::vector<uint8_t>&	getIpInt(void);
-		const std::string&	getPortString(void);
-		const uint16_t&	getPortInt(void);
-		const bool&	getDef(void);
-		const bool&	getAll(void);
+		const std::string&	getIpString(void) const;
+		const std::vector<uint8_t>&	getIpInt(void) const;
+		const std::string&	getPortString(void) const;
+		const uint16_t&	getPortInt(void) const;
+		const bool&	getDef(void) const;
+		const bool&	getAll(void) const;
 		Listen(const Listen& copy);
 		Listen&	operator=(const Listen& assign);
 		Listen(void);
@@ -52,6 +52,7 @@ class Listen
 			private:
 				std::string errorMessage;
 		};
+    friend std::ostream& operator<<(std::ostream& os, const Listen& listen);
 };
 
 

@@ -53,24 +53,17 @@ void	Server::parseListen(std::vector<std::string>& block)
 		throw ErrorCatch("Can't use ';' after keyword 'listen'");
 	if (block.front() == "default_server")
 		throw ErrorCatch("Before 'default_server' an ip/port expected");
-	for (std::vector<std::string>::iterator it = block.begin(); it != block.end();)
+	Listen tmp;
+	tmp.fillValues(block);
+	if (block.front() == "default_server")
 	{
-		Listen	tmp;
-		tmp.fillValues(block);
-		if (*it == "default_server")
-		{
-			tmp.setDef(true);
-			block.erase(block.begin());
-			if (*it != ";")
-				throw ErrorCatch("After 'default_server' a ';' expected");
-		}
-		listens.push_back(tmp);
-		if (*it == ";")
-		{
-			block.erase(block.begin());
-			break ;
-		}
+		tmp.setDef(true);
+		block.erase(block.begin());
 	}
+	listens.push_back(tmp);
+	if (block.front() != ";")
+		throw ErrorCatch("Missing semicolumn on Listen, before: '" + block.front() + "'");
+	block.erase(block.begin());
 }
 
 void	Server::parseServerName(std::vector<std::string>& block)
@@ -133,7 +126,7 @@ void	Server::parseBlock(std::vector<std::string>& block)
 {
 	if (clearEmpty(block))
 		return ;
-	std::cout << "-------Parsing a Block-------\n";
+	std::cout << "--Parsing a Server--\n";
 	if (block.front() != "server")
 		throw ErrorCatch("First arg is not 'server'");
     block.erase(block.begin());
@@ -146,22 +139,48 @@ void	Server::parseBlock(std::vector<std::string>& block)
 	fillServer(block);
 }
 
-const std::vector<Listen>& Server::getListens(void)
+const std::vector<Listen>& Server::getListens(void) const
 {
 	return (listens);
 }
 
-const std::vector<std::string>& Server::getNames(void)
+const std::vector<std::string>& Server::getNames(void) const
 {
 	return (names);
 }
 
-const Parameters&	Server::getParams(void)
+const Parameters&	Server::getParams(void) const
 {
 	return (params);
 }
 
-const std::vector<Location>&	Server::getLocations()
+const std::vector<Location>&	Server::getLocations() const
 {
 	return (locations);
+}
+
+std::ostream& operator<<(std::ostream& os, const Server& server)
+{
+    const auto& listens = server.getListens();
+    os << "\nListens:" "\n";
+    for (const auto& listen : listens) {
+        os << listen << "\n";
+    }
+
+    os << "\nServer Names:" "\n";
+    const auto& names = server.getNames();
+    for (const auto& name : names) {
+        os << name << "\n";
+    }
+
+    os << "\nParameters:" << "\n";
+    os << server.getParams() << "\n";
+
+    os << "\nLocations:" "\n";
+    const auto& locations = server.getLocations();
+    for (const auto& location : locations) {
+        os << location;
+    }
+
+    return os;
 }

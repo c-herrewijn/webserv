@@ -49,6 +49,11 @@ int main(int ac, char **av)
 		}
 	}
 	// "servers" must contain valid servers
+	for (int i = 0; i < servers.size() - 1; i++)
+	{
+		std::cout << "---Printing Servers---\n";
+		std::cout << servers[i] << std::endl;
+	}
 	return (0);
 }
 

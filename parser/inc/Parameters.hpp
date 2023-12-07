@@ -47,12 +47,12 @@ class Parameters
 		void	setAutoindex(bool status);
 		void	addIndex(const std::string& val);
 
-		const std::unordered_set<std::string>& getIndexes(void);
-		const std::pair<size_t, char>& getMaxSize(void);
-		const std::unordered_map<size_t, std::string>& getErrorPages(void);
-		const std::unordered_map<size_t, std::string>& getReturns(void);
-		const bool& getAutoindex(void);
-		const std::string& getRoot(void);
+		const std::unordered_set<std::string>& getIndexes(void) const;
+		const std::pair<size_t, char>& getMaxSize(void) const;
+		const std::unordered_map<size_t, std::string>& getErrorPages(void) const;
+		const std::unordered_map<size_t, std::string>& getReturns(void) const;
+		const bool& getAutoindex(void) const;
+		const std::string& getRoot(void) const;
 		/*
 			To Do:
 			setErrorPages
@@ -72,6 +72,7 @@ class Parameters
 			private:
 				std::string errorMessage;
 		};
+	    friend std::ostream& operator<<(std::ostream& os, const Parameters& params);
 };
 
 #endif
