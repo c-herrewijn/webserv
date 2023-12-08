@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 20:50:27 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/06 20:06:04 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/08 02:37:14 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,8 +70,10 @@ void runClients(const char *host, const char *port)
 int main( int argc, char** argv)
 {
 	if (argc != 3)
+	{
 		std::cout << "wrong parameters: host and port needed\n";
-	else
-		runClients(argv[1], argv[2]);
-	return (0);
+		return(EXIT_FAILURE);
+	}
+	runClient(argv[1], argv[2]);
+	return(EXIT_SUCCESS);
 }

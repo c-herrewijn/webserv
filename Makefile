@@ -6,7 +6,7 @@
 #    By: fra <fra@student.codam.nl>                   +#+                      #
 #                                                    +#+                       #
 #    Created: 2023/11/25 18:04:49 by fra           #+#    #+#                  #
-#    Updated: 2023/11/30 01:23:27 by fra           ########   odam.nl          #
+#    Updated: 2023/12/08 02:25:34 by fra           ########   odam.nl          #
 #                                                                              #
 # **************************************************************************** #
 
@@ -41,7 +41,7 @@ server: $(SERVER)
 
 client: $(CLIENT)
 	@clear
-	@./$(CLIENT) "192.168.0.102" "4242"
+	@./$(CLIENT) "localhost" "4242"
 
 $(CLIENT): $(OBJECTS) $(MAIN_CLI)
 	@$(CC) $(CPPFLAGS) $(IFLAGS) $^ -o $@

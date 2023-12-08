@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 17:56:25 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/08 02:10:14 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/08 04:00:01 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,42 +21,18 @@ ServerException::ServerException( std::initializer_list<const char*> prompts) no
 }
 
 
-Server::Server ( void ) : _port("80")
+Server::Server ( void )
 {
-	this->_listener = -1;
-	memset(&this->_filter, 0, sizeof(struct addrinfo));
+	bzero(&this->_filter, sizeof(struct addrinfo));
 	this->_filter.ai_flags = AI_PASSIVE;
 	this->_filter.ai_family = AF_UNSPEC;
 	this->_filter.ai_protocol = IPPROTO_TCP;
-	this->_backlog = BACKLOG;
-	memset(&this->_host, 0, sizeof(struct sockaddr));
-}
-
-Server::Server ( const char *port, struct addrinfo *filter) : _port(port)
-{
-	this->_listener = -1;
-	if (filter == nullptr)
-	{
-		memset(&this->_filter, 0, sizeof(struct addrinfo));
-		this->_filter.ai_flags = AI_PASSIVE;
-		this->_filter.ai_family = AF_UNSPEC;
-		this->_filter.ai_protocol = IPPROTO_TCP;
-	}
-	else
-		this->_filter = *filter;
-	this->_backlog = BACKLOG;
-	memset(&this->_host, 0, sizeof(struct sockaddr));
 }
 
 Server::~Server ( void ) noexcept
 {
 	while(this->_connfds.empty() == false)
 		this->_dropConn();
-}
-
-const char*	Server::getPort( void ) const noexcept
-{
-	return (this->_port);
 }
 
 struct addrinfo	Server::getFilter( void ) const noexcept
@@ -69,38 +45,40 @@ void	Server::setFilter( struct addrinfo const& newFilter ) noexcept
 	this->_filter = newFilter;
 }
 
-void	Server::bindPort( void )
+void	Server::listenAt( const char* hostname, const char* port )
 {
 	struct addrinfo *tmp, *list;
-	int yes = 1;
+	struct sockaddr_storage	hostip;
+	int yes=1, listenSocket=-1;
 
-	if (getaddrinfo(NULL, this->_port, &this->_filter, &list) != 0)
-		throw(ServerException({"failed to get addresses for port", this->_port}));
+	if (getaddrinfo(hostname, port, &this->_filter, &list) != 0)
+		throw(ServerException({"failed to get addresses for ", hostname, ":",port}));
 	for (tmp=list; tmp!=nullptr; tmp=tmp->ai_next)
 	{
-		this->_listener = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
-		if (this->_listener == -1)
+		listenSocket = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
+		if (listenSocket == -1)
 			continue;
-		if (setsockopt(this->_listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) != 0)
+		if (setsockopt(listenSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) != 0)
 			std::cout << "failed to update socket, trying to bind anyway... \n";
-		if (bind(this->_listener, tmp->ai_addr, tmp->ai_addrlen) == 0)
+		if (bind(listenSocket, tmp->ai_addr, tmp->ai_addrlen) == 0)
 			break;
-		close(this->_listener);
+		close(listenSocket);
 	}
 	if (tmp == nullptr)
 	{
 		freeaddrinfo(list);
-		throw(ServerException({"no available IP host found for port", this->_port}));
+		throw(ServerException({"no available IP host found for ", hostname, ":",port}));
 	}
-	memmove(&this->_host, tmp->ai_addr, std::min(sizeof(struct sockaddr), sizeof(struct sockaddr_storage)));
+	memmove(&hostip, tmp->ai_addr, std::min(sizeof(struct sockaddr), sizeof(struct sockaddr_storage)));
 	freeaddrinfo(list);
-	std::cout << "binded on: " << this->getAddress(&this->_host) << "\n";
-	if (listen(this->_listener, this->_backlog) != 0)
-		throw(ServerException({"listening on", this->getAddress(&this->_host).c_str()}));
-	this->_addConn(this->_listener);
+	if (listen(listenSocket, BACKLOG) != 0)
+		throw(ServerException({"failed listen on", this->getAddress(&hostip).c_str()}));
+	std::cout << "listening on: " << this->getAddress(&hostip) << "\n";
+	this->_addConn(listenSocket);
+	this->_listeners.insert(listenSocket);
 }
 
-int		Server::_acceptConnection( int listener )
+void		Server::_acceptConnection( int listener )
 {
 	struct sockaddr_storage 	client;
 	unsigned int 				sizeAddr = sizeof(client);
@@ -112,16 +90,16 @@ int		Server::_acceptConnection( int listener )
 	else
 		std::cout << "connected to " << this->getAddress(&client) << '\n';
 	this->_addConn(connfd);
-	return (connfd);
 }
 
-void	Server::handleMultipleConn( void )
+void	Server::loop( void )
 {
 	int	nConn;
 
 	while (true)
 	{
-		nConn = poll(this->_connfds.data(), this->_connfds.size(), 60000);
+		nConn = poll(this->_connfds.data(), this->_connfds.size(), MAX_TIMEOUT);
+		
 		if (nConn == -1)
 			throw(ServerException({"poll failure"}));
 		else if (nConn == 0)
@@ -130,13 +108,10 @@ void	Server::handleMultipleConn( void )
 		{
 			if (this->_connfds[i].revents & POLLIN)
 			{
-				if (this->_connfds[i].fd == this->_listener) // new connection
-					this->_acceptConnection(this->_listener);
-				else			// new message
-				{
-					this->_handleRequest(this->_connfds[i].fd);
-					this->_dropConn(i--);
-				}
+				if (this->_isListener(this->_connfds[i].fd) == true) // new connection
+					this->_acceptConnection(this->_connfds[i].fd);
+				else
+					this->_handleRequest(this->_connfds[i--].fd);
 			}
 			else if (this->_connfds[i].revents & POLLOUT) 
 			{
@@ -146,7 +121,7 @@ void	Server::handleMultipleConn( void )
 	}
 }
 
-void	Server::_handleRequest( int connfd ) const
+void	Server::_handleRequest( int connfd )
 {
 	HTTPrequest_t	req;
 	HTTPreqStatus_t	status;
@@ -158,6 +133,7 @@ void	Server::_handleRequest( int connfd ) const
 		std::cout << "parse request error: " << HTTPparser::printStatus(status) << '\n';
 	else
 		std::cout << "request received\n";\
+	HTTPparser::printData(req);
 	
 	// tokenize request [at least implement GET POST DELETE]
 	
@@ -172,11 +148,11 @@ void	Server::_handleRequest( int connfd ) const
 	}
 	if (waitpid(child, &exitStat, 0) < 0)
 		throw(ServerException({"error while terminating process"}));
+	this->_dropConn(connfd);
 	// else if (WIFEXITED(exitStat) == 0)
 	// 	std::cout << "child process killed by signal (unexpected)\n";
 	// else if (WEXITSTATUS(exitStat) == 1)
 	// 	std::cout << "bad request format\n";
-	HTTPparser::printData(req);
 	// return (status);
 }
 
@@ -200,7 +176,7 @@ std::string	Server::getAddress( const struct sockaddr_storage *addr ) const noex
 	return (ipAddress);
 }
 
-Server::Server ( Server const& other ) noexcept : _port("")
+Server::Server ( Server const& other ) noexcept
 {
 	// ofc shallow copy of port and IP attributes would be problematic because
 	// of the cuncurrency of two servers accessing the same ip:port, if fact it 
@@ -215,11 +191,22 @@ Server& Server::operator=( Server const& other ) noexcept
 	return (*this);
 }
 
-void	Server::_dropConn(size_t pos) noexcept
+void	Server::_dropConn(int toDrop) noexcept
 {
-	shutdown(this->_connfds[pos].fd, SHUT_RDWR);
-	close(this->_connfds[pos].fd);
-	this->_connfds.erase(this->_connfds.begin() + pos);
+	int currSocket;
+	for (auto it=this->_connfds.begin(); it!=this->_connfds.end(); it++)
+	{
+		currSocket = (*it).fd;
+		if ((toDrop == -1) or (currSocket == toDrop))
+		{
+			shutdown(currSocket, SHUT_RDWR);
+			close(currSocket);
+			this->_connfds.erase(it);
+			if (this->_isListener(currSocket) == true)
+				this->_listeners.erase(currSocket);
+			break;
+		}
+	}
 }
 
 void	Server::_addConn( int newSocket ) noexcept
@@ -233,4 +220,9 @@ void	Server::_addConn( int newSocket ) noexcept
 		newfd.revents = 0;
 		this->_connfds.push_back(newfd);
 	}
+}
+
+bool	Server::_isListener( int socket ) const
+{
+	return (this->_listeners.find(socket) != this->_listeners.end());
 }

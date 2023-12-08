@@ -6,19 +6,21 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 17:56:34 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/06 18:54:10 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/08 03:27:50 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
-#include<cmath>
+
 int runWebServer( void )
 {
 	try
 	{
-		Server webServ("4242");
-		webServ.bindPort();
-		webServ.handleMultipleConn();
+		Server webServ;
+		webServ.listenAt("localhost","4242");
+		webServ.listenAt("localhost","4343");
+		webServ.listenAt("localhost","4444");
+		webServ.loop();
 		return (0);
 	}
 	catch(ServerException const& e)
