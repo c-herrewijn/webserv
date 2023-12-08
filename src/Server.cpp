@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 17:56:25 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/06 23:44:18 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/08 02:10:14 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,7 +51,7 @@ Server::Server ( const char *port, struct addrinfo *filter) : _port(port)
 Server::~Server ( void ) noexcept
 {
 	while(this->_connfds.empty() == false)
-		this->_dropConn(0);
+		this->_dropConn();
 }
 
 const char*	Server::getPort( void ) const noexcept
@@ -138,6 +138,10 @@ void	Server::handleMultipleConn( void )
 					this->_dropConn(i--);
 				}
 			}
+			else if (this->_connfds[i].revents & POLLOUT) 
+			{
+				// send HTTP response?
+			}
 		}
 	}
 }
@@ -153,17 +157,18 @@ void	Server::_handleRequest( int connfd ) const
 	if (status != FMT_OK)
 		std::cout << "parse request error: " << HTTPparser::printStatus(status) << '\n';
 	else
-		std::cout << "request received\n";
-
+		std::cout << "request received\n";\
+	
+	// tokenize request [at least implement GET POST DELETE]
+	
 	child = fork();
 	if (child == -1)
 		throw(ServerException({"fork failed"}));
 	else if (child == 0)
 	{
-		sleep(1);
-		exit(0);
 		// pipe setup (create a pipe and then dup one end to the client fd?)
 		// execve stuff ...
+		exit(1);
 	}
 	if (waitpid(child, &exitStat, 0) < 0)
 		throw(ServerException({"error while terminating process"}));
@@ -224,7 +229,7 @@ void	Server::_addConn( int newSocket ) noexcept
 	if (newSocket != -1)
 	{
 		newfd.fd = newSocket;
-		newfd.events = POLLIN;
+		newfd.events = POLLIN | POLLOUT;
 		newfd.revents = 0;
 		this->_connfds.push_back(newfd);
 	}

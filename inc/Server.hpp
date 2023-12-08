@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/06 21:05:13 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/07 20:59:25 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,7 +49,7 @@ class Server
 		Server ( Server const& ) noexcept;
 		Server& operator=( Server const& ) noexcept;
 
-		void	_dropConn( size_t ) noexcept;
+		void	_dropConn( size_t pos=0 ) noexcept;
 		void	_addConn( int ) noexcept;
 		int		_acceptConnection( int ) ;
 		void	_handleRequest( int ) const ;
