@@ -110,23 +110,8 @@ void	Server::fillServer(std::vector<std::string>& block)
 	}
 }
 
-bool	Server::clearEmpty(std::vector<std::string>& block)
-{
-	for (std::vector<std::string>::iterator it = block.begin(); it != block.end();)
-	{
-		if (*it == " ")
-			it = block.erase(it);
-		else
-			++it;
-	}
-	return block.empty();
-}
-
 void	Server::parseBlock(std::vector<std::string>& block)
 {
-	if (clearEmpty(block))
-		return ;
-	std::cout << "--Parsing a Server--\n";
 	if (block.front() != "server")
 		throw ErrorCatch("First arg is not 'server'");
     block.erase(block.begin());

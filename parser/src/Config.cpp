@@ -21,6 +21,8 @@ void	Config::fillConfig(const std::string& file)
 {
 	readFile(file);
 	tokenizeFile();
+	if (clearEmpty())
+		throw ErrorCatch("Config file is empty.");
 	checkBrackets();
 }
 
@@ -44,7 +46,6 @@ std::vector<std::vector<std::string>>	Config::divideContent(void)
 			}
 		}
 	}
-	ret.push_back(std::move(tmp));
 	return (ret);
 }
 
@@ -222,4 +223,16 @@ void	Config::printContent(void)
 		i++;
 	}
 	std::cout << std::endl;
+}
+
+bool	Config::clearEmpty(void)
+{
+	for (std::vector<std::string>::iterator it = file_content.begin(); it != file_content.end();)
+	{
+		if (*it == " ")
+			it = file_content.erase(it);
+		else
+			++it;
+	}
+	return file_content.empty();
 }
