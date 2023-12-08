@@ -133,6 +133,16 @@ const std::bitset<M_SIZE>&	Location::getAllowedMethods(void) const
 	return (allowedMethods);
 }
 
+const std::string& Location::getAlias(void) const
+{
+	return (alias);
+}
+
+const std::string& Location::getURL(void) const
+{
+	return (URL);
+}
+
 std::ostream& operator<<(std::ostream& os, const Location& location) {
     os << "URL: " << location.URL << "\n";
     os << "Alias: " << location.alias << "\n";

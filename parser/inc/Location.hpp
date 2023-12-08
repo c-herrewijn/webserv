@@ -41,6 +41,8 @@ class Location
 		const std::vector<Location>& getNested(void) const;
 		const Parameters&	getParams(void) const;
 		const std::bitset<M_SIZE>&	getAllowedMethods(void) const;
+		const std::string& getAlias(void) const;
+		const std::string& getURL(void) const;
 		class ErrorCatch : public std::exception {
 			public:
 				ErrorCatch(const std::string& message) : errorMessage(message) {}
