@@ -17,7 +17,7 @@ std::string runCgi()
     const std::string cgiPath = "./cgi.sh";
     int p1[2];
 	char read_buff[BUFFER_SIZE];
-    bzero(read_buff, BUFFER_SIZE);
+    bzero(read_buff, BUFFER_SIZE); // bzero() is not allowed!
 
     // run cgi, and write result into pipe
 	pipe(p1);
@@ -32,13 +32,14 @@ std::string runCgi()
         {
             close(p1[1]);
             std::cerr << "execve error!" << std::endl;
-            exit(1);
+            exit(1); // exit() is not allowed!
         }
 	}
 
     // return cgi response
+    int	stat_loc;
     close(p1[1]);
-    wait(NULL);
+    waitpid(childPid, &stat_loc, 0);
     read(p1[0], read_buff, BUFFER_SIZE);
     close(p1[0]);
     std::string response = read_buff;
