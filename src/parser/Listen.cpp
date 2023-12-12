@@ -14,8 +14,8 @@
 #include <iostream>
 
 Listen::Listen(const Listen& copy) :
-	i_ip(copy.i_ip),
 	i_port(copy.i_port),
+	i_ip(copy.i_ip),
 	s_ip(copy.s_ip),
 	s_port(copy.s_port),
 	def(copy.def),

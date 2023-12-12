@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/26 20:16:40 by fra               #+#    #+#             */
-/*   Updated: 2023/12/12 16:03:35 by itopchu          ###   ########.fr       */
+/*   Updated: 2023/12/12 16:35:19 by itopchu          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ class Client
 
 	private:
 		int 						_sockfd = -1;
-		const char					*_connectTo, *_port;
+		// const char					*_connectTo, *_port;
 		struct sockaddr_storage 	_serverAddr;
 		struct addrinfo 			_filter;
 

@@ -216,7 +216,7 @@ void	Config::checkBrackets(void)
 
 void	Config::printContent(void)
 {
-	size_t i = 0, j = 0;
+	size_t i = 0;
 	while (i < file_content.size())
 	{
 		std::cout << file_content[i];

@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Server.hpp"
+#include "WebServer.hpp"
 
 ServerException::ServerException( std::initializer_list<const char*> prompts) noexcept 
 	: std::exception()
@@ -132,7 +132,7 @@ void	WebServer::_handleRequest( int connfd )
 	if (status != FMT_OK)
 		std::cout << "parse request error: " << HTTPparser::printStatus(status) << '\n';
 	else
-		std::cout << "request received\n";\
+		std::cout << "request received\n";
 	HTTPparser::printData(req);
 	
 	// tokenize request [at least implement GET POST DELETE]
@@ -176,7 +176,7 @@ std::string	WebServer::getAddress( const struct sockaddr_storage *addr ) const n
 	return (ipAddress);
 }
 
-WebServer::Server ( Server const& other ) noexcept
+WebServer::WebServer ( WebServer const& other ) noexcept
 {
 	// ofc shallow copy of port and IP attributes would be problematic because
 	// of the cuncurrency of two servers accessing the same ip:port, if fact it 
@@ -184,7 +184,7 @@ WebServer::Server ( Server const& other ) noexcept
 	(void) other;
 }
 
-Server& WebServer::operator=( Server const& other ) noexcept
+WebServer& WebServer::operator=( WebServer const& other ) noexcept
 {
 	// see copy constructor
 	(void) other;

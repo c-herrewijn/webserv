@@ -6,7 +6,7 @@
 #    By: itopchu <itopchu@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2023/11/25 18:04:49 by fra               #+#    #+#              #
-#    Updated: 2023/12/12 16:14:52 by itopchu          ###   ########.fr        #
+#    Updated: 2023/12/12 16:34:11 by itopchu          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -18,13 +18,12 @@ SRC_DIR := src
 OBJ_DIR := obj
 INCLUDE := inc
 MAIN_SERV := main.cpp
-# MAIN_CLI := mainCli.cpp
-HEADERS := $(wildcard $(INCLUDE)/*.hpp)
-SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
+HEADERS := $(shell find $(INCLUDE) -type f -name '*.hpp')
+SOURCES := $(shell find $(SRC_DIR) -type f -name '*.cpp')
 OBJECTS := $(patsubst $(SRC_DIR)%,$(OBJ_DIR)%,$(SOURCES:.cpp=.o))	
 
 CC  := c++
-IFLAGS := -I$(INCLUDE)
+IFLAGS := -I$(INCLUDE) -Iinc/parser -Iinc/server
 CPPFLAGS = -Wall -Wextra -Werror -Wshadow -Wpedantic -g3 -fsanitize=address
 
 GREEN = \x1b[32;01m
@@ -58,7 +57,6 @@ $(OBJ_DIR):
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS)
 	@mkdir -p $(dir $@)
-	echo ---------------------------------
 	@$(CC) $(CPPFLAGS) $(IFLAGS) -c $< -o $@
 	@printf "(WebServ) $(BLUE)Created object $$(basename $@)$(RESET)\n"
 
