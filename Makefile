@@ -12,7 +12,7 @@
 
 SHELL := /bin/bash
 
-SERVER := webserv
+NAME := webserv
 CLIENT := webclient
 SRC_DIR := src
 OBJ_DIR := obj
@@ -20,7 +20,7 @@ INCLUDE := inc
 MAIN_SERV := main.cpp
 HEADERS := $(shell find $(INCLUDE) -type f -name '*.hpp')
 SOURCES := $(shell find $(SRC_DIR) -type f -name '*.cpp')
-OBJECTS := $(patsubst $(SRC_DIR)%,$(OBJ_DIR)%,$(SOURCES:.cpp=.o))	
+OBJECTS := $(patsubst $(SRC_DIR)%,$(OBJ_DIR)%,$(SOURCES:.cpp=.o))
 
 CC  := c++
 IFLAGS := -I$(INCLUDE) -Iinc/parser -Iinc/server
@@ -32,22 +32,13 @@ BLUE = \x1b[34;01m
 RESET = \x1b[0m
 
 
-all: $(SERVER)
-# $(CLIENT)
+all: $(NAME)
 
-server: $(SERVER)
+run: $(NAME)
 	@clear
-	@./$(SERVER)
+	@./$(NAME)
 
-# client: $(CLIENT)
-# 	@clear
-# 	@./$(CLIENT) "localhost" "4242"
-
-# $(CLIENT): $(OBJECTS) $(MAIN_CLI)
-# 	@$(CC) $(CPPFLAGS) $(IFLAGS) $^ -o $@
-# 	@printf "(WebServ) $(GREEN)Created program $@$(RESET)\n"
-
-$(SERVER): $(OBJECTS) $(MAIN_SERV)
+$(NAME): $(OBJECTS) $(MAIN_SERV)
 	@$(CC) $(CPPFLAGS) $(IFLAGS) $^ -o $@
 	@printf "(WebServ) $(GREEN)Created program $@$(RESET)\n"
 
@@ -67,8 +58,8 @@ clean:
 	done
 
 fclean: clean
-	@-rm -f $(SERVER)
-	@printf "(WebServ) $(RED)Removed executable $(SERVER)$(RESET)\n"
+	@-rm -f $(NAME)
+	@printf "(WebServ) $(RED)Removed executable $(NAME)$(RESET)\n"
 	@-rm -f $(CLIENT)
 	@printf "(WebServ) $(RED)Removed executable $(CLIENT)$(RESET)\n"
 
