@@ -87,6 +87,3 @@ int main(int ac, char **av)
 	runWebServer();
 	return (0);
 }
-
-// c++ main.cpp src/*.cpp -Linc -Iinc -I../inc -L../inc -o runner
-// ./runner default/default.conf

@@ -29,7 +29,10 @@ Server::Server(const Server& copy) :
 	listens(copy.listens),
 	names(copy.names),
 	params(copy.params),
-	locations(copy.locations)
+	locations(copy.locations),
+	cgi_directory(copy.cgi_directory),
+	cgi_extension(copy.cgi_extension),
+	cgi_allowed(copy.cgi_allowed)
 {
 
 }
@@ -43,7 +46,50 @@ Server&	Server::operator=(const Server& assign)
 	names = assign.names;
 	locations = assign.locations;
 	params = assign.params;
+	cgi_directory = assign.cgi_directory;
+	cgi_extension = assign.cgi_extension;
+	cgi_allowed = assign.cgi_allowed;
 	return (*this);
+}
+
+void	Server::parseCgiDir(std::vector<std::string>& block)
+{
+	block.erase(block.begin());
+	if (block.front().find(' ') != std::string::npos)
+		throw ErrorCatch("Unexpected element in cgi_directory: '" + block.front() + "'");
+	if (block.front().front() != '/')
+		throw ErrorCatch("Directories must begin with a '/''" + block.front() + "'");
+	cgi_directory = block.front();
+	block.erase(block.begin());
+	if (block.front() != ";")
+		throw ErrorCatch("Unexpected element in cgi_directory: '" + block.front() + "', a ';' is expected");
+	block.erase(block.begin());
+}
+
+void	Server::parseCgiExtension(std::vector<std::string>& block)
+{
+	block.erase(block.begin());
+	if (block.front().find(' ') != std::string::npos)
+		throw ErrorCatch("Unexpected element in cgi_extension: '" + block.front() + "'");
+	cgi_extension = block.front();
+	if (block.front() != ";")
+		throw ErrorCatch("Unexpected element in cgi_extension: '" + block.front() + "', a ';' is expected");
+	block.erase(block.begin());
+}
+
+void	Server::parseCgiAllowed(std::vector<std::string>& block)
+{
+	block.erase(block.begin());
+	if (block.front() == "true")
+		cgi_allowed = true;
+	else if (block.front() == "false")
+		cgi_allowed = false;
+	else
+		throw ErrorCatch("Unexpected element in cgi_allowed: '" + block.front() + "'");
+	block.erase(block.begin());
+	if (block.front() != ";")
+		throw ErrorCatch("Unexpected element in cgi_allowed: '" + block.front() + "', a ';' is expected");
+	block.erase(block.begin());
 }
 
 void	Server::parseListen(std::vector<std::string>& block)
@@ -101,6 +147,12 @@ void	Server::fillServer(std::vector<std::string>& block)
 			parseServerName(block);
 		else if (*it == "location")
 			parseLocation(block);
+		else if (block.front() == "cgi_directory")
+			parseCgiDir(block);
+		else if (block.front() == "cgi_extension")
+			parseCgiExtension(block);
+		else if (block.front() == "cgi_allowed")
+			parseCgiAllowed(block);
 		else if (*it == "allowMethods" || *it == "root" ||
 				*it == "client_max_body_size" || *it == "autoindex" ||
 				*it == "index" || *it == "error_page" || *it == "return")
@@ -122,6 +174,21 @@ void	Server::parseBlock(std::vector<std::string>& block)
 		throw ErrorCatch("Last element is not '}");
 	block.pop_back();
 	fillServer(block);
+}
+
+const std::string& Server::getCgiDir(void) const
+{
+	return (cgi_directory);
+}
+
+const std::string& Server::getCgiExtension(void) const
+{
+	return (cgi_extension);
+}
+
+const bool& Server::getCgiAllowed(void) const
+{
+	return (cgi_allowed);
 }
 
 const std::vector<Listen>& Server::getListens(void) const

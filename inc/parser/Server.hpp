@@ -31,12 +31,17 @@ class Server
 		std::vector<std::string> names; // is the given "server_name".
 		Parameters	params; // Default parameters for whole server block
 		std::vector<Location>	locations; // declared Locations
+		std::string	cgi_directory;	// bin for cgi
+		std::string	cgi_extension;	// extention .py .sh
+		bool		cgi_allowed;	// Check for permissions
 		// Parsers
 		void	parseListen(std::vector<std::string>& block);
 		void	parseServerName(std::vector<std::string>& block);
 		void	parseLocation(std::vector<std::string>& block);
+		void	parseCgiDir(std::vector<std::string>& block);
+		void	parseCgiExtension(std::vector<std::string>& block);
+		void	parseCgiAllowed(std::vector<std::string>& block);
 		// Setup
-		bool	clearEmpty(std::vector<std::string>& block);
 		void	fillServer(std::vector<std::string>& block);
 	public:
 		// Form
@@ -50,7 +55,10 @@ class Server
 		const std::vector<Listen>& getListens(void) const;
 		const std::vector<std::string>& getNames(void) const;
 		const Parameters&	getParams(void) const;
-		const std::vector<Location>&	getLocations() const;
+		const std::vector<Location>&	getLocations(void) const;
+		const std::string& getCgiDir(void) const;
+		const std::string& getCgiExtension(void) const;
+		const bool& getCgiAllowed(void) const;
 		class ErrorCatch : public std::exception {
 			public:
 				ErrorCatch(const std::string& message) : errorMessage(message) {}
