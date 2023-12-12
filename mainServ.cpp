@@ -1,0 +1,40 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        ::::::::            */
+/*   mainServ.cpp                                       :+:    :+:            */
+/*                                                     +:+                    */
+/*   By: fra <fra@student.codam.nl>                   +#+                     */
+/*                                                   +#+                      */
+/*   Created: 2023/11/25 17:56:34 by fra           #+#    #+#                 */
+/*   Updated: 2023/12/08 03:27:50 by fra           ########   odam.nl         */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "Server.hpp"
+
+int runWebServer( void )
+{
+	try
+	{
+		Server webServ;
+		webServ.listenAt("localhost","4242");
+		webServ.listenAt("localhost","4343");
+		webServ.listenAt("localhost","4444");
+		webServ.loop();
+		return (0);
+	}
+	catch(ServerException const& e)
+	{
+		std::cout << e.what() << "\n";
+		return (-1);
+	}
+}
+
+int main( int argc, char** argv, char** envp)
+{
+	(void) argc;
+	(void) argv;
+	(void) envp;
+	runWebServer();
+	return (0);
+}

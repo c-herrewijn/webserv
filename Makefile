@@ -1,61 +1,79 @@
-# ╔════════════════════════════════════════════════════════════════════════╗
-# ║                       Makefile for C++ exercises                       ║
-# ╚════════════════════════════════════════════════════════════════════════╝
-# ╭────────────────────────────────────╮
-# │              CXX part              │
-# ╰────────────────────────────────────╯
-CPP 		:= c++
-NAME		= webserver
-DIR_OBJ		= ./obj
-DIR_INC		= ./inc
-DIR_SRC		= ./src
 # **************************************************************************** #
-IFLAGS		:= -I$(DIR_INC)
-CPPFLAGS	= -Wall -Wextra -Werror -std=c++98
-CPPFLAGS	+= -MMD -MP
-# CPPFLAGS	+= -g3 #-fsanitize=address
-# CPPFLAGS	+= -arch x86_64
-LFLAGS		:= -L$(DIR_INC)
-RM			= rm -rf
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    Makefile                                           :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: itopchu <itopchu@student.42.fr>            +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: 2023/11/25 18:04:49 by fra               #+#    #+#              #
+#    Updated: 2023/12/12 15:53:43 by itopchu          ###   ########.fr        #
+#                                                                              #
 # **************************************************************************** #
-SRC_EXEC	= $(DIR_SRC)/main.cpp
-# **************************************************************************** #
-SRCS		= $(SRC_EXEC)
-OBJS		= $(SRCS:$(DIR_SRC)/%.cpp=$(DIR_OBJ)/%.o)
-# **************************************************************************** #
-DEPS		= $(OBJS:.o=.d)
-# **************************************************************************** #
-all: $(NAME)
 
-run: all
+SHELL := /bin/bash
+
+SERVER := webserv
+CLIENT := webclient
+SRC_DIR := src
+OBJ_DIR := obj
+INCLUDE := inc
+MAIN_SERV := mainServ.cpp
+MAIN_CLI := mainCli.cpp
+HEADERS := $(wildcard $(INCLUDE)/*.hpp)
+SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
+OBJECTS := $(patsubst $(SRC_DIR)%,$(OBJ_DIR)%,$(SOURCES:.cpp=.o))	
+
+CC  := c++
+IFLAGS := -I$(INCLUDE)
+CPPFLAGS = -Wall -Wextra -Werror -Wshadow -Wpedantic -g3 -fsanitize=address
+
+GREEN = \x1b[32;01m
+RED = \x1b[31;01m
+BLUE = \x1b[34;01m
+RESET = \x1b[0m
+
+
+all: $(SERVER) $(CLIENT)
+
+server: $(SERVER)
 	@clear
-	@./$(NAME)
+	@./$(SERVER)
 
-rungrid: all
+client: $(CLIENT)
 	@clear
-	@valgrind --tool=memcheck --leak-check=full ./$(NAME)
+	@./$(CLIENT) "localhost" "4242"
 
-$(NAME): $(OBJS)
-	@$(CPP) $(CPPFLAGS) $(IFLAGS) $^ -o $(NAME) $(LFLAGS)
-	@echo "\r\033[K\033[32m$(NAME) \033[0mis created."
+$(CLIENT): $(OBJECTS) $(MAIN_CLI)
+	@$(CC) $(CPPFLAGS) $(IFLAGS) $^ -o $@
+	@printf "(WebServ) $(GREEN)Created program $@$(RESET)\n"
 
-$(DIR_OBJ)/%.o: $(DIR_SRC)/%.cpp
-	@echo -n "\033[33m$(NAME) is compiling...\033[0m\r"
+$(SERVER): $(OBJECTS) $(MAIN_SERV)
+	@$(CC) $(CPPFLAGS) $(IFLAGS) $^ -o $@
+	@printf "(WebServ) $(GREEN)Created program $@$(RESET)\n"
+
+$(OBJ_DIR):
+	@mkdir -p $(OBJ_DIR)
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS)
 	@mkdir -p $(dir $@)
-	@$(CPP) $(CPPFLAGS) $(IFLAGS) -c $< -o $@ -MMD -MF $(@:.o=.d) -MT $@
-	@echo -n "\e[25C$< \033[32mcompiled.\033[0m"
-	@echo -n "\033[K\r"
-
--include $(DEPS)
+	@$(CC) $(CPPFLAGS) $(IFLAGS) -c $< -o $@
+	@printf "(WebServ) $(BLUE)Created object $$(basename $@)$(RESET)\n"
 
 clean:
-	@$(RM) $(DIR_OBJ)
-	@echo "Object files are removed"
+	@for file in $(OBJECTS); do \
+		rm -f $$file;	\
+		printf "(WebServ) $(RED)Removed object $$(basename $$file)$(RESET)\n"; \
+	done
 
 fclean: clean
-	@$(RM) $(NAME) $(DEPS)
-	@echo "$(NAME) and dependencies are removed"
+	@-rm -f $(SERVER)
+	@printf "(WebServ) $(RED)Removed executable $(SERVER)$(RESET)\n"
+	@-rm -f $(CLIENT)
+	@printf "(WebServ) $(RED)Removed executable $(CLIENT)$(RESET)\n"
 
 re: fclean all
 
-.PHONY: clean all fclean re
+.PHONY: all, run, clean, fclean, re
+
+.DEFAULT_GOAL:=all
+>>>>>>> fra
