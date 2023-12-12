@@ -35,4 +35,5 @@
 #include <set>
 #include <map>
 #include "colors.hpp"
-#include "define.hpp"
+#include "parser/Config.hpp"
+#include "server/WebServer.hpp"

@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Config.hpp"
+#include "global.hpp"
 
 std::vector<Server>	parseServers(char **av)
 {
@@ -32,7 +32,7 @@ std::vector<Server>	parseServers(char **av)
 	}
 	std::vector<std::vector<std::string>> separated = config->divideContent();
 	delete config;
-	for (int i = 0; i < separated.size(); i++)
+	for (size_t i = 0; i < separated.size(); i++)
 	{
 		Server tmp;
 		try
@@ -54,6 +54,24 @@ std::vector<Server>	parseServers(char **av)
 	return (servers);
 }
 
+int runWebServer( void )
+{
+	try
+	{
+		WebServer webServ;
+		webServ.listenAt("localhost","4242");
+		webServ.listenAt("localhost","4343");
+		webServ.listenAt("localhost","4444");
+		webServ.loop();
+		return (0);
+	}
+	catch(ServerException const& e)
+	{
+		std::cout << e.what() << "\n";
+		return (-1);
+	}
+}
+
 int main(int ac, char **av)
 {
 	if (ac > 2)
@@ -61,11 +79,12 @@ int main(int ac, char **av)
 		std::cerr << "Wrong amount of arguments received\n\tValid usage: " << av[0] << " " << av[1] <<  "\n";
 	}
 	std::vector<Server> servers = parseServers(av);
-	for (int i = 0; i < servers.size(); i++)
-	{
-		std::cout << "---Printing Server index: "  C_GREEN << i << C_RESET "---\n";
-		std::cout << servers[i] << std::endl;
-	}
+	runWebServer();
+	// for (int i = 0; i < servers.size(); i++)
+	// {
+	// 	std::cout << "---Printing Server index: "  C_GREEN << i << C_RESET "---\n";
+	// 	std::cout << servers[i] << std::endl;
+	// }
 	return (0);
 }
 

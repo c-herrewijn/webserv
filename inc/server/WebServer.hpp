@@ -1,18 +1,20 @@
 /* ************************************************************************** */
 /*                                                                            */
-/*                                                        ::::::::            */
-/*   Server.hpp                                         :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: fra <fra@student.codam.nl>                   +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/08 03:57:46 by fra           ########   odam.nl         */
+/*                                                        :::      ::::::::   */
+/*   WebServer.hpp                                      :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: itopchu <itopchu@student.42.fr>            +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/11/25 18:19:29 by fra               #+#    #+#             */
+/*   Updated: 2023/12/12 16:03:38 by itopchu          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
-#include "headers.hpp"
+#include "global.hpp"
 #include "HTTPparser.hpp"
+#define BACKLOG 100				        // max pending connection queued up
+#define MAX_TIMEOUT 60000               // maximum timeout with poll()
 
 class ServerException : std::exception
 {
@@ -25,11 +27,11 @@ class ServerException : std::exception
 		std::string _msg;
 };
 
-class Server
+class WebServer
 {
 	public:
-		Server ( void );
-		~Server ( void ) noexcept;
+		WebServer ( void );
+		~WebServer ( void ) noexcept;
 
 		struct addrinfo	getFilter( void ) const noexcept ;
 		void			setFilter( struct addrinfo const& ) noexcept;
@@ -42,8 +44,8 @@ class Server
 		std::set<int>				_listeners;
 		struct addrinfo 			_filter;
 
-		Server ( Server const& ) noexcept;
-		Server& operator=( Server const& ) noexcept;
+		WebServer ( WebServer const& ) noexcept;
+		WebServer& operator=( WebServer const& ) noexcept;
 
 		void	_dropConn( int socket = -1 ) noexcept;
 		void	_addConn( int ) noexcept;

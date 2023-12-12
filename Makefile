@@ -6,7 +6,7 @@
 #    By: itopchu <itopchu@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2023/11/25 18:04:49 by fra               #+#    #+#              #
-#    Updated: 2023/12/12 15:53:43 by itopchu          ###   ########.fr        #
+#    Updated: 2023/12/12 16:14:52 by itopchu          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -17,8 +17,8 @@ CLIENT := webclient
 SRC_DIR := src
 OBJ_DIR := obj
 INCLUDE := inc
-MAIN_SERV := mainServ.cpp
-MAIN_CLI := mainCli.cpp
+MAIN_SERV := main.cpp
+# MAIN_CLI := mainCli.cpp
 HEADERS := $(wildcard $(INCLUDE)/*.hpp)
 SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS := $(patsubst $(SRC_DIR)%,$(OBJ_DIR)%,$(SOURCES:.cpp=.o))	
@@ -33,29 +33,32 @@ BLUE = \x1b[34;01m
 RESET = \x1b[0m
 
 
-all: $(SERVER) $(CLIENT)
+all: $(SERVER)
+# $(CLIENT)
 
 server: $(SERVER)
 	@clear
 	@./$(SERVER)
 
-client: $(CLIENT)
-	@clear
-	@./$(CLIENT) "localhost" "4242"
+# client: $(CLIENT)
+# 	@clear
+# 	@./$(CLIENT) "localhost" "4242"
 
-$(CLIENT): $(OBJECTS) $(MAIN_CLI)
-	@$(CC) $(CPPFLAGS) $(IFLAGS) $^ -o $@
-	@printf "(WebServ) $(GREEN)Created program $@$(RESET)\n"
+# $(CLIENT): $(OBJECTS) $(MAIN_CLI)
+# 	@$(CC) $(CPPFLAGS) $(IFLAGS) $^ -o $@
+# 	@printf "(WebServ) $(GREEN)Created program $@$(RESET)\n"
 
 $(SERVER): $(OBJECTS) $(MAIN_SERV)
 	@$(CC) $(CPPFLAGS) $(IFLAGS) $^ -o $@
 	@printf "(WebServ) $(GREEN)Created program $@$(RESET)\n"
 
 $(OBJ_DIR):
+	echo $(SOURCES)
 	@mkdir -p $(OBJ_DIR)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS)
 	@mkdir -p $(dir $@)
+	echo ---------------------------------
 	@$(CC) $(CPPFLAGS) $(IFLAGS) -c $< -o $@
 	@printf "(WebServ) $(BLUE)Created object $$(basename $@)$(RESET)\n"
 
@@ -76,4 +79,3 @@ re: fclean all
 .PHONY: all, run, clean, fclean, re
 
 .DEFAULT_GOAL:=all
->>>>>>> fra

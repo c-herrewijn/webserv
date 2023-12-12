@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        ::::::::            */
-/*   Server.cpp                                         :+:    :+:            */
+/*   WebServer.cpp                                         :+:    :+:            */
 /*                                                     +:+                    */
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
@@ -21,7 +21,7 @@ ServerException::ServerException( std::initializer_list<const char*> prompts) no
 }
 
 
-Server::Server ( void )
+WebServer::WebServer ( void )
 {
 	bzero(&this->_filter, sizeof(struct addrinfo));
 	this->_filter.ai_flags = AI_PASSIVE;
@@ -29,23 +29,23 @@ Server::Server ( void )
 	this->_filter.ai_protocol = IPPROTO_TCP;
 }
 
-Server::~Server ( void ) noexcept
+WebServer::~WebServer ( void ) noexcept
 {
 	while(this->_connfds.empty() == false)
 		this->_dropConn();
 }
 
-struct addrinfo	Server::getFilter( void ) const noexcept
+struct addrinfo	WebServer::getFilter( void ) const noexcept
 {
 	return(this->_filter);
 }
 
-void	Server::setFilter( struct addrinfo const& newFilter ) noexcept
+void	WebServer::setFilter( struct addrinfo const& newFilter ) noexcept
 {
 	this->_filter = newFilter;
 }
 
-void	Server::listenAt( const char* hostname, const char* port )
+void	WebServer::listenAt( const char* hostname, const char* port )
 {
 	struct addrinfo *tmp, *list;
 	struct sockaddr_storage	hostip;
@@ -78,7 +78,7 @@ void	Server::listenAt( const char* hostname, const char* port )
 	this->_listeners.insert(listenSocket);
 }
 
-void		Server::_acceptConnection( int listener )
+void		WebServer::_acceptConnection( int listener )
 {
 	struct sockaddr_storage 	client;
 	unsigned int 				sizeAddr = sizeof(client);
@@ -92,7 +92,7 @@ void		Server::_acceptConnection( int listener )
 	this->_addConn(connfd);
 }
 
-void	Server::loop( void )
+void	WebServer::loop( void )
 {
 	int	nConn;
 
@@ -121,7 +121,7 @@ void	Server::loop( void )
 	}
 }
 
-void	Server::_handleRequest( int connfd )
+void	WebServer::_handleRequest( int connfd )
 {
 	HTTPrequest_t	req;
 	HTTPreqStatus_t	status;
@@ -156,7 +156,7 @@ void	Server::_handleRequest( int connfd )
 	// return (status);
 }
 
-std::string	Server::getAddress( const struct sockaddr_storage *addr ) const noexcept
+std::string	WebServer::getAddress( const struct sockaddr_storage *addr ) const noexcept
 {
 	std::string ipAddress;
 	if (addr->ss_family == AF_INET)
@@ -176,7 +176,7 @@ std::string	Server::getAddress( const struct sockaddr_storage *addr ) const noex
 	return (ipAddress);
 }
 
-Server::Server ( Server const& other ) noexcept
+WebServer::Server ( Server const& other ) noexcept
 {
 	// ofc shallow copy of port and IP attributes would be problematic because
 	// of the cuncurrency of two servers accessing the same ip:port, if fact it 
@@ -184,14 +184,14 @@ Server::Server ( Server const& other ) noexcept
 	(void) other;
 }
 
-Server& Server::operator=( Server const& other ) noexcept
+Server& WebServer::operator=( Server const& other ) noexcept
 {
 	// see copy constructor
 	(void) other;
 	return (*this);
 }
 
-void	Server::_dropConn(int toDrop) noexcept
+void	WebServer::_dropConn(int toDrop) noexcept
 {
 	int currSocket;
 	for (auto it=this->_connfds.begin(); it!=this->_connfds.end(); it++)
@@ -209,7 +209,7 @@ void	Server::_dropConn(int toDrop) noexcept
 	}
 }
 
-void	Server::_addConn( int newSocket ) noexcept
+void	WebServer::_addConn( int newSocket ) noexcept
 {
 	struct pollfd	newfd;
 
@@ -222,7 +222,7 @@ void	Server::_addConn( int newSocket ) noexcept
 	}
 }
 
-bool	Server::_isListener( int socket ) const
+bool	WebServer::_isListener( int socket ) const
 {
 	return (this->_listeners.find(socket) != this->_listeners.end());
 }
