@@ -154,12 +154,8 @@ void	Server::fillServer(std::vector<std::string>& block)
 			parseCgiExtension(block);
 		else if (block.front() == "cgi_allowed")
 			parseCgiAllowed(block);
-		else if (*it == "allowMethods" || *it == "root" ||
-				*it == "client_max_body_size" || *it == "autoindex" ||
-				*it == "index" || *it == "error_page" || *it == "return")
-			params.fill(block);
 		else
-			throw ErrorCatch("\"" + block.front() + "\" is not a valid parameter");
+			params.fill(block);
 	}
 }
 
@@ -169,10 +165,10 @@ void	Server::parseBlock(std::vector<std::string>& block)
 		throw ErrorCatch("First arg is not 'server'");
     block.erase(block.begin());
 	if (block.front() != "{")
-		throw ErrorCatch("After 'server' '{' expected");
+		throw ErrorCatch("After 'server' a '{' expected");
     block.erase(block.begin());
 	if (block[block.size() - 1] != "}")
-		throw ErrorCatch("Last element is not '}");
+		throw ErrorCatch("Last element is not a '}");
 	block.pop_back();
 	fillServer(block);
 }
@@ -215,26 +211,26 @@ const std::vector<Location>&	Server::getLocations() const
 std::ostream& operator<<(std::ostream& os, const Server& server)
 {
     const auto& listens = server.getListens();
-	os << "\nCgi params:\n";
+	os << "Cgi params:\n";
 	os << "\tCgi allowed: " << server.getCgiAllowed();
 	os << "\n\tCgi directory: " << server.getCgiDir();
 	os << "\n\tCgi extension: " << server.getCgiExtension() << "\n";
 	os << "----------------\n";
-    os << "\nListens:\n";
+    os << "Listens:\n";
     for (const auto& listen : listens) {
         os << listen << "\n";
     }
 	os << "----------------\n";
-    os << "\nServer Names:" "\n";
+    os << "Server Names:" "\n";
     const auto& names = server.getNames();
     for (const auto& name : names) {
         os << "\t" << name << "\n";
     }
 	os << "----------------\n";
-    os << "\nParameters\n" << "\n";
-    os << server.getParams() << "\n";
+    os << "Parameters\n";
+    os << server.getParams();
 	os << "----------------\n";
-    os << "\nLocations:" "\n";
+    os << "Locations:" "\n";
     const auto& locations = server.getLocations();
     for (const auto& location : locations) {
         os << location;

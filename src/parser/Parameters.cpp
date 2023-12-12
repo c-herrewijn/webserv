@@ -240,32 +240,30 @@ void	Parameters::fill(std::vector<std::string>& block)
 	else if (block.front() == "return")
 		parseReturn(block);
 	else
-		throw ErrorCatch("\"" + block.front() + "\" is not a valid keyword");
+		throw ErrorCatch("\"" + block.front() + "\" is not a valid parameter");
 }
 
 std::ostream& operator<<(std::ostream& os, const Parameters& params)
 {
-	os << "Root: " << params.getRoot() << "\n";
-	os << "Max Size: " << params.getMaxSize().first << ", " << params.getMaxSize().second << "\n";
-	os << "Autoindex: " << (params.getAutoindex() ? "true" : "false") << "\n";
+	os << "Root: \n\t" << params.getRoot() << "\n";
+	os << "Max Size: \n\t" << params.getMaxSize().first << " " << params.getMaxSize().second << "\n";
+	os << "Autoindex: \n\t" << (params.getAutoindex() ? "true" : "false") << "\n";
 
-	os << "Indexes: ";
+	os << "Indexes:\n";
 	const auto& indexes = params.getIndexes();
 	for (const auto& index : indexes) {
-		os << index << " ";
+		os << "\t" << index << "\n";
 	}
-	os << "\n";
-
 	os << "Error Pages:" << "\n";
 	const auto& errorPages = params.getErrorPages();
 	for (const auto& entry : errorPages) {
-		os << "  " << entry.first << ": " << entry.second << "\n";
+		os << "\t" << entry.first << ": " << entry.second << "\n";
 	}
 
 	os << "Returns:" << "\n";
 	const auto& returns = params.getReturns();
 	for (const auto& entry : returns) {
-		os << "  " << entry.first << ": " << entry.second << "\n";
+		os << "\t" << entry.first << ": " << entry.second << "\n";
 	}
 
 	return os;

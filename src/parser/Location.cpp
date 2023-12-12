@@ -144,15 +144,14 @@ const std::string& Location::getURL(void) const
 }
 
 std::ostream& operator<<(std::ostream& os, const Location& location) {
-    os << "URL: " << location.URL << "\n";
-    os << "Alias: " << location.alias << "\n";
-    os << "Allowed Methods: " << location.allowedMethods << "\n";
-    os << "Params: " << location.params << "\n";
-    os << "Nested Locations:" << "\n";
+    os << "URL:\n\t" << location.URL << "\n";
+    os << "Alias:\n\t" << location.alias << "\n";
+    os << "Allowed Methods:\n\t" << location.allowedMethods << "\n";
+    os << "Params:\n" << location.params;
+    os << "Nested Locations:\n";
     const auto& nestedLocations = location.getNested();
     for (const auto& nested : nestedLocations) {
         os << nested;
     }
-
     return os;
 }
