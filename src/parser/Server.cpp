@@ -72,6 +72,7 @@ void	Server::parseCgiExtension(std::vector<std::string>& block)
 	if (block.front().find(' ') != std::string::npos)
 		throw ErrorCatch("Unexpected element in cgi_extension: '" + block.front() + "'");
 	cgi_extension = block.front();
+	block.erase(block.begin());
 	if (block.front() != ";")
 		throw ErrorCatch("Unexpected element in cgi_extension: '" + block.front() + "', a ';' is expected");
 	block.erase(block.begin());
@@ -214,25 +215,31 @@ const std::vector<Location>&	Server::getLocations() const
 std::ostream& operator<<(std::ostream& os, const Server& server)
 {
     const auto& listens = server.getListens();
-    os << "\nListens:" "\n";
+	os << "\nCgi params:\n";
+	os << "\tCgi allowed: " << server.getCgiAllowed();
+	os << "\n\tCgi directory: " << server.getCgiDir();
+	os << "\n\tCgi extension: " << server.getCgiExtension() << "\n";
+	os << "----------------\n";
+    os << "\nListens:\n";
     for (const auto& listen : listens) {
         os << listen << "\n";
     }
-
+	os << "----------------\n";
     os << "\nServer Names:" "\n";
     const auto& names = server.getNames();
     for (const auto& name : names) {
-        os << name << "\n";
+        os << "\t" << name << "\n";
     }
-
-    os << "\nParameters:" << "\n";
+	os << "----------------\n";
+    os << "\nParameters\n" << "\n";
     os << server.getParams() << "\n";
-
+	os << "----------------\n";
     os << "\nLocations:" "\n";
     const auto& locations = server.getLocations();
     for (const auto& location : locations) {
         os << location;
     }
+	os << "--------END--------\n";
 
     return os;
 }
