@@ -22,7 +22,7 @@
 # include "Location.hpp"
 # include "Listen.hpp"
 
-# define DEF_CONF "default/default2.conf"
+# define DEF_CONF "default/default.conf"
 
 class Server
 {

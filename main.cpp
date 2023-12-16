@@ -82,7 +82,7 @@ int main(int ac, char **av)
 	for (size_t i = 0; i < servers.size(); i++)
 	{
 		std::cout << "---Printing Server index: "  C_GREEN << i << C_RESET "---\n";
-		std::cout << servers[i] << std::endl;
+		std::cout << servers[i];
 	}
 	runWebServer();
 	return (0);
