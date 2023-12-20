@@ -6,13 +6,35 @@
 #include <string.h>
 #include <sys/wait.h>
 
-// fra branch
-
 #define BUFFER_SIZE 10000 // hardcoded for poc
+
+char *const *createCgiEnv()
+{
+    char *const *CgiEnv = new char*[18] {
+        (char *)"AUTH_TYPE=",
+        (char *)"CONTENT_LENGTH=",
+        (char *)"CONTENT_TYPE=",
+        (char *)"GATEWAY_INTERFACE=1.1",
+        (char *)"PATH_INFO=",
+        (char *)"PATH_TRANSLATED=",
+        (char *)"QUERY_STRING=",
+        (char *)"REMOTE_ADDR=",
+        (char *)"REMOTE_HOST=",
+        (char *)"REMOTE_IDENT=",
+        (char *)"REMOTE_USER=",
+        (char *)"REQUEST_METHOD=",
+        (char *)"SCRIPT_NAME=",
+        (char *)"SERVER_NAME=MyServer",
+        (char *)"SERVER_PORT=",
+        (char *)"SERVER_PROTOCOL=",
+        (char *)"SERVER_SOFTWARE=",
+        (char *)""
+    };
+    return CgiEnv;
+}
 
 std::string runCgi()
 {
-    extern char **environ;
     const std::string cgiFileName = "cgi.sh";
     const std::string cgiPath = "./cgi.sh";
     int p1[2];
@@ -27,7 +49,9 @@ std::string runCgi()
 	    close(p1[0]);
         dup2(p1[1], STDOUT_FILENO);
         char *argv[2] = {(char*)cgiFileName.c_str(), NULL};
-        int res = execve("./cgi.sh", argv, environ);
+        char *const *CgiEnv = createCgiEnv();
+        // std::cerr << "debug: " << cgiPath << std::endl;
+        int res = execve(cgiPath.c_str(), argv, CgiEnv);
         if (res != 0)
         {
             close(p1[1]);

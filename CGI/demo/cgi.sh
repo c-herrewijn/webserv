@@ -18,3 +18,6 @@ echo ""
 
 # body with html content
 echo $html_content
+
+# debug:
+# >&2 echo "debug:" $SERVER_NAME
