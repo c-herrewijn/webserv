@@ -9,7 +9,9 @@ CGIRequest::CGIRequest()
       _CgiEnvCStyle(this->createCgiEnvCStyle())
 {}
 
-CGIRequest::~CGIRequest() {}
+CGIRequest::~CGIRequest() {
+    delete[] this->_CgiEnvCStyle;
+}
 
 void CGIRequest::printEnv()
 {
