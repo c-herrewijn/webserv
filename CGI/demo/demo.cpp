@@ -28,7 +28,7 @@ char *const *createCgiEnv()
         (char *)"SERVER_PORT=",
         (char *)"SERVER_PROTOCOL=",
         (char *)"SERVER_SOFTWARE=",
-        (char *)""
+        NULL
     };
     return CgiEnv;
 }
@@ -43,13 +43,13 @@ std::string runCgi()
 
     // run cgi, and write result into pipe
 	pipe(p1);
+    char *const *CgiEnv = createCgiEnv();
 	pid_t childPid = fork();
 	if (childPid == 0)
 	{
 	    close(p1[0]);
         dup2(p1[1], STDOUT_FILENO);
         char *argv[2] = {(char*)cgiFileName.c_str(), NULL};
-        char *const *CgiEnv = createCgiEnv();
         // std::cerr << "debug: " << cgiPath << std::endl;
         int res = execve(cgiPath.c_str(), argv, CgiEnv);
         if (res != 0)
@@ -59,6 +59,7 @@ std::string runCgi()
             exit(1); // exit() is not allowed!
         }
 	}
+    delete[] CgiEnv;
 
     // return cgi response
     int	stat_loc;
