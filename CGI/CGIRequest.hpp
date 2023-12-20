@@ -12,10 +12,9 @@
 
 class  CGIRequest {
 public:
-    CGIRequest();
+    CGIRequest(std::string CGIfileName, std::string CGIfilePath, std::string serverName);
     ~CGIRequest();
-    void printEnv();  // debug
-    std::string runCgi();
+    std::string getCGIResponse();
 
 private:
     const std::string _cgiFileName;
@@ -23,10 +22,11 @@ private:
     std::array<std::string, CGI_ENV_SIZE> _CGIEnvArr;
     char *const *_CgiEnvCStyle;
 
-    std::array<std::string, CGI_ENV_SIZE> createCgiEnv();
+    std::array<std::string, CGI_ENV_SIZE> createCgiEnv(std::string serverName);
     char *const *createCgiEnvCStyle();
 
-    // disabled: copy constructor and copy assignment operator
+    // disabled default constructor, copy constructor, and copy assignment operator
+    CGIRequest();
     CGIRequest(const CGIRequest &obj);
     CGIRequest &operator=(const CGIRequest &obj);
 };

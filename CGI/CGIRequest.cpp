@@ -2,10 +2,14 @@
 #include <string>
 #include <iostream>
 
-CGIRequest::CGIRequest()
-    : _cgiFileName("cgi.sh"),
-      _cgiPath("./cgi.sh"),
-      _CGIEnvArr(this->createCgiEnv()),
+CGIRequest::CGIRequest(
+    std::string CGIfileName,
+    std::string CGIfilePath,
+    std::string serverName
+)
+    : _cgiFileName(CGIfileName),
+      _cgiPath(CGIfilePath),
+      _CGIEnvArr(this->createCgiEnv(serverName)),
       _CgiEnvCStyle(this->createCgiEnvCStyle())
 {}
 
@@ -13,19 +17,7 @@ CGIRequest::~CGIRequest() {
     delete[] this->_CgiEnvCStyle;
 }
 
-void CGIRequest::printEnv()
-{
-    std::cout << "debug: printing env" << std::endl;
-    std::cout << this->_CGIEnvArr[0] << std::endl;
-    std::cout << this->_CGIEnvArr[1] << std::endl;
-    std::cout << this->_CGIEnvArr[16] << std::endl;
-    std::cout << this->_CgiEnvCStyle[0] << std::endl;
-    std::cout << this->_CgiEnvCStyle[1] << std::endl;
-    std::cout << this->_CgiEnvCStyle[16] << std::endl;
-
-}
-
-std::array<std::string, CGI_ENV_SIZE> CGIRequest::createCgiEnv()
+std::array<std::string, CGI_ENV_SIZE> CGIRequest::createCgiEnv(std::string serverName)
 {
     std::array<std::string, CGI_ENV_SIZE> CGIEnv {
         "AUTH_TYPE=",
@@ -41,7 +33,7 @@ std::array<std::string, CGI_ENV_SIZE> CGIRequest::createCgiEnv()
         "REMOTE_USER=",
         "REQUEST_METHOD=",
         "SCRIPT_NAME=",
-        "SERVER_NAME=MyServer",
+        "SERVER_NAME=" + serverName,
         "SERVER_PORT=",
         "SERVER_PROTOCOL=",
         "SERVER_SOFTWARE=",
@@ -74,7 +66,7 @@ char *const *CGIRequest::createCgiEnvCStyle()
     return CgiEnv;
 }
 
-std::string CGIRequest::runCgi()
+std::string CGIRequest::getCGIResponse()
 {
     int p1[2];
 	char read_buff[CGI_READ_BUFFER_SIZE];
@@ -108,10 +100,11 @@ std::string CGIRequest::runCgi()
     return response;
 }
 
-
-
-// disabled copy constructor and copy assignment operator
+// disabled default constructor, copy constructor and copy assignment operator
 // -----------------------------------------
+
+CGIRequest::CGIRequest() {}
+
 CGIRequest::CGIRequest(const CGIRequest &obj) {
     *this = obj;
 }

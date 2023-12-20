@@ -6,8 +6,14 @@
 
 int main()
 {
-    CGIRequest request;
-    std::string response = request.runCgi();
+    // dummy inputs from config or HTTP request
+    std::string CGIfileName = "cgi.sh";
+    std::string CGIfilePath = "./cgi.sh";
+    std::string serverName = "myServer";
+
+    CGIRequest request(CGIfileName, CGIfilePath, serverName);
+
+    std::string response = request.getCGIResponse();
     std::cout << response << std::endl;
 
     return (0);
