@@ -10,7 +10,7 @@ content_length=${#html_content}
 # header (Hardcoded!)
 echo \
 "HTTP/1.0 200 OK
-Server: MyServer
+Server: $SERVER_NAME
 Content-Length: $content_length"
 
 # line that separates header from body
