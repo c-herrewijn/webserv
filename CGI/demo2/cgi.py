@@ -1,8 +1,14 @@
 #!/usr/bin/python3
 from os import environ
+from datetime import datetime
 
-with open('static_page.html', 'r') as file:
-    html_content = file.read()
+# static page
+# with open('static_page.html', 'r') as file:
+#     html_content = file.read()
+
+now = datetime.now()
+now_str = now.strftime('%H:%M:%S')
+html_content = f"<html><body><h1>Current time: {now_str}</h1></body></html>"
 
 # todo: validate headers
 # if environ.has_key('SERVER_NAME'):
