@@ -1,29 +1,30 @@
 # **************************************************************************** #
 #                                                                              #
-#                                                         :::      ::::::::    #
-#    Makefile                                           :+:      :+:    :+:    #
-#                                                     +:+ +:+         +:+      #
-#    By: itopchu <itopchu@student.42.fr>            +#+  +:+       +#+         #
-#                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2023/11/25 18:04:49 by fra               #+#    #+#              #
-#    Updated: 2023/12/12 16:34:11 by itopchu          ###   ########.fr        #
+#                                                         ::::::::             #
+#    Makefile                                           :+:    :+:             #
+#                                                      +:+                     #
+#    By: fra <fra@student.codam.nl>                   +#+                      #
+#                                                    +#+                       #
+#    Created: 2023/11/25 18:04:49 by fra           #+#    #+#                  #
+#    Updated: 2023/12/08 02:25:34 by fra           ########   odam.nl          #
 #                                                                              #
 # **************************************************************************** #
 
 SHELL := /bin/bash
 
-NAME := webserv
+SERVER := webserv
 CLIENT := webclient
 SRC_DIR := src
 OBJ_DIR := obj
 INCLUDE := inc
-MAIN_SERV := main.cpp
-HEADERS := $(shell find $(INCLUDE) -type f -name '*.hpp')
-SOURCES := $(shell find $(SRC_DIR) -type f -name '*.cpp')
+MAIN_SERV := mainServ.cpp
+MAIN_CLI := mainCli.cpp
+HEADERS := $(wildcard $(INCLUDE)/*.hpp)
+SOURCES = $(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS := $(patsubst $(SRC_DIR)%,$(OBJ_DIR)%,$(SOURCES:.cpp=.o))
 
 CC  := c++
-IFLAGS := -I$(INCLUDE) -Iinc/parser -Iinc/server
+IFLAGS := -I$(INCLUDE)
 CPPFLAGS = -Wall -Wextra -Werror -Wshadow -Wpedantic -g3 -fsanitize=address
 
 GREEN = \x1b[32;01m
@@ -32,18 +33,25 @@ BLUE = \x1b[34;01m
 RESET = \x1b[0m
 
 
-all: $(NAME)
+all: $(SERVER) $(CLIENT)
 
-run: $(NAME)
+server: $(SERVER)
 	@clear
-	@./$(NAME)
+	@./$(SERVER)
 
-$(NAME): $(OBJECTS) $(MAIN_SERV)
+client: $(CLIENT)
+	@clear
+	@./$(CLIENT) "localhost" "4242"
+
+$(CLIENT): $(OBJECTS) $(MAIN_CLI)
+	@$(CC) $(CPPFLAGS) $(IFLAGS) $^ -o $@
+	@printf "(WebServ) $(GREEN)Created program $@$(RESET)\n"
+
+$(SERVER): $(OBJECTS) $(MAIN_SERV)
 	@$(CC) $(CPPFLAGS) $(IFLAGS) $^ -o $@
 	@printf "(WebServ) $(GREEN)Created program $@$(RESET)\n"
 
 $(OBJ_DIR):
-	echo $(SOURCES)
 	@mkdir -p $(OBJ_DIR)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS)
@@ -58,8 +66,8 @@ clean:
 	done
 
 fclean: clean
-	@-rm -f $(NAME)
-	@printf "(WebServ) $(RED)Removed executable $(NAME)$(RESET)\n"
+	@-rm -f $(SERVER)
+	@printf "(WebServ) $(RED)Removed executable $(SERVER)$(RESET)\n"
 	@-rm -f $(CLIENT)
 	@printf "(WebServ) $(RED)Removed executable $(CLIENT)$(RESET)\n"
 
