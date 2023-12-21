@@ -13,7 +13,7 @@ int main()
 
     CGIRequest request(CGIfileName, CGIfilePath, serverName);
 
-    std::string response = request.getCGIResponse();
+    std::string response = request.getHTTPResponse();
     std::cout << response << std::endl;
 
     return (0);

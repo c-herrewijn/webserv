@@ -14,7 +14,7 @@ class  CGIRequest {
 public:
     CGIRequest(std::string CGIfileName, std::string CGIfilePath, std::string serverName);
     ~CGIRequest();
-    std::string getCGIResponse();
+    std::string getHTTPResponse();
 
 private:
     const std::string _cgiFileName;

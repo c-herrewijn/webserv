@@ -66,7 +66,7 @@ char *const *CGIRequest::createCgiEnvCStyle()
     return CgiEnv;
 }
 
-std::string CGIRequest::getCGIResponse()
+std::string CGIRequest::getHTTPResponse()
 {
     int p1[2];
 	char read_buff[CGI_READ_BUFFER_SIZE];
