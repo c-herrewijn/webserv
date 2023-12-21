@@ -38,9 +38,11 @@ class Location
 		virtual ~Location(void);
 		Location(const Location& copy);
 		Location&	operator=(const Location& assign);
-		const std::vector<Location>& getNested(void);
-		const Parameters&	getParams(void);
-		const std::bitset<M_SIZE>&	getAllowedMethods(void);
+		const std::vector<Location>& getNested(void) const;
+		const Parameters&	getParams(void) const;
+		const std::bitset<M_SIZE>&	getAllowedMethods(void) const;
+		const std::string& getAlias(void) const;
+		const std::string& getURL(void) const;
 		class ErrorCatch : public std::exception {
 			public:
 				ErrorCatch(const std::string& message) : errorMessage(message) {}
@@ -50,6 +52,7 @@ class Location
 			private:
 				std::string errorMessage;
 		};
+    friend std::ostream& operator<<(std::ostream& os, const Location& location);
 };
 
 #endif

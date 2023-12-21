@@ -1,17 +1,18 @@
 /* ************************************************************************** */
 /*                                                                            */
-/*                                                        ::::::::            */
-/*   Client.hpp                                         :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: fra <fra@student.codam.nl>                   +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2023/11/26 20:16:40 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/06 19:50:37 by fra           ########   odam.nl         */
+/*                                                        :::      ::::::::   */
+/*   Client.hpp                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: itopchu <itopchu@student.42.fr>            +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/11/26 20:16:40 by fra               #+#    #+#             */
+/*   Updated: 2023/12/12 16:35:19 by itopchu          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
-#include "headers.hpp"
+#include "global.hpp"
+#define MAX_CLIENTS 30       	        // max number of clients to create for testing
 
 class ClientException : std::exception
 {
@@ -36,7 +37,7 @@ class Client
 
 	private:
 		int 						_sockfd = -1;
-		const char					*_connectTo, *_port;
+		// const char					*_connectTo, *_port;
 		struct sockaddr_storage 	_serverAddr;
 		struct addrinfo 			_filter;
 

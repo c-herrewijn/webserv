@@ -118,18 +118,40 @@ void	Location::parseAlias(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
-const std::vector<Location>& Location::getNested(void)
+const std::vector<Location>& Location::getNested(void) const
 {
 	return (nested);
 }
 
-const Parameters&	Location::getParams(void)
+const Parameters&	Location::getParams(void) const
 {
 	return (params);
 }
 
-const std::bitset<M_SIZE>&	Location::getAllowedMethods(void)
+const std::bitset<M_SIZE>&	Location::getAllowedMethods(void) const
 {
 	return (allowedMethods);
 }
 
+const std::string& Location::getAlias(void) const
+{
+	return (alias);
+}
+
+const std::string& Location::getURL(void) const
+{
+	return (URL);
+}
+
+std::ostream& operator<<(std::ostream& os, const Location& location) {
+    os << "URL:\n\t" << location.URL << "\n";
+    os << "Alias:\n\t" << location.alias << "\n";
+    os << "Allowed Methods:\n\t" << location.allowedMethods << "\n";
+    os << "Params:\n" << location.params;
+    os << "Nested Locations:\n";
+    const auto& nestedLocations = location.getNested();
+    for (const auto& nested : nestedLocations) {
+        os << nested;
+    }
+    return os;
+}

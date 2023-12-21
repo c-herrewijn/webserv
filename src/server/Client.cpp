@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 20:22:27 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/06 19:50:30 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/08 02:26:02 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,6 @@ Client::~Client( void ) noexcept
 		close(this->_sockfd);
 	}
 }
-
 
 void	Client::connectTo( const char* host, const char* port )
 {

@@ -44,6 +44,7 @@ class Config
 		Config&	operator=(const Config& assign);
 		// Subject
 		void	fillConfig(const std::string& file);
+		bool	clearEmpty(void);
 		std::vector<std::string>	getFileContent(void);
 		std::vector<std::vector<std::string>>	divideContent(void);
 		class ErrorCatch : public std::exception {

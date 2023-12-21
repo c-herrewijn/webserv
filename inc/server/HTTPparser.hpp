@@ -1,17 +1,18 @@
 /* ************************************************************************** */
 /*                                                                            */
-/*                                                        ::::::::            */
-/*   HTTPparser.hpp                                     :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: fra <fra@student.codam.nl>                   +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/06 20:40:07 by fra           ########   odam.nl         */
+/*                                                        :::      ::::::::   */
+/*   HTTPparser.hpp                                     :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: itopchu <itopchu@student.42.fr>            +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/11/26 14:40:36 by fra               #+#    #+#             */
+/*   Updated: 2023/12/12 16:08:36 by itopchu          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
-#include "headers.hpp"
+#include "global.hpp"
+#define HEADER_MAX_SIZE 8192	        // max size of HTTP header
 
 typedef enum HTTPreqStatus_s
 {
@@ -46,5 +47,4 @@ class HTTPparser
 		HTTPparser( HTTPparser const& ) noexcept;
 		HTTPparser& operator=( HTTPparser const& ) noexcept;
 };
-
-#include "Server.hpp"
+#include "WebServer.hpp"

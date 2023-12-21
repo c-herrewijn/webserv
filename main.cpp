@@ -10,13 +10,13 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Config.hpp"
+#include "global.hpp"
 
-int main(int ac, char **av)
+std::vector<Server>	parseServers(char **av)
 {
 	Config *config;
-
 	config = new Config();
+	std::vector<Server> servers;
 	try
 	{
 		if (av[1])
@@ -28,29 +28,62 @@ int main(int ac, char **av)
 	{
 		std::cerr << e.what() << '\n';
 		delete config;
-		return (1);
+		return (servers);
 	}
 	std::vector<std::vector<std::string>> separated = config->divideContent();
 	delete config;
-	std::vector<Server> servers;
-	for (std::vector<std::vector<std::string>>::iterator it = separated.begin(); it != separated.end(); it++)
+	for (size_t i = 0; i < separated.size(); i++)
 	{
 		Server tmp;
 		try
 		{
-			tmp.parseBlock(*it);
+			std::cout << "--Parsing Server index " C_GREEN << i << C_RESET "--\n";
+			tmp.parseBlock(separated[i]);
 			servers.push_back(tmp);
 		}
 		catch(const std::exception& e)
 		{
-			std::cerr << "Failure on Server index: " << std::distance(separated.begin(), it) << "\n";
+			std::cerr << "Failure on Server index " C_RED << i << C_RESET "\n";
 			std::cerr << C_RED << e.what() << C_RESET "\n";
-			std::cerr << "Continuing with parsing other servers...\n";
+			std::cerr << C_YELLOW "Continuing with parsing other servers...\n" C_RESET;
 		}
+
 	}
+	std::cout << "Parsing Done with size " C_AZURE << servers.size() << C_RESET "\n";
 	// "servers" must contain valid servers
-	return (0);
+	return (servers);
 }
 
-// c++ main.cpp src/*.cpp -Linc -Iinc -I../inc -L../inc -o runner
-// ./runner default/default.conf
+int runWebServer( void )
+{
+	try
+	{
+		WebServer webServ;
+		webServ.listenAt("localhost","4242");
+		webServ.listenAt("localhost","4343");
+		webServ.listenAt("localhost","4444");
+		webServ.loop();
+		return (0);
+	}
+	catch(ServerException const& e)
+	{
+		std::cout << e.what() << "\n";
+		return (-1);
+	}
+}
+
+int main(int ac, char **av)
+{
+	if (ac > 2)
+	{
+		std::cerr << "Wrong amount of arguments received\n\tValid usage: " << av[0] << " " << av[1] <<  "\n";
+	}
+	std::vector<Server> servers = parseServers(av);
+	for (size_t i = 0; i < servers.size(); i++)
+	{
+		std::cout << "---Printing Server index: "  C_GREEN << i << C_RESET "---\n";
+		std::cout << servers[i];
+	}
+	runWebServer();
+	return (0);
+}
