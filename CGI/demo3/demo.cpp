@@ -122,10 +122,17 @@ int main() {
 
     // accept incoming connections (server waits for connections in a loop)
     std::cout << "wait for incoming connections..." << std::endl;
+    HTTPrequest_t	req;
     while (true)
     {
         connectionFd = accept(serverFd, (sockaddr*)&intServerSockAddr, &socketSize);
         std::cout << "connection established!" << std::endl;
+
+        // ------------
+        // TODO: in progress trying to use parser...
+        // HTTPparser::parse(connectionFd, &req );
+        // std::cout << "parsing finished" << std::endl;
+        // ------------
 
         bytesReceived = read(connectionFd, buffer, BUFFER_SIZE);
         std::cout << std::endl << "data received: " << std::endl<< buffer << std::endl;
