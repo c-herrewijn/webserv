@@ -222,12 +222,15 @@ void	Listen::setAll(bool	status)
 	all = status;
 }
 
-std::ostream& operator<<(std::ostream& os, const Listen& listen)
-{
-    os << "IP: " << listen.getIpString() << "\n";
-    os << "Port: " << listen.getPortString() << "\n";
-    os << "Def: " << (listen.getDef() ? "true" : "false") << "\n";
-    os << "All: " << (listen.getAll() ? "true" : "false") << "\n";
+std::ostream& operator<<(std::ostream& os, const Listen& listen) {
+    os << "listen " << listen.getIpString();
+    if (!listen.getPortString().empty()) {
+        os << ":" << listen.getPortString();
+    }
+    if (listen.getDef()) {
+        os << " default_server";
+    }
+    os << ";\n";
 
     return os;
 }

@@ -14,6 +14,7 @@
 
 Location::Location(void)
 {
+	block_index = 0;
 	for (int tmp = 0; tmp < M_SIZE; tmp++)
 		allowedMethods[tmp] = 0;
 }
@@ -24,6 +25,7 @@ Location::~Location(void)
 }
 
 Location::Location(const Location& copy) :
+	block_index(copy.block_index),
 	allowedMethods(copy.allowedMethods),
 	URL(copy.URL),
 	alias(copy.alias),
@@ -35,6 +37,7 @@ Location::Location(const Location& copy) :
 
 Location&	Location::operator=(const Location& assign)
 {
+	block_index = assign.block_index;
 	allowedMethods = assign.allowedMethods;
 	URL = assign.URL;
 	alias = assign.alias;
@@ -46,7 +49,9 @@ Location&	Location::operator=(const Location& assign)
 
 Location::Location(std::vector<std::string>& block, const Parameters& param)
 {
+	block_index = param.getBlockIndex();
 	params = param;
+	params.setBlockIndex(param.getBlockIndex());
 	block.erase(block.begin());
 	if (block.front()[0] != '/')
 		throw ErrorCatch("After 'location' expected a /URL");
@@ -64,6 +69,7 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 		else if (block.front() == "location")
 		{
 			Location local(block, params);
+			local.setBlockIndex(this->block_index);
 			nested.push_back(local);
 		}
 		else if (block.front() == "root" || block.front() == "client_max_body_size" ||
@@ -143,15 +149,38 @@ const std::string& Location::getURL(void) const
 	return (URL);
 }
 
-std::ostream& operator<<(std::ostream& os, const Location& location) {
-    os << "URL:\n\t" << location.URL << "\n";
-    os << "Alias:\n\t" << location.alias << "\n";
-    os << "Allowed Methods:\n\t" << location.allowedMethods << "\n";
-    os << "Params:\n" << location.params;
-    os << "Nested Locations:\n";
+void Location::setBlockIndex(const size_t& ref)
+{
+	this->block_index = ref + 1;
+}
+
+const size_t& Location::getBlockIndex(void) const
+{
+	return (this->block_index);
+}
+
+std::ostream& operator<<(std::ostream& os, const Location& location)
+{
+    size_t indentation = location.getBlockIndex();
+    // Print the opening line for the current location
+    os << std::string(indentation, '\t') << "location " << location.URL << " {\n";
+
+    // Print alias and allowMethods
+    os << std::string(indentation + 1, '\t') << "alias " << location.alias << ";\n";
+    os << std::string(indentation + 1, '\t') << "allowMethods " << location.allowedMethods << ";\n";
+
+    // Print location params
+    os << location.params;
+
+    // Print Nested Locations
     const auto& nestedLocations = location.getNested();
-    for (const auto& nested : nestedLocations) {
-        os << nested;
-    }
+	for (const auto& nested : nestedLocations) {
+		// Recursively call operator<< for each nested location
+		os << nested;
+	}
+
+    // Print the closing line for the current location
+    os << std::string(indentation, '\t') << "}\n";
+    
     return os;
 }
