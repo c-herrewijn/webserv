@@ -6,26 +6,17 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/28 00:39:48 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/28 00:49:54 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 #include "global.hpp"
 #define HEADER_MAX_SIZE 8192	        // max size of HTTP header
-#define HTTP_DEF_VERSION	"HTTP/1.1"
 #define HTTP_DEF_PORT		"80"
-#define HTTP_DEF_SCHEME		"http"
+#define HTTP_DEF_SCHEME		"HTTP"
 
 typedef std::map<std::string, std::string> dict;
-
-// typedef enum HTTPparseStatus_s
-// {
-//     FMT_OK,
-//     FMT_BADFMT,			//"empty header"
-//     FMT_BIGHEAD,		//"header exceeds 8 KB maximum"
-//     FMT_BADOPT,			//"bad format option header line"
-// } HTTPparseStatus_t;
 
 typedef enum HTTPreq_s
 {
@@ -98,10 +89,11 @@ class HTTPparser
 		static void	_setHead( std::string, HTTPheadReq_t& );
 		static void	_setHeaders( std::string, dict& );
 		static void	_setBody( std::string, std::string& );
+
 		static void	_setMethod( std::string, HTTPreq_t& );
 		static void	_setURL( std::string, HTTPurl_t& );
 		static void	_setVersion( std::string, HTTPversion_t& );
-		// static void	_setHostPort( HTTPrequest_t& );
+
 		static void	_setQuery( std::string, dict& );
 
 		HTTPparser( void ) noexcept {};

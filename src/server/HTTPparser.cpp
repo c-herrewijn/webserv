@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/28 00:41:18 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/28 00:52:00 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,7 @@ void	HTTPparser::parseRequest( std::string strReq, HTTPrequest_t &req )
 
 	delimiter = strReq.find("\r\n\r\n");
 	if (delimiter == std::string::npos)
-		throw(ParserException({"no terminator \\r\\n\\r\\n"}));
+		throw(ParserException({"invalid request: no terminator \\r\\n\\r\\n"}));
 	head = strReq.substr(delimiter);
 	delimiter = head.find("\r\n");
 	if (delimiter != std::string::npos)
@@ -55,19 +55,19 @@ void	HTTPparser::_setHead(std::string header, HTTPheadReq_t& head )
 
 	stream >> method;
 	if (! stream.good())
-		throw(ParserException({"invalid header", header.c_str()}));
+		throw(ParserException({"invalid header:", header.c_str()}));
 	_setMethod(method, head.method);
 	stream >> url;
 	if (! stream.good())
-		throw(ParserException({"invalid header", header.c_str()}));
+		throw(ParserException({"invalid header:", header.c_str()}));
 	_setURL(url, head.url);
 	stream >> version;
 	if (! stream.good())
-		throw(ParserException({"invalid header", header.c_str()}));
+		throw(ParserException({"invalid header:", header.c_str()}));
 	_setVersion(version, head.version);
 	stream >> termination;
 	if ((! stream.good()) or (termination != "\r\n"))
-		throw(ParserException({"invalid header", header.c_str()}));
+		throw(ParserException({"invalid header:", header.c_str()}));
 }
 
 void	HTTPparser::_setHeaders( std::string headers, dict& options )
@@ -162,8 +162,8 @@ void	HTTPparser::_setVersion(std::string strVersion, HTTPversion_t& version)
 	if (del1 == std::string::npos)
 		throw(ParserException({"invalid version:", strVersion.c_str()}));
 	version.scheme = strVersion.substr(del1);
-	if ((version.scheme != "HTTP") and (version.scheme != "http"))
-		throw(ParserException({"invalid version:", strVersion.c_str()}));
+	if (version.scheme != HTTP_DEF_SCHEME)
+		throw(ParserException({"invalid scheme:", strVersion.c_str()}));
 	del2 = strVersion.find('.');
 	if (del2 == std::string::npos)
 		throw(ParserException({"invalid version:", strVersion.c_str()}));
@@ -174,7 +174,7 @@ void	HTTPparser::_setVersion(std::string strVersion, HTTPversion_t& version)
 	}
 	catch (const std::exception& e) 
 	{
-		throw(ParserException({"invalid version:", strVersion.c_str()}));
+		throw(ParserException({"invalid version numbers:", strVersion.c_str()}));
 	}
 }
 
