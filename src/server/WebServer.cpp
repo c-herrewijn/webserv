@@ -120,6 +120,11 @@ void	WebServer::loop( void )
 	}
 }
 
+
+// OPEN POINTS:
+//	- chunked requests
+//	- relative URLs
+//	- update host & port when they're found in the headers
 void	WebServer::_handleRequest( int connfd )
 {
 	HTTPrequest_t		req;
@@ -139,7 +144,7 @@ void	WebServer::_handleRequest( int connfd )
 		return ;
 	}
 	std::cout << "request received\n";
-	// HTTPparser::printData(req);	
+	// HTTPparser::printData(req);
 	child = fork();
 	if (child == -1)
 		throw(ServerException({"fork failed"}));
