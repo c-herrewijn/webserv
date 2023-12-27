@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   WebServer.hpp                                      :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: itopchu <itopchu@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/11/25 18:19:29 by fra               #+#    #+#             */
-/*   Updated: 2023/12/12 16:36:12 by itopchu          ###   ########.fr       */
+/*                                                        ::::::::            */
+/*   WebServer.hpp                                      :+:    :+:            */
+/*                                                     +:+                    */
+/*   By: itopchu <itopchu@student.42.fr>              +#+                     */
+/*                                                   +#+                      */
+/*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
+/*   Updated: 2023/12/27 16:39:24 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,9 +47,10 @@ class WebServer
 		WebServer ( WebServer const& ) noexcept;
 		WebServer& operator=( WebServer const& ) noexcept;
 
-		void	_dropConn( int socket = -1 ) noexcept;
-		void	_addConn( int ) noexcept;
-		void	_acceptConnection( int ) ;
-		void	_handleRequest( int ) ;
-		bool	_isListener( int ) const ;
+		void		_dropConn( int socket = -1 ) noexcept;
+		void		_addConn( int ) noexcept;
+		void		_acceptConnection( int ) ;
+		void		_handleRequest( int ) ;
+		bool		_isListener( int ) const ;
+		std::string	_readSocket( int ) const ;
 };

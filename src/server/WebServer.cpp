@@ -20,7 +20,6 @@ ServerException::ServerException( std::initializer_list<const char*> prompts) no
 		this->_msg += std::string(prompt) + " ";
 }
 
-
 WebServer::WebServer ( void )
 {
 	bzero(&this->_filter, sizeof(struct addrinfo));
@@ -123,20 +122,24 @@ void	WebServer::loop( void )
 
 void	WebServer::_handleRequest( int connfd )
 {
-	HTTPrequest_t	req;
-	HTTPreqStatus_t	status;
-	pid_t 			child = -1;
-	int				exitStat = 0;
-
-	status = HTTPparser::parse(connfd, &req);
-	if (status != FMT_OK)
-		std::cout << "parse request error: " << HTTPparser::printStatus(status) << '\n';
-	else
-		std::cout << "request received\n";
-	HTTPparser::printData(req);
+	HTTPrequest_t		req;
+	pid_t 				child = -1;
+	int					exitStat = 0;
+	std::string			stringRequest;
 	
-	// tokenize request [at least implement GET POST DELETE]
-	
+	try
+	{
+		stringRequest = _readSocket(connfd);
+		HTTPparser::parseRequest(stringRequest, req);
+	}
+	catch (std::exception const& err) 
+	{
+		std::cout << err.what() << '\n';
+		this->_dropConn(connfd);
+		return ;
+	}
+	std::cout << "request received\n";
+	// HTTPparser::printData(req);	
 	child = fork();
 	if (child == -1)
 		throw(ServerException({"fork failed"}));
@@ -153,7 +156,6 @@ void	WebServer::_handleRequest( int connfd )
 	// 	std::cout << "child process killed by signal (unexpected)\n";
 	// else if (WEXITSTATUS(exitStat) == 1)
 	// 	std::cout << "bad request format\n";
-	// return (status);
 }
 
 std::string	WebServer::getAddress( const struct sockaddr_storage *addr ) const noexcept
@@ -225,4 +227,21 @@ void	WebServer::_addConn( int newSocket ) noexcept
 bool	WebServer::_isListener( int socket ) const
 {
 	return (this->_listeners.find(socket) != this->_listeners.end());
+}
+
+std::string	WebServer::_readSocket( int fd ) const
+{
+	char			buffer[HEADER_MAX_SIZE + 1];
+	ssize_t 		readChar = HEADER_MAX_SIZE;
+	std::string		stringRequest;
+
+	while (readChar == HEADER_MAX_SIZE)
+	{
+		memset(buffer, 0, HEADER_MAX_SIZE + 1);
+		readChar = read(fd, buffer, HEADER_MAX_SIZE);
+		if (readChar < 0)
+			throw(ServerException({"socket not available or empty"}));
+		stringRequest += buffer;
+	}
+	return (stringRequest);
 }
