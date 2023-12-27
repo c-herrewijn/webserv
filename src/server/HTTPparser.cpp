@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/28 00:52:00 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/28 00:56:20 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -97,7 +97,7 @@ void	HTTPparser::_setBody( std::string startBody, std::string& body )
 		body = startBody;
 }
 
-void	HTTPparser::_setMethod(std::string strMethod, HTTPreq_t& method) 
+void	HTTPparser::_setMethod(std::string strMethod, HTTPmethod_t& method) 
 {
 	if (strMethod == "GET")
 		method = HTTP_GET;

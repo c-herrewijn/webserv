@@ -6,24 +6,24 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/28 00:49:54 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/28 00:57:03 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 #include "global.hpp"
-#define HEADER_MAX_SIZE 8192	        // max size of HTTP header
-#define HTTP_DEF_PORT		"80"
-#define HTTP_DEF_SCHEME		"HTTP"
+#define HEADER_MAX_SIZE 	8192	        // max size of HTTP header
+#define HTTP_DEF_PORT		"80"			// default port
+#define HTTP_DEF_SCHEME		"HTTP"			// default scheme
 
 typedef std::map<std::string, std::string> dict;
 
-typedef enum HTTPreq_s
+typedef enum HTTPmethod_s
 {
     HTTP_GET,
 	HTTP_POST,
 	HTTP_DELETE,
-} HTTPreq_t;
+} HTTPmethod_t;
 
 typedef struct HTTPurl_f
 {
@@ -42,17 +42,10 @@ typedef struct HTTPversion_f
 
 typedef struct HTTPheadReq_f
 {
-	HTTPreq_t		method;
+	HTTPmethod_t	method;
 	HTTPurl_t		url;		
 	HTTPversion_t	version;
 } HTTPheadReq_t;
-
-typedef struct HTTPheadResp_f
-{
-	HTTPversion_t	version;
-	std::string		status;
-	int				exitCode;
-} HTTPheadResp_t;
 
 typedef struct HTTPrequest_f
 {
@@ -61,12 +54,21 @@ typedef struct HTTPrequest_f
 	std::string		body;
 } HTTPrequest_t;
 
+
+typedef struct HTTPheadResp_f
+{
+	HTTPversion_t	version;
+	std::string		status;
+	int				exitCode;
+} HTTPheadResp_t;
+
 typedef struct HTTPresponse_f
 {
 	HTTPheadResp_t	head;
 	dict 			headers;
 	std::string		body;
 } HTTPresponse_t;
+
 
 class ParserException : std::exception
 {
@@ -90,7 +92,7 @@ class HTTPparser
 		static void	_setHeaders( std::string, dict& );
 		static void	_setBody( std::string, std::string& );
 
-		static void	_setMethod( std::string, HTTPreq_t& );
+		static void	_setMethod( std::string, HTTPmethod_t& );
 		static void	_setURL( std::string, HTTPurl_t& );
 		static void	_setVersion( std::string, HTTPversion_t& );
 
