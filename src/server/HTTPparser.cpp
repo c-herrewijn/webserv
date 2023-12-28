@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/28 17:48:37 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/28 17:52:09 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,7 +62,7 @@ void	HTTPparser::printData( HTTPrequest_t httpReq ) noexcept
 void	HTTPparser::_setHead(std::string header, HTTPheadReq_t& head )
 {
 	std::istringstream	stream(header);
-	std::string 		method, url, version, termination;
+	std::string 		method, url, version;
 
 	if (! std::getline(stream, method, ' '))
 		throw(ParserException({"invalid header:", header.c_str()}));
@@ -73,16 +73,18 @@ void	HTTPparser::_setHead(std::string header, HTTPheadReq_t& head )
 	if (! std::getline(stream, version, ' '))
 		throw(ParserException({"invalid header:", header.c_str()}));
 	_setVersion(version, head.version);
-	termination = version.substr(version.size() - 2);
-	if (termination != "\r\n")
-		throw(ParserException({"invalid header:", header.c_str()}));
+	if (version.substr(version.size() - 2) != "\r\n")
+		throw(ParserException({"no termination header:", header.c_str()}));
 }
 
 void	HTTPparser::_setHeaders( std::string headers, dict& options )
 {
-	// char *eol, *colon;
+	std::istringstream	stream(headers);
+	std::string 		method, url, version;
+
 	(void) headers;
 	(void) options;
+	(! std::getline(stream, method, ' '))
 	// while (true)
 	// {
 	// 	eol = strstr(line, "\r\n");
