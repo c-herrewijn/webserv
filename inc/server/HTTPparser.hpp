@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/28 17:18:53 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/28 19:29:07 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,8 @@
 #define HEADER_MAX_SIZE 	8192	        // max size of HTTP header
 #define HTTP_DEF_PORT		"80"			// default port
 #define HTTP_DEF_SCHEME		"HTTP"			// default scheme
+#define HTTP_TERM			"\r\n\r\n"		// http terminator
+#define HTTP_DELIM			"\r\n"			// http delimiter
 
 typedef std::map<std::string, std::string> dict;
 
@@ -31,6 +33,7 @@ typedef struct HTTPurl_f
 	std::string	port;
 	std::string	path;		// std::filesystem
 	dict		query;
+	std::string	section;
 } HTTPurl_t;
 
 typedef struct HTTPversion_f
@@ -97,6 +100,7 @@ class HTTPparser
 		static void	_setVersion( std::string, HTTPversion_t& );
 
 		static void	_setQuery( std::string, dict& );
+		static void	_setSection( std::string, std::string& );
 
 		HTTPparser( void ) noexcept {};
 		~HTTPparser( void ) noexcept;

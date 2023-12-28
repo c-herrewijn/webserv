@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/28 17:52:09 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/28 19:49:47 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,37 +25,48 @@ void	HTTPparser::parseRequest( std::string strReq, HTTPrequest_t &req )
 	std::string head, headers, body;
 	size_t		delimiter;
 
-	delimiter = strReq.find("\r\n\r\n");
+	delimiter = strReq.find(HTTP_TERM);
 	if (delimiter == std::string::npos)
 		throw(ParserException({"invalid request: no header terminator \\r\\n\\r\\n"}));
 	head = strReq.substr(0, delimiter + 2);
-	if (delimiter + 4 < strReq.size())
+	if (delimiter + 4 < strReq.size())		// there's the body request
 	{
 		strReq = strReq.substr(delimiter + 4);
-		delimiter = strReq.find("\r\n\r\n");
-		if (strReq.find("\r\n\r\n") == std::string::npos)
+		delimiter = strReq.find(HTTP_TERM);
+		if (strReq.find(HTTP_TERM) == std::string::npos)
 			throw(ParserException({"invalid request: no body terminator \\r\\n\\r\\n"}));
 		body = strReq.substr(0, delimiter);
+		_setBody(body, req.body);
 	}
-	delimiter = head.find("\r\n");
+	delimiter = head.find(HTTP_DELIM);		// there are headers
 	if (delimiter + 2 != head.size())
 	{
 		headers = head.substr(delimiter + 2);
 		head = head.substr(0, delimiter + 2);
+		_setHeaders(headers, req.headers);
 	}
 	_setHead(head, req.head);
-	_setHeaders(headers, req.headers);
-	_setBody(body, req.body);
 }
 
 void	HTTPparser::printData( HTTPrequest_t httpReq ) noexcept
 {
-	std::cout << "HEAD\n\tmethod: " << httpReq.head.method << "\n\tURL: http://" << \
-		httpReq.head.url.host << ':' << httpReq.head.url.port << httpReq.head.url.path << \
-		"\n\tversion: " << httpReq.head.version.scheme << "/" << httpReq.head.version.major << \
-		'.' << httpReq.head.version.minor << "\nHEADERS\n";
+	std::cout << "HEAD\n";
+	std::cout << "\tmethod: " << httpReq.head.method << "\n";
+	std::cout << "\tURL:\n\t\thost: " << httpReq.head.url.host << "\n\t\tport: " << \
+		httpReq.head.url.port << "\n\t\tpath: " << httpReq.head.url.path << '\n';
+	if (httpReq.head.url.query.empty() == false)
+	{
+		std::cout << "\t\tqueries:\n";
+		for(auto option : httpReq.head.url.query)
+			std::cout << "\t\t\t" << option.first << '=' << option.second << '\n';
+	}
+	if (httpReq.head.url.section.empty() == false)
+		std::cout << "\t\tsection: " << httpReq.head.url.section << '\n';
+	std::cout << "\tversion: " << httpReq.head.version.scheme << "/" << \
+		httpReq.head.version.major << '.' << httpReq.head.version.minor << '\n';
+	std::cout << "HEADERS\n";
 	for(auto option : httpReq.headers)
-		std::cout << "\toption: " << option.first << ": " << option.second << "\n";
+		std::cout << "\t" << option.first << ": " << option.second << "\n";
 	std::cout << "BODY\n\t" << httpReq.body << "\n";
 }
 
@@ -73,32 +84,27 @@ void	HTTPparser::_setHead(std::string header, HTTPheadReq_t& head )
 	if (! std::getline(stream, version, ' '))
 		throw(ParserException({"invalid header:", header.c_str()}));
 	_setVersion(version, head.version);
-	if (version.substr(version.size() - 2) != "\r\n")
+	if (version.substr(version.size() - 2) != HTTP_DELIM)
 		throw(ParserException({"no termination header:", header.c_str()}));
 }
 
 void	HTTPparser::_setHeaders( std::string headers, dict& options )
 {
-	std::istringstream	stream(headers);
-	std::string 		method, url, version;
+	size_t del1, del2;
+	std::string key, value;
 
-	(void) headers;
-	(void) options;
-	(! std::getline(stream, method, ' '))
-	// while (true)
-	// {
-	// 	eol = strstr(line, "\r\n");
-	// 	if (eol == nullptr)
-	// 		break;
-	// 	eol[0] = '\0';
-	// 	colon = strchr(line, ':');
-	// 	if (colon == nullptr)
-	// 		return (FMT_BADOPT);
-	// 	*colon = '\0';
-	// 	options.insert({line, colon + 2});
-	// 	line = eol + 2;
-	// }
-	// return (FMT_OK);
+	del1 = headers.find(HTTP_DELIM);
+	do
+	{
+		del2 = headers.find(": ");
+		if (del2 == std::string::npos)
+			throw(ParserException({"invalid option format:", headers.c_str()}));
+		key = headers.substr(0, del2);
+		value = headers.substr(del2 + 2, del1 - del2 - 2);
+		options.insert({key, value});
+		headers = headers.substr(del1 + 2);
+		del1 = headers.find(HTTP_DELIM);
+	} while (del1 != std::string::npos);
 }
 
 void	HTTPparser::_setBody( std::string startBody, std::string& body )
@@ -121,7 +127,7 @@ void	HTTPparser::_setMethod(std::string strMethod, HTTPmethod_t& method)
 
 void	HTTPparser::_setURL( std::string strURL, HTTPurl_t& url )
 {
-	size_t	del1, del2, end=std::string::npos;
+	size_t	del1, del2;
 
 	del1 = strURL.find("http://");
 	if (del1 == 0)
@@ -142,13 +148,24 @@ void	HTTPparser::_setURL( std::string strURL, HTTPurl_t& url )
 			url.port = HTTP_DEF_PORT;
 	}
 	url.path = strURL.substr(del1);
-	// std::cout << strURL.substr(del1) << '\n';
-	// std::cout << url.host << '\n';
-	// std::cout << url.port << '\n';
-	// std::cout << strURL << '\n';
-	end = strURL.find('?', del1);
-	if (end != std::string::npos)
-		_setQuery(strURL.substr(end), url.query);
+	del1 = strURL.find('?');
+	del2 = strURL.find('#');
+	if (del1 != std::string::npos)
+	{
+		url.path = url.path.substr(0, del1);
+		if (del2 != std::string::npos)
+		{
+			_setSection(strURL.substr(del2), url.section);
+			_setQuery(strURL.substr(del1, del2 - del1), url.query);
+		}
+		else	
+			_setQuery(strURL.substr(del1), url.query);
+	}
+	else if (del2 != std::string::npos)
+	{
+		url.path = url.path.substr(0, del2);
+		_setSection(strURL.substr(del2), url.section);
+	}
 }
 
 void	HTTPparser::_setQuery( std::string queries, dict& queryDict)
@@ -166,6 +183,11 @@ void	HTTPparser::_setQuery( std::string queries, dict& queryDict)
 		value = keyValue.substr(divider + 1, std::string::npos);
 		queryDict.insert({key, value});
     }
+}
+
+void	HTTPparser::_setSection( std::string strSection, std::string& section)
+{
+	section = strSection.substr(1);
 }
 
 void	HTTPparser::_setVersion(std::string strVersion, HTTPversion_t& version) 
