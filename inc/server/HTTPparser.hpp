@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/28 00:57:03 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/28 17:18:53 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,10 +27,10 @@ typedef enum HTTPmethod_s
 
 typedef struct HTTPurl_f
 {
-	std::string				host;
-	std::string				port;
-	std::filesystem::path 	path;
-	dict					query;
+	std::string	host;
+	std::string	port;
+	std::string	path;		// std::filesystem
+	dict		query;
 } HTTPurl_t;
 
 typedef struct HTTPversion_f
@@ -85,7 +85,7 @@ class HTTPparser
 {
 	public:
 		static void	parseRequest( std::string, HTTPrequest_t& );
-		// static void	printData( HTTPrequest_t* ) noexcept;
+		static void	printData( HTTPrequest_t ) noexcept;
 
 	private:
 		static void	_setHead( std::string, HTTPheadReq_t& );

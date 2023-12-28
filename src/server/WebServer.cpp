@@ -15,7 +15,7 @@
 ServerException::ServerException( std::initializer_list<const char*> prompts) noexcept 
 	: std::exception()
 {
-	this->_msg = "Webserver exception: ";
+	this->_msg = "Webserver exception - ";
 	for (const char *prompt : prompts)
 		this->_msg += std::string(prompt) + " ";
 }
@@ -144,7 +144,7 @@ void	WebServer::_handleRequest( int connfd )
 		return ;
 	}
 	std::cout << "request received\n";
-	// HTTPparser::printData(req);
+	HTTPparser::printData(req);
 	child = fork();
 	if (child == -1)
 		throw(ServerException({"fork failed"}));
@@ -248,6 +248,5 @@ std::string	WebServer::_readSocket( int fd ) const
 			throw(ServerException({"socket not available or empty"}));
 		stringRequest += buffer;
 	}
-	std::cout << stringRequest << '\n';
 	return (stringRequest);
 }

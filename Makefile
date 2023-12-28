@@ -1,23 +1,24 @@
 # **************************************************************************** #
 #                                                                              #
-#                                                         :::      ::::::::    #
-#    Makefile                                           :+:      :+:    :+:    #
-#                                                     +:+ +:+         +:+      #
-#    By: itopchu <itopchu@student.42.fr>            +#+  +:+       +#+         #
-#                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2023/11/25 18:04:49 by fra               #+#    #+#              #
-#    Updated: 2023/12/12 16:34:11 by itopchu          ###   ########.fr        #
+#                                                         ::::::::             #
+#    Makefile                                           :+:    :+:             #
+#                                                      +:+                     #
+#    By: itopchu <itopchu@student.42.fr>              +#+                      #
+#                                                    +#+                       #
+#    Created: 2023/11/25 18:04:49 by fra           #+#    #+#                  #
+#    Updated: 2023/12/28 17:20:12 by fra           ########   odam.nl          #
 #                                                                              #
 # **************************************************************************** #
 
 SHELL := /bin/bash
 
 NAME := webserv
-CLIENT := webclient
 SRC_DIR := src
 OBJ_DIR := obj
 INCLUDE := inc
 MAIN_SERV := main.cpp
+CLIENT := webclient
+MAIN_CLI := mainCli.cpp
 HEADERS := $(shell find $(INCLUDE) -type f -name '*.hpp')
 SOURCES := $(shell find $(SRC_DIR) -type f -name '*.cpp')
 OBJECTS := $(patsubst $(SRC_DIR)%,$(OBJ_DIR)%,$(SOURCES:.cpp=.o))
@@ -31,7 +32,7 @@ RED = \x1b[31;01m
 BLUE = \x1b[34;01m
 RESET = \x1b[0m
 
-
+# TODO: check relinking! (when modifying more than one file)
 all: $(NAME)
 
 run: $(NAME)
@@ -42,6 +43,14 @@ $(NAME): $(OBJECTS) $(MAIN_SERV)
 	@$(CC) $(CPPFLAGS) $(IFLAGS) $^ -o $@
 	@printf "(WebServ) $(GREEN)Created program $@$(RESET)\n"
 
+client: $(CLIENT)
+	@clear
+	@./$(CLIENT) "localhost" "4242"
+
+$(CLIENT): $(OBJECTS) $(MAIN_CLI)
+	@$(CC) $(CPPFLAGS) $(IFLAGS) $^ -o $@
+	@printf "(WebServ) $(GREEN)Created program $@$(RESET)\n"
+	
 $(OBJ_DIR):
 	echo $(SOURCES)
 	@mkdir -p $(OBJ_DIR)
