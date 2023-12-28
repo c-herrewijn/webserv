@@ -137,7 +137,7 @@ void	WebServer::_handleRequest( int connfd )
 		stringRequest = _readSocket(connfd);
 		HTTPparser::parseRequest(stringRequest, req);
 	}
-	catch (std::exception const& err) 
+	catch (ParserException const& err) 
 	{
 		std::cout << err.what() << '\n';
 		this->_dropConn(connfd);
@@ -248,5 +248,6 @@ std::string	WebServer::_readSocket( int fd ) const
 			throw(ServerException({"socket not available or empty"}));
 		stringRequest += buffer;
 	}
+	std::cout << stringRequest << '\n';
 	return (stringRequest);
 }

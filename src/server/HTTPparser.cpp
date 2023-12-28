@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/28 00:56:20 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/28 14:43:21 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,7 +52,7 @@ void	HTTPparser::_setHead(std::string header, HTTPheadReq_t& head )
 {
 	std::istringstream	stream(header);
 	std::string 		method, url, version, termination;
-
+	std::cout << "|" << header << "|\n";
 	stream >> method;
 	if (! stream.good())
 		throw(ParserException({"invalid header:", header.c_str()}));
@@ -118,7 +118,7 @@ void	HTTPparser::_setURL( std::string strURL, HTTPurl_t& url )
 		strURL = strURL.substr(delimiter + 7, end);
 	delimiter = strURL.find('/');
 	if (delimiter == std::string::npos)
-		throw(ParserException({"invalid header:", strURL.c_str()}));
+		throw(ParserException({"invalid url:", strURL.c_str()}));
 	else if (delimiter != 0)						// there's the host
 	{
 		url.host = strURL.substr(delimiter);
@@ -172,8 +172,10 @@ void	HTTPparser::_setVersion(std::string strVersion, HTTPversion_t& version)
 		version.major = std::stoi(strVersion.substr(del1, del2));
 		version.minor = std::stoi(strVersion.substr(del2, std::string::npos));
 	}
-	catch (const std::exception& e) 
-	{
+	catch (std::invalid_argument const& e) {
+		throw(ParserException({"invalid version numbers:", strVersion.c_str()}));
+	}
+	catch (std::out_of_range const& e) {
 		throw(ParserException({"invalid version numbers:", strVersion.c_str()}));
 	}
 }
