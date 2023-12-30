@@ -6,13 +6,13 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 20:50:27 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/29 21:31:30 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/30 15:06:22 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Client.hpp"
 #define STD_REQUEST "GET http://test:21/halo/find/me/here HTTP/1.1\r\nkey1: value1\r\nkey2: value2\r\n\r\nmuch body very http\r\n\r\n"
-#define STD_FULL "GET http://test:21/halo/find/me/heresad#as?d=2#a#21 HTTP/1.1\r\nkey1: value1\r\nkey2: value2\r\n\r\nmuch body very http\r\n\r\n"
+#define STD_FULL "GET http://test:21/halo/find/me/here?bcd=123&gasd=255#sectione HTTP/1.1\r\nkey1: value1\r\nkey2: value2\r\n\r\nmuch body very http\r\n\r\n"
 #define STD_NOHEADS "GET http://test:21/halo/find/me/here HTTP/1.1\r\n\r\nmuch body very http\r\n\r\n"
 #define STD_QUERY "GET http://test:21/halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nkey1: value1\r\nkey2: value2\r\n\r\nmuch body very http\r\n\r\n"
 void runClient( const char *host, const char *port )

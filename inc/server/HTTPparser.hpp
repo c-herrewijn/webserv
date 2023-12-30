@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/30 13:46:23 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/30 14:52:28 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,8 @@
 #define HTTP_DEF_SCHEME		"HTTP"			// default scheme
 #define HTTP_TERM			"\r\n\r\n"		// http terminator
 #define HTTP_DELIM			"\r\n"			// http delimiter
+#define HTTP_SCHEME			"http"
+#define HTTPS_SCHEME		"https"
 
 typedef std::map<std::string, std::string> dict;
 
@@ -29,7 +31,8 @@ typedef enum HTTPmethod_s
 
 typedef struct HTTPurl_f
 {
-	std::string	host;
+	std::string	scheme;
+	std::string	domain;
 	std::string	port;
 	std::string	path;		// std::filesystem
 	dict		query;
@@ -99,6 +102,9 @@ class HTTPparser
 		static void	_setURL( std::string, HTTPurl_t& );
 		static void	_setVersion( std::string, HTTPversion_t& );
 
+		static void	_setScheme( std::string, std::string& );
+		static void	_setDomainPort( std::string, HTTPurl_t& );
+		static void	_setPath( std::string, std::string& );
 		static void	_setQuery( std::string, dict& );
 		static void	_setSection( std::string, std::string& );
 

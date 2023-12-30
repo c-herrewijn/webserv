@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/30 13:55:23 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/30 15:23:06 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,7 +52,7 @@ void	HTTPparser::printData( HTTPrequest_t httpReq ) noexcept
 {
 	std::cout << "HEAD\n";
 	std::cout << "\tmethod: " << httpReq.head.method << "\n";
-	std::cout << "\tURL:\n\t\thost: " << httpReq.head.url.host << "\n\t\tport: " << \
+	std::cout << "\tURL:\n\t\tdomain: " << httpReq.head.url.domain << "\n\t\tport: " << \
 		httpReq.head.url.port << "\n\t\tpath: " << httpReq.head.url.path << '\n';
 	if (httpReq.head.url.query.empty() == false)
 	{
@@ -98,7 +98,7 @@ void	HTTPparser::_setHeaders( std::string headers, dict& options )
 	{
 		del2 = headers.find(": ");
 		if (del2 == std::string::npos)
-			throw(ParserException({"invalid option format:", headers.c_str()}));
+			throw(ParserException({"invalid header format:", headers.c_str()}));
 		key = headers.substr(0, del2);
 		value = headers.substr(del2 + 2, del1 - del2 - 2);
 		options.insert({key, value});
@@ -129,47 +129,64 @@ void	HTTPparser::_setURL( std::string strURL, HTTPurl_t& url )
 {
 	size_t	del1, del2;
 
-	del1 = strURL.find("http://");
-	if (del1 == 0)
-		strURL = strURL.substr(del1 + 7);
+	del1 = strURL.find("://");
+	if (del1 != std::string::npos)	// scheme is not implied
+	{
+		_setScheme(strURL.substr(0, del1), url.scheme);
+		strURL = strURL.substr(del1 + 3);
+	}
 	del1 = strURL.find('/');
 	if (del1 == std::string::npos)
 		throw(ParserException({"invalid url:", strURL.c_str()}));
-	else if (del1 != 0)						// there's the host
+	else if (del1 != 0)		// there's the domain (and port)
 	{
-		url.host = strURL.substr(0, del1);
-		del2 = url.host.find(':');
-		if (del2 != std::string::npos)	// there's the port
-		{
-			url.port = url.host.substr(del2 + 1);
-			url.host = url.host.substr(0, del2);
-		}
-		else
-			url.port = HTTP_DEF_PORT;
+		_setDomainPort(strURL.substr(0, del1), url);
+		strURL = strURL.substr(del1);
 	}
-	url.path = strURL.substr(del1);
-	del1 = url.path.find('?');
-	del2 = url.path.find('#');
-	if (del2 < del1)
-		del1 = std::string::npos;
-	if (del1 != std::string::npos)
+	_setPath(strURL, url.path);
+	del2 = strURL.find('#');
+	del1 = strURL.find('?');
+	if ((del1 != std::string::npos) and (del1 < del2))
+		_setQuery(strURL.substr(del1, del2 - del1), url.query);
+	if (del2 != std::string::npos)
+		_setSection(strURL.substr(del2), url.section);
+}
+
+void	HTTPparser::_setScheme( std::string strScheme, std::string& scheme)
+{
+	if ((strScheme != HTTP_SCHEME) and (strScheme != HTTPS_SCHEME))
+		throw(ParserException({"unsupported scheme", strScheme.c_str()}));
+	scheme = strScheme;
+}
+
+void	HTTPparser::_setDomainPort( std::string strURL, HTTPurl_t& url)
+{
+	size_t delimiter = url.domain.find(':');
+
+	if (delimiter != std::string::npos)	// there's the port
 	{
-		if (del2 != std::string::npos)
-		{
-			_setSection(url.path.substr(del2), url.section);
-			_setQuery(url.path.substr(del1, del2 - del1), url.query);
-		}
-		else
-			_setQuery(url.path.substr(del1), url.query);
-		url.path = url.path.substr(0, del1);
+		url.domain = strURL.substr(0, delimiter);
+		url.port = strURL.substr(delimiter + 1);
 	}
-	else if (del2 != std::string::npos)
+	else
 	{
-		_setSection(url.path.substr(del2), url.section);
-		url.path = url.path.substr(0, del2);
+		url.domain = strURL;
+		url.port = HTTP_DEF_PORT;
 	}
 }
 
+void	HTTPparser::_setPath( std::string strPath, std::string& path)
+{
+	size_t	del1=strPath.find('?'), del2=strPath.find('#');
+
+	if (del1 != std::string::npos)
+		path = strPath.substr(0, std::min(del1, del2));
+	else if (del2 != std::string::npos)
+		path = strPath.substr(0, del2);
+	else
+		path = strPath;
+}
+	
 void	HTTPparser::_setQuery( std::string queries, dict& queryDict)
 {
 	std::string			key, value, keyValue=queries;
