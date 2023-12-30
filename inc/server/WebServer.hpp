@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/27 16:39:24 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/30 01:46:32 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,10 @@ class ServerException : std::exception
 		std::string _msg;
 };
 
+// three ways to handle a connections:
+// 1. short lived	--> new conn, req, resp, close conn, repeat
+// 2. persistent	--> new conn, req, resp, (not mandatory) close conn, repeat
+// 3. pipelining	--> sending several connections without waiting for a response
 class WebServer
 {
 	public:

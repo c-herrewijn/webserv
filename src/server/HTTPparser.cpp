@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/28 19:49:47 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/30 13:55:23 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -148,45 +148,58 @@ void	HTTPparser::_setURL( std::string strURL, HTTPurl_t& url )
 			url.port = HTTP_DEF_PORT;
 	}
 	url.path = strURL.substr(del1);
-	del1 = strURL.find('?');
-	del2 = strURL.find('#');
+	del1 = url.path.find('?');
+	del2 = url.path.find('#');
+	if (del2 < del1)
+		del1 = std::string::npos;
 	if (del1 != std::string::npos)
 	{
-		url.path = url.path.substr(0, del1);
 		if (del2 != std::string::npos)
 		{
-			_setSection(strURL.substr(del2), url.section);
-			_setQuery(strURL.substr(del1, del2 - del1), url.query);
+			_setSection(url.path.substr(del2), url.section);
+			_setQuery(url.path.substr(del1, del2 - del1), url.query);
 		}
-		else	
-			_setQuery(strURL.substr(del1), url.query);
+		else
+			_setQuery(url.path.substr(del1), url.query);
+		url.path = url.path.substr(0, del1);
 	}
 	else if (del2 != std::string::npos)
 	{
+		_setSection(url.path.substr(del2), url.section);
 		url.path = url.path.substr(0, del2);
-		_setSection(strURL.substr(del2), url.section);
 	}
 }
 
 void	HTTPparser::_setQuery( std::string queries, dict& queryDict)
 {
-	std::istringstream 	stream(queries);
-	std::string			keyValue, key, value;
-	size_t 				divider;
+	std::string			key, value, keyValue=queries;
+	size_t 				del1, del2;
 
-	while (std::getline(stream, keyValue, '&')) 
+	if (queries == "?")
+		throw(ParserException({"empty query"}));
+	else
+	while (true) 
 	{
-		divider = keyValue.find('=');
-		if (divider == std::string::npos)
+		keyValue = keyValue.substr(1);	// remove leading '?' or '&'
+		del1 = keyValue.find('=');
+		if (del1 == std::string::npos)
 			throw(ParserException({"invalid query:", keyValue.c_str()}));
-		key = keyValue.substr(divider);
-		value = keyValue.substr(divider + 1, std::string::npos);
+		del2 = keyValue.find('&');
+		key = keyValue.substr(0, del1);
+		value = keyValue.substr(del1 + 1, del2 - del1 - 1);
+		if (key.empty() or value.empty())
+			throw(ParserException({"invalid query:", keyValue.c_str()}));
 		queryDict.insert({key, value});
+		if (del2 == std::string::npos)
+			break;
+		keyValue = keyValue.substr(del2);
     }
 }
 
 void	HTTPparser::_setSection( std::string strSection, std::string& section)
 {
+	if (strSection == "#")
+		throw(ParserException({"empty section"}));
 	section = strSection.substr(1);
 }
 
@@ -213,6 +226,8 @@ void	HTTPparser::_setVersion(std::string strVersion, HTTPversion_t& version)
 	catch (std::out_of_range const& e) {
 		throw(ParserException({"invalid version numbers:", strVersion.c_str()}));
 	}
+	if (version.major > 1)
+		throw(ParserException({"unsupported HTTP version:", strVersion.c_str()}));
 }
 
 HTTPparser::~HTTPparser( void ) noexcept

@@ -120,7 +120,6 @@ void	WebServer::loop( void )
 	}
 }
 
-
 // OPEN POINTS:
 //	- chunked requests
 //	- relative URLs
@@ -144,7 +143,7 @@ void	WebServer::_handleRequest( int connfd )
 		return ;
 	}
 	std::cout << "request received\n";
-	HTTPparser::printData(req);
+	// HTTPparser::printData(req);
 	child = fork();
 	if (child == -1)
 		throw(ServerException({"fork failed"}));
@@ -156,7 +155,7 @@ void	WebServer::_handleRequest( int connfd )
 	}
 	if (waitpid(child, &exitStat, 0) < 0)
 		throw(ServerException({"error while terminating process"}));
-	this->_dropConn(connfd);
+	this->_dropConn(connfd);		// <-- not always!
 	// else if (WIFEXITED(exitStat) == 0)
 	// 	std::cout << "child process killed by signal (unexpected)\n";
 	// else if (WEXITSTATUS(exitStat) == 1)
