@@ -6,12 +6,15 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/30 14:52:28 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/30 15:29:50 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
-#include "global.hpp"
+#include <iostream>
+#include <initializer_list>
+#include <string>
+#include <map>
 #define HEADER_MAX_SIZE 	8192	        // max size of HTTP header
 #define HTTP_DEF_PORT		"80"			// default port
 #define HTTP_DEF_SCHEME		"HTTP"			// default scheme

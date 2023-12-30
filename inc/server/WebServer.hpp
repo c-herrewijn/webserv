@@ -6,14 +6,37 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/30 01:46:32 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/30 15:29:53 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
-#include "global.hpp"
+#include <unistd.h>           // execve, dup, dup2, pipe, fork, access
+#include <cstring>           // strerror
+#include <netdb.h>            // gai_strerror, getaddrinfo, freeaddrinfo
+#include <cerrno>            // errno
+#include <sys/socket.h>       // socketpair, htons, htonl, ntohs, ntohl, select
+#include <sys/epoll.h>     // epoll_create, epoll_ctl, epoll_wait
+#include <sys/poll.h>     // poll
+#include <netinet/in.h>       // socket, accept, listen, bind, connect
+#include <arpa/inet.h>        // htons, htonl, ntohs, ntohl
+#include <sys/types.h>        // send, recv
+#include <sys/socket.h>       // send, recv
+#include <sys/types.h>        // chdir
+#include <sys/stat.h>         // stat
+#include <sys/wait.h>         // waitpid
+#include <fcntl.h>            // open
+#include <dirent.h>           // opendir, readdir, closedir
+#include <signal.h>           // kill, signal
+#include <filesystem>           // filesystem::path, 
+#include <iostream>
+#include <initializer_list>
+#include <string>
+#include <vector>
+#include <set>
+#include <map>
 #include "HTTPparser.hpp"
-#define BACKLOG 100				        // max pending connection queued up
+#define BACKLOG 10				        // max pending connection queued up
 #define MAX_TIMEOUT 60000               // maximum timeout with poll()
 
 class ServerException : std::exception
