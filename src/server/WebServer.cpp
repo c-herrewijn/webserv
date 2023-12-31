@@ -20,37 +20,23 @@ ServerException::ServerException( std::initializer_list<const char*> prompts) no
 		this->_msg += std::string(prompt) + " ";
 }
 
-WebServer::WebServer ( void )
-{
-	bzero(&this->_filter, sizeof(struct addrinfo));
-	this->_filter.ai_flags = AI_PASSIVE;
-	this->_filter.ai_family = AF_UNSPEC;
-	this->_filter.ai_protocol = IPPROTO_TCP;
-}
-
 WebServer::~WebServer ( void ) noexcept
 {
 	while(this->_connfds.empty() == false)
 		this->_dropConn();
 }
 
-struct addrinfo	WebServer::getFilter( void ) const noexcept
-{
-	return(this->_filter);
-}
-
-void	WebServer::setFilter( struct addrinfo const& newFilter ) noexcept
-{
-	this->_filter = newFilter;
-}
-
 void	WebServer::listenAt( const char* hostname, const char* port )
 {
-	struct addrinfo *tmp, *list;
+	struct addrinfo *tmp, *list, filter;
 	struct sockaddr_storage	hostip;
 	int yes=1, listenSocket=-1;
 
-	if (getaddrinfo(hostname, port, &this->_filter, &list) != 0)
+	bzero(&filter, sizeof(struct addrinfo));
+	filter.ai_flags = AI_PASSIVE;
+	filter.ai_family = AF_UNSPEC;
+	filter.ai_protocol = IPPROTO_TCP;
+	if (getaddrinfo(hostname, port, &filter, &list) != 0)
 		throw(ServerException({"failed to get addresses for ", hostname, ":",port}));
 	for (tmp=list; tmp!=nullptr; tmp=tmp->ai_next)
 	{

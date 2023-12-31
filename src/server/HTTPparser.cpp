@@ -6,18 +6,26 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/31 11:27:11 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/31 16:47:39 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPparser.hpp"
 
-ParserException::ParserException( std::initializer_list<const char*> prompts) noexcept 
+HTTPexception::HTTPexception( std::initializer_list<const char*> prompts) noexcept 
 	: std::exception()
 {
-	this->_msg = "Parsing exception - ";
+	this->_msg = "HTTP anomaly -";
 	for (const char *prompt : prompts)
-		this->_msg += std::string(prompt) + " ";
+		this->_msg += " " + std::string(prompt);
+}
+
+ParserException::ParserException( std::initializer_list<const char*> prompts) noexcept 
+	: HTTPexception(prompts)
+{
+	this->_msg = "parsing error -";
+	for (const char *prompt : prompts)
+		this->_msg += " " + std::string(prompt);
 }
 
 void	HTTPparser::parseRequest( std::string strReq, HTTPrequest &req )
@@ -226,10 +234,6 @@ void	HTTPparser::_setVersion(std::string strVersion, HTTPversion& version)
 	}
 	if (version.major > 1)
 		throw(ParserException({"unsupported HTTP version:", strVersion.c_str()}));
-}
-
-HTTPparser::~HTTPparser( void ) noexcept
-{
 }
 
 HTTPparser::HTTPparser( HTTPparser const& other ) noexcept

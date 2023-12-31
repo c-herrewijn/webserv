@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/31 11:26:44 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/31 16:48:13 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,7 +62,6 @@ typedef struct HTTPrequest_f
 	std::string	body;
 } HTTPrequest;
 
-
 typedef struct HTTPheadResp_f
 {
 	HTTPversion	version;
@@ -75,18 +74,23 @@ typedef struct HTTPresponse_f
 	HTTPheadResp	head;
 	dict 			headers;
 	std::string		body;
-} HTTPresponse_t;
+} HTTPresponse;
 
-
-class ParserException : std::exception
+class HTTPexception : std::exception
 {
 	public:
-		ParserException( std::initializer_list<const char*> prompts) noexcept;
+		HTTPexception( std::initializer_list<const char*> ) noexcept;
 		virtual const char* what() const noexcept override {return (this->_msg.c_str());}
-		virtual ~ParserException( void ) noexcept {}
+		virtual ~HTTPexception( void ) noexcept {}
 	
-	private:
+	protected:
 		std::string _msg;
+};
+
+class ParserException : public HTTPexception
+{
+	public:
+		ParserException( std::initializer_list<const char*> ) noexcept;
 };
 
 class HTTPparser
@@ -94,6 +98,7 @@ class HTTPparser
 	public:
 		static void	parseRequest( std::string, HTTPrequest& );
 		static void	printData( HTTPrequest ) noexcept;
+		~HTTPparser( void ) noexcept {};
 
 	private:
 		static void	_setHead( std::string, HTTPheadReq& );
@@ -110,7 +115,6 @@ class HTTPparser
 		static void	_setQuery( std::string, dict& );
 
 		HTTPparser( void ) noexcept {};
-		~HTTPparser( void ) noexcept;
 		HTTPparser( HTTPparser const& ) noexcept;
 		HTTPparser& operator=( HTTPparser const& ) noexcept;
 };

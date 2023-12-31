@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/30 15:29:53 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/31 14:23:54 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,18 +50,12 @@ class ServerException : std::exception
 		std::string _msg;
 };
 
-// three ways to handle a connections:
-// 1. short lived	--> new conn, req, resp, close conn, repeat
-// 2. persistent	--> new conn, req, resp, (not mandatory) close conn, repeat
-// 3. pipelining	--> sending several connections without waiting for a response
 class WebServer
 {
 	public:
-		WebServer ( void );
+		WebServer ( void ) {};
 		~WebServer ( void ) noexcept;
 
-		struct addrinfo	getFilter( void ) const noexcept ;
-		void			setFilter( struct addrinfo const& ) noexcept;
 		void			listenAt( const char*, const char* );
 		void			loop( void );
 		std::string		getAddress( const struct sockaddr_storage*) const noexcept ;
@@ -69,7 +63,6 @@ class WebServer
 	private:
 		std::vector<struct pollfd>	_connfds;
 		std::set<int>				_listeners;
-		struct addrinfo 			_filter;
 
 		WebServer ( WebServer const& ) noexcept;
 		WebServer& operator=( WebServer const& ) noexcept;
