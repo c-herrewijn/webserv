@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/30 15:29:50 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/31 11:26:44 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,7 @@ typedef enum HTTPmethod_s
     HTTP_GET,
 	HTTP_POST,
 	HTTP_DELETE,
-} HTTPmethod_t;
+} HTTPmethod;
 
 typedef struct HTTPurl_f
 {
@@ -39,41 +39,40 @@ typedef struct HTTPurl_f
 	std::string	port;
 	std::string	path;		// std::filesystem
 	dict		query;
-	std::string	section;
-} HTTPurl_t;
+} HTTPurl;
 
 typedef struct HTTPversion_f
 {
 	std::string	scheme;
 	int			major;
 	int			minor;
-} HTTPversion_t;
+} HTTPversion;
 
 typedef struct HTTPheadReq_f
 {
-	HTTPmethod_t	method;
-	HTTPurl_t		url;		
-	HTTPversion_t	version;
-} HTTPheadReq_t;
+	HTTPmethod	method;
+	HTTPurl		url;		
+	HTTPversion	version;
+} HTTPheadReq;
 
 typedef struct HTTPrequest_f
 {
-	HTTPheadReq_t	head;
-	dict 			headers;
-	std::string		body;
-} HTTPrequest_t;
+	HTTPheadReq	head;
+	dict 		headers;
+	std::string	body;
+} HTTPrequest;
 
 
 typedef struct HTTPheadResp_f
 {
-	HTTPversion_t	version;
-	std::string		status;
-	int				exitCode;
-} HTTPheadResp_t;
+	HTTPversion	version;
+	std::string	status;
+	int			exitCode;
+} HTTPheadResp;
 
 typedef struct HTTPresponse_f
 {
-	HTTPheadResp_t	head;
+	HTTPheadResp	head;
 	dict 			headers;
 	std::string		body;
 } HTTPresponse_t;
@@ -93,23 +92,22 @@ class ParserException : std::exception
 class HTTPparser
 {
 	public:
-		static void	parseRequest( std::string, HTTPrequest_t& );
-		static void	printData( HTTPrequest_t ) noexcept;
+		static void	parseRequest( std::string, HTTPrequest& );
+		static void	printData( HTTPrequest ) noexcept;
 
 	private:
-		static void	_setHead( std::string, HTTPheadReq_t& );
+		static void	_setHead( std::string, HTTPheadReq& );
 		static void	_setHeaders( std::string, dict& );
 		static void	_setBody( std::string, std::string& );
 
-		static void	_setMethod( std::string, HTTPmethod_t& );
-		static void	_setURL( std::string, HTTPurl_t& );
-		static void	_setVersion( std::string, HTTPversion_t& );
+		static void	_setMethod( std::string, HTTPmethod& );
+		static void	_setURL( std::string, HTTPurl& );
+		static void	_setVersion( std::string, HTTPversion& );
 
 		static void	_setScheme( std::string, std::string& );
-		static void	_setDomainPort( std::string, HTTPurl_t& );
+		static void	_setDomainPort( std::string, HTTPurl& );
 		static void	_setPath( std::string, std::string& );
 		static void	_setQuery( std::string, dict& );
-		static void	_setSection( std::string, std::string& );
 
 		HTTPparser( void ) noexcept {};
 		~HTTPparser( void ) noexcept;

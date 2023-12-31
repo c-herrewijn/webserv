@@ -126,7 +126,7 @@ void	WebServer::loop( void )
 //	- update host & port when they're found in the headers
 void	WebServer::_handleRequest( int connfd )
 {
-	HTTPrequest_t		req;
+	HTTPrequest		req;
 	pid_t 				child = -1;
 	int					exitStat = 0;
 	std::string			stringRequest;

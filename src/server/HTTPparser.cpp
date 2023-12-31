@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/30 15:23:06 by fra           ########   odam.nl         */
+/*   Updated: 2023/12/31 11:27:11 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@ ParserException::ParserException( std::initializer_list<const char*> prompts) no
 		this->_msg += std::string(prompt) + " ";
 }
 
-void	HTTPparser::parseRequest( std::string strReq, HTTPrequest_t &req )
+void	HTTPparser::parseRequest( std::string strReq, HTTPrequest &req )
 {
 	std::string head, headers, body;
 	size_t		delimiter;
@@ -48,7 +48,7 @@ void	HTTPparser::parseRequest( std::string strReq, HTTPrequest_t &req )
 	_setHead(head, req.head);
 }
 
-void	HTTPparser::printData( HTTPrequest_t httpReq ) noexcept
+void	HTTPparser::printData( HTTPrequest httpReq ) noexcept
 {
 	std::cout << "HEAD\n";
 	std::cout << "\tmethod: " << httpReq.head.method << "\n";
@@ -60,8 +60,6 @@ void	HTTPparser::printData( HTTPrequest_t httpReq ) noexcept
 		for(auto option : httpReq.head.url.query)
 			std::cout << "\t\t\t" << option.first << '=' << option.second << '\n';
 	}
-	if (httpReq.head.url.section.empty() == false)
-		std::cout << "\t\tsection: " << httpReq.head.url.section << '\n';
 	std::cout << "\tversion: " << httpReq.head.version.scheme << "/" << \
 		httpReq.head.version.major << '.' << httpReq.head.version.minor << '\n';
 	std::cout << "HEADERS\n";
@@ -70,7 +68,7 @@ void	HTTPparser::printData( HTTPrequest_t httpReq ) noexcept
 	std::cout << "BODY\n\t" << httpReq.body << "\n";
 }
 
-void	HTTPparser::_setHead(std::string header, HTTPheadReq_t& head )
+void	HTTPparser::_setHead(std::string header, HTTPheadReq& head )
 {
 	std::istringstream	stream(header);
 	std::string 		method, url, version;
@@ -113,7 +111,7 @@ void	HTTPparser::_setBody( std::string startBody, std::string& body )
 		body = startBody;
 }
 
-void	HTTPparser::_setMethod(std::string strMethod, HTTPmethod_t& method) 
+void	HTTPparser::_setMethod(std::string strMethod, HTTPmethod& method) 
 {
 	if (strMethod == "GET")
 		method = HTTP_GET;
@@ -125,31 +123,28 @@ void	HTTPparser::_setMethod(std::string strMethod, HTTPmethod_t& method)
 		throw(ParserException({"unknown http method:", strMethod.c_str()}));
 }
 
-void	HTTPparser::_setURL( std::string strURL, HTTPurl_t& url )
+void	HTTPparser::_setURL( std::string strURL, HTTPurl& url )
 {
-	size_t	del1, del2;
+	size_t	delimiter;
 
-	del1 = strURL.find("://");
-	if (del1 != std::string::npos)	// scheme is not implied
+	delimiter = strURL.find("://");
+	if (delimiter != std::string::npos)	// scheme is not implied
 	{
-		_setScheme(strURL.substr(0, del1), url.scheme);
-		strURL = strURL.substr(del1 + 3);
+		_setScheme(strURL.substr(0, delimiter), url.scheme);
+		strURL = strURL.substr(delimiter + 3);
 	}
-	del1 = strURL.find('/');
-	if (del1 == std::string::npos)
+	delimiter = strURL.find('/');
+	if (delimiter == std::string::npos)
 		throw(ParserException({"invalid url:", strURL.c_str()}));
-	else if (del1 != 0)		// there's the domain (and port)
+	else if (delimiter != 0)		// there's the domain (and port)
 	{
-		_setDomainPort(strURL.substr(0, del1), url);
-		strURL = strURL.substr(del1);
+		_setDomainPort(strURL.substr(0, delimiter), url);
+		strURL = strURL.substr(delimiter);
 	}
 	_setPath(strURL, url.path);
-	del2 = strURL.find('#');
-	del1 = strURL.find('?');
-	if ((del1 != std::string::npos) and (del1 < del2))
-		_setQuery(strURL.substr(del1, del2 - del1), url.query);
-	if (del2 != std::string::npos)
-		_setSection(strURL.substr(del2), url.section);
+	delimiter = strURL.find('?');
+	if (delimiter != std::string::npos)
+		_setQuery(strURL.substr(delimiter), url.query);
 }
 
 void	HTTPparser::_setScheme( std::string strScheme, std::string& scheme)
@@ -159,7 +154,7 @@ void	HTTPparser::_setScheme( std::string strScheme, std::string& scheme)
 	scheme = strScheme;
 }
 
-void	HTTPparser::_setDomainPort( std::string strURL, HTTPurl_t& url)
+void	HTTPparser::_setDomainPort( std::string strURL, HTTPurl& url)
 {
 	size_t delimiter = url.domain.find(':');
 
@@ -177,14 +172,7 @@ void	HTTPparser::_setDomainPort( std::string strURL, HTTPurl_t& url)
 
 void	HTTPparser::_setPath( std::string strPath, std::string& path)
 {
-	size_t	del1=strPath.find('?'), del2=strPath.find('#');
-
-	if (del1 != std::string::npos)
-		path = strPath.substr(0, std::min(del1, del2));
-	else if (del2 != std::string::npos)
-		path = strPath.substr(0, del2);
-	else
-		path = strPath;
+	path = strPath.substr(0, strPath.find('?'));
 }
 	
 void	HTTPparser::_setQuery( std::string queries, dict& queryDict)
@@ -213,14 +201,7 @@ void	HTTPparser::_setQuery( std::string queries, dict& queryDict)
     }
 }
 
-void	HTTPparser::_setSection( std::string strSection, std::string& section)
-{
-	if (strSection == "#")
-		throw(ParserException({"empty section"}));
-	section = strSection.substr(1);
-}
-
-void	HTTPparser::_setVersion(std::string strVersion, HTTPversion_t& version) 
+void	HTTPparser::_setVersion(std::string strVersion, HTTPversion& version) 
 {
 	size_t	del1, del2;
 
