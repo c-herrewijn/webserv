@@ -46,6 +46,7 @@ Server&	Server::operator=(const Server& assign)
 	names = assign.names;
 	locations = assign.locations;
 	params = assign.params;
+
 	cgi_directory = assign.cgi_directory;
 	cgi_extension = assign.cgi_extension;
 	cgi_allowed = assign.cgi_allowed;
@@ -139,6 +140,7 @@ void	Server::parseLocation(std::vector<std::string>& block)
 
 void	Server::fillServer(std::vector<std::string>& block)
 {
+	params.setBlockIndex(0);
 	// Parser keyword separations
 	for (std::vector<std::string>::iterator it = block.begin(); it != block.end();)
 	{
@@ -208,34 +210,49 @@ const std::vector<Location>&	Server::getLocations() const
 	return (locations);
 }
 
-std::ostream& operator<<(std::ostream& os, const Server& server)
-{
+std::ostream& operator<<(std::ostream& os, const Server& server) {
+    os << "server {\n";
+
+    // Print Listens
     const auto& listens = server.getListens();
-	os << "Cgi params:\n";
-	os << "\tCgi allowed: " << server.getCgiAllowed();
-	os << "\n\tCgi directory: " << server.getCgiDir();
-	os << "\n\tCgi extension: " << server.getCgiExtension() << "\n";
-	os << "----------------\n";
-    os << "Listens:\n";
     for (const auto& listen : listens) {
-        os << listen << "\n";
+        os << "\t" << listen;
     }
-	os << "----------------\n";
-    os << "Server Names:" "\n";
+
+    os << "\tserver_name";
     const auto& names = server.getNames();
     for (const auto& name : names) {
-        os << "\t" << name << "\n";
+        os << " " << name;
     }
-	os << "----------------\n";
-    os << "Parameters\n";
-    os << server.getParams();
-	os << "----------------\n";
-    os << "Locations:" "\n";
+    os << ";\n";
+
+    os << "\tcgi_extension " << server.getCgiExtension() << ";\n";
+    os << "\tcgi_directory " << server.getCgiDir() << ";\n";
+    os << "\tcgi_allowed " << (server.getCgiAllowed() ? "true" : "false") << ";\n";
+
+    os << "\troot " << server.getParams().getRoot() << ";\n";
+    os << "\tclient_max_body_size " << server.getParams().getMaxSize().first << server.getParams().getMaxSize().second << ";\n";
+    os << "\tautoindex " << (server.getParams().getAutoindex() ? "on" : "off") << ";\n";
+
+    const auto& indexes = server.getParams().getIndexes();
+    for (const auto& index : indexes) {
+        os << "\tindex " << index << ";\n";
+    }
+
+    const auto& errorPages = server.getParams().getErrorPages();
+    for (const auto& entry : errorPages) {
+        os << "\terror_page " << entry.first << " " << entry.second << ";\n";
+    }
+
+    const auto& returns = server.getParams().getReturns();
+    for (const auto& entry : returns) {
+        os << "\treturn " << entry.first << " " << entry.second << ";\n";
+    }
+
     const auto& locations = server.getLocations();
     for (const auto& location : locations) {
-        os << location;
+        os  << location;
     }
-	os << "--------END--------\n";
-
+    os << "}\n";
     return os;
 }

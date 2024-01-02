@@ -10,7 +10,8 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "global.hpp"
+#include "parser/Config.hpp"
+#include "server/WebServer.hpp"
 
 std::vector<Server>	parseServers(char **av)
 {

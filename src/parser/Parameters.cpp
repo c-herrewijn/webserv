@@ -20,6 +20,7 @@ Parameters::~Parameters(void)
 }
 
 Parameters::Parameters(const Parameters& copy) :
+	block_index(copy.block_index),
 	max_size(copy.max_size),
 	autoindex(copy.autoindex),
 	indexes(copy.indexes),
@@ -35,6 +36,7 @@ Parameters&	Parameters::operator=(const Parameters& assign)
 	indexes.clear();
 	error_pages.clear();
 	returns.clear();
+	block_index = assign.block_index;
 	max_size = assign.max_size;
 	autoindex = assign.autoindex;
 	indexes = assign.indexes;
@@ -243,27 +245,36 @@ void	Parameters::fill(std::vector<std::string>& block)
 		throw ErrorCatch("\"" + block.front() + "\" is not a valid parameter");
 }
 
+void Parameters::setBlockIndex(size_t ref)
+{
+	this->block_index = ref + 1;
+}
+
+const size_t& Parameters::getBlockIndex(void) const
+{
+	return (this->block_index);
+}
+
 std::ostream& operator<<(std::ostream& os, const Parameters& params)
 {
-	os << "Root: \n\t" << params.getRoot() << "\n";
-	os << "Max Size: \n\t" << params.getMaxSize().first << " " << params.getMaxSize().second << "\n";
-	os << "Autoindex: \n\t" << (params.getAutoindex() ? "true" : "false") << "\n";
-
-	os << "Indexes:\n";
+    size_t indentation = params.getBlockIndex();
+	os << std::string(indentation, '\t') << "root " << params.getRoot() << ";\n";
+	os << std::string(indentation, '\t') << "client_max_body_size " << params.getMaxSize().first << params.getMaxSize().second << ";\n";
+	os << std::string(indentation, '\t') << "autoindex " << (params.getAutoindex() ? "true" : "false") << ";\n";
+	os << std::string(indentation, '\t') << "index";
 	const auto& indexes = params.getIndexes();
-	for (const auto& index : indexes) {
-		os << "\t" << index << "\n";
-	}
-	os << "Error Pages:" << "\n";
+	for (const auto& index : indexes)
+		os << " " << index;
+	os << ";\n";
 	const auto& errorPages = params.getErrorPages();
-	for (const auto& entry : errorPages) {
-		os << "\t" << entry.first << ": " << entry.second << "\n";
+	for (const auto& entry : errorPages)
+	{
+		os << std::string(indentation, '\t') << "error_page " << entry.first << " " << entry.second << ";\n";
 	}
 
-	os << "Returns:" << "\n";
 	const auto& returns = params.getReturns();
 	for (const auto& entry : returns) {
-		os << "\t" << entry.first << ": " << entry.second << "\n";
+		os << std::string(indentation, '\t') << "return " << entry.first << " " << entry.second << ";\n";
 	}
 
 	return os;

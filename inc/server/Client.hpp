@@ -1,17 +1,39 @@
 /* ************************************************************************** */
 /*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   Client.hpp                                         :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: itopchu <itopchu@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/11/26 20:16:40 by fra               #+#    #+#             */
-/*   Updated: 2023/12/12 16:35:19 by itopchu          ###   ########.fr       */
+/*                                                        ::::::::            */
+/*   Client.hpp                                         :+:    :+:            */
+/*                                                     +:+                    */
+/*   By: itopchu <itopchu@student.42.fr>              +#+                     */
+/*                                                   +#+                      */
+/*   Created: 2023/11/26 20:16:40 by fra           #+#    #+#                 */
+/*   Updated: 2023/12/30 15:29:12 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
-#include "global.hpp"
+#include <unistd.h>           // execve, dup, dup2, pipe, fork, access
+#include <cstring>           // strerror
+#include <netdb.h>            // gai_strerror, getaddrinfo, freeaddrinfo
+#include <cerrno>            // errno
+#include <sys/socket.h>       // socketpair, htons, htonl, ntohs, ntohl, select
+#include <sys/epoll.h>     // epoll_create, epoll_ctl, epoll_wait
+#include <sys/poll.h>     // poll
+#include <netinet/in.h>       // socket, accept, listen, bind, connect
+#include <arpa/inet.h>        // htons, htonl, ntohs, ntohl
+#include <sys/types.h>        // send, recv
+#include <sys/socket.h>       // send, recv
+#include <sys/types.h>        // chdir
+#include <sys/stat.h>         // stat
+#include <sys/wait.h>         // waitpid
+#include <fcntl.h>            // open
+#include <dirent.h>           // opendir, readdir, closedir
+#include <signal.h>           // kill, signal
+#include <filesystem>           // filesystem::path, 
+#include <iostream>
+#include <initializer_list>
+#include <string>
+#include <vector>
+#include <map>
 #define MAX_CLIENTS 30       	        // max number of clients to create for testing
 
 class ClientException : std::exception

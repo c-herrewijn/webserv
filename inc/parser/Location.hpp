@@ -25,6 +25,7 @@
 class Location
 {
 	private:
+		size_t block_index;
 		std::bitset<M_SIZE> allowedMethods;	// Allowed methods
 		std::string	URL; // Default "location" param
 		std::string alias; // Last given alias
@@ -38,6 +39,8 @@ class Location
 		virtual ~Location(void);
 		Location(const Location& copy);
 		Location&	operator=(const Location& assign);
+		void setBlockIndex(const size_t& ref);
+		const size_t& getBlockIndex(void) const;
 		const std::vector<Location>& getNested(void) const;
 		const Parameters&	getParams(void) const;
 		const std::bitset<M_SIZE>&	getAllowedMethods(void) const;
