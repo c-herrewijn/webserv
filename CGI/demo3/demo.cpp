@@ -5,40 +5,51 @@
 #include <iostream>
 #include <string.h>
 #include <sys/wait.h>
+#include <vector>
 
 #include "HTTPparser.hpp"
+#include "Server.hpp"
 
 #define BUFFER_SIZE 10000 // hardcoded for poc
 
+std::vector<Server>	parseServers(char **av);
+
 char *const *createCgiEnv()
 {
-    char *const *CgiEnv = new char*[18] {
+    char *const *CgiEnv = new char*[19] {
         (char *)"AUTH_TYPE=",
         (char *)"CONTENT_LENGTH=",
         (char *)"CONTENT_TYPE=",
-        (char *)"GATEWAY_INTERFACE=1.1",
+        (char *)"GATEWAY_INTERFACE=1.1", //
         (char *)"PATH_INFO=",
         (char *)"PATH_TRANSLATED=",
-        (char *)"QUERY_STRING=",
-        (char *)"REMOTE_ADDR=",
+        (char *)"QUERY_STRING=",//
+        (char *)"REMOTE_ADDR=", //
         (char *)"REMOTE_HOST=",
         (char *)"REMOTE_IDENT=",
         (char *)"REMOTE_USER=",
-        (char *)"REQUEST_METHOD=",
-        (char *)"SCRIPT_NAME=",
-        (char *)"SERVER_NAME=MyServer",
-        (char *)"SERVER_PORT=",
-        (char *)"SERVER_PROTOCOL=",
-        (char *)"SERVER_SOFTWARE=",
+        (char *)"REQUEST_METHOD=", //
+        (char *)"SCRIPT_NAME=", //
+        (char *)"SERVER_NAME=MyServer", //
+        (char *)"SERVER_PORT=", //
+        (char *)"SERVER_PROTOCOL=", //
+        (char *)"SERVER_SOFTWARE=WebServ", //
+        (char *)"HTTP_COOKIE=", //
         NULL
     };
     return CgiEnv;
 }
 
-std::string runCgi()
+// info needed:
+// - info for ENV ??
+// - info to find and call the cgi script (name and path)
+std::string runCgi(HTTPrequest &req, Server &srv)
 {
     const std::string cgiFileName = "cgi.py";
     const std::string cgiPath = "./cgi.py";
+
+    std::cout << "cgiDir:" << srv.getCgiDir() << std::endl;
+    std::cout << "CgiExtension:" << srv.getCgiExtension() << std::endl;
     int p1[2];
 	char read_buff[BUFFER_SIZE];
     bzero(read_buff, BUFFER_SIZE); // bzero() is not allowed!
@@ -73,11 +84,14 @@ std::string runCgi()
     return response;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
     // default settings to create web socket
     int domain = AF_INET;
     int type = SOCK_STREAM;
     int protocol = 0;
+
+    std::vector<Server> servers = parseServers(argv);
+    Server myServer = servers[0]; // note: config only used for CGI in this demo
 
     // creating socket for webserver (returns a file descriptor)
     std::cout << "launching webserver..." << std::endl;
@@ -122,29 +136,25 @@ int main() {
 
     // accept incoming connections (server waits for connections in a loop)
     std::cout << "wait for incoming connections..." << std::endl;
-    HTTPrequest_t	req;
+    HTTPrequest	req;
+    std::string reqStr;
     while (true)
     {
         connectionFd = accept(serverFd, (sockaddr*)&intServerSockAddr, &socketSize);
         std::cout << "connection established!" << std::endl;
 
-        // ------------
-        // TODO: in progress trying to use parser...
-        // HTTPparser::parse(connectionFd, &req );
-        // std::cout << "parsing finished" << std::endl;
-        // ------------
-
         bytesReceived = read(connectionFd, buffer, BUFFER_SIZE);
-        std::cout << std::endl << "data received: " << std::endl<< buffer << std::endl;
+        // std::cout << std::endl << "data received: " << std::endl<< buffer << std::endl;
 
-        // TODO: use parsing
+        reqStr = buffer;
+        HTTPparser::parseRequest(reqStr, req);
 
-
-
+        // HTTPparser::printData(req);
+        std::cout << "parsing finished" << std::endl;
 
 
         // run CGI to determine te response string
-        std::string responseStr = runCgi();
+        std::string responseStr = runCgi(req, myServer);
 
         // write response:
         // - check via browser: http://localhost:8080/

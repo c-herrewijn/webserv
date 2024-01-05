@@ -20,21 +20,14 @@
 #include <sys/wait.h>
 #include <arpa/inet.h>
 
+#include "WebServer.hpp"
+
 ServerException::ServerException( std::initializer_list<const char*> prompts) noexcept
 	: std::exception()
 {
-	this->_msg = "Webserver exception: ";
+	this->_msg = "Webserver exception - ";
 	for (const char *prompt : prompts)
 		this->_msg += std::string(prompt) + " ";
-}
-
-
-WebServer::WebServer ( void )
-{
-	bzero(&this->_filter, sizeof(struct addrinfo));
-	this->_filter.ai_flags = AI_PASSIVE;
-	this->_filter.ai_family = AF_UNSPEC;
-	this->_filter.ai_protocol = IPPROTO_TCP;
 }
 
 WebServer::~WebServer ( void ) noexcept
@@ -43,23 +36,17 @@ WebServer::~WebServer ( void ) noexcept
 		this->_dropConn();
 }
 
-struct addrinfo	WebServer::getFilter( void ) const noexcept
-{
-	return(this->_filter);
-}
-
-void	WebServer::setFilter( struct addrinfo const& newFilter ) noexcept
-{
-	this->_filter = newFilter;
-}
-
 void	WebServer::listenAt( const char* hostname, const char* port )
 {
-	struct addrinfo *tmp, *list;
+	struct addrinfo *tmp, *list, filter;
 	struct sockaddr_storage	hostip;
 	int yes=1, listenSocket=-1;
 
-	if (getaddrinfo(hostname, port, &this->_filter, &list) != 0)
+	bzero(&filter, sizeof(struct addrinfo));
+	filter.ai_flags = AI_PASSIVE;
+	filter.ai_family = AF_UNSPEC;
+	filter.ai_protocol = IPPROTO_TCP;
+	if (getaddrinfo(hostname, port, &filter, &list) != 0)
 		throw(ServerException({"failed to get addresses for ", hostname, ":",port}));
 	for (tmp=list; tmp!=nullptr; tmp=tmp->ai_next)
 	{
@@ -129,22 +116,30 @@ void	WebServer::loop( void )
 	}
 }
 
+// OPEN POINTS:
+//	- chunked requests
+//	- relative URLs
+//	- update host & port when they're found in the headers
 void	WebServer::_handleRequest( int connfd )
 {
-	HTTPrequest_t	req;
-	HTTPreqStatus_t	status;
-	pid_t 			child = -1;
-	int				exitStat = 0;
+	HTTPrequest		req;
+	pid_t 				child = -1;
+	int					exitStat = 0;
+	std::string			stringRequest;
 
-	status = HTTPparser::parse(connfd, &req);
-	if (status != FMT_OK)
-		std::cout << "parse request error: " << HTTPparser::printStatus(status) << '\n';
-	else
-		std::cout << "request received\n";
-	HTTPparser::printData(req);
-
-	// tokenize request [at least implement GET POST DELETE]
-
+	try
+	{
+		stringRequest = _readSocket(connfd);
+		HTTPparser::parseRequest(stringRequest, req);
+	}
+	catch (ParserException const& err)
+	{
+		std::cout << err.what() << '\n';
+		this->_dropConn(connfd);
+		return ;
+	}
+	std::cout << "request received\n";
+	// HTTPparser::printData(req);
 	child = fork();
 	if (child == -1)
 		throw(ServerException({"fork failed"}));
@@ -156,12 +151,11 @@ void	WebServer::_handleRequest( int connfd )
 	}
 	if (waitpid(child, &exitStat, 0) < 0)
 		throw(ServerException({"error while terminating process"}));
-	this->_dropConn(connfd);
+	this->_dropConn(connfd);		// <-- not always!
 	// else if (WIFEXITED(exitStat) == 0)
 	// 	std::cout << "child process killed by signal (unexpected)\n";
 	// else if (WEXITSTATUS(exitStat) == 1)
 	// 	std::cout << "bad request format\n";
-	// return (status);
 }
 
 std::string	WebServer::getAddress( const struct sockaddr_storage *addr ) const noexcept
@@ -233,4 +227,21 @@ void	WebServer::_addConn( int newSocket ) noexcept
 bool	WebServer::_isListener( int socket ) const
 {
 	return (this->_listeners.find(socket) != this->_listeners.end());
+}
+
+std::string	WebServer::_readSocket( int fd ) const
+{
+	char			buffer[HEADER_MAX_SIZE + 1];
+	ssize_t 		readChar = HEADER_MAX_SIZE;
+	std::string		stringRequest;
+
+	while (readChar == HEADER_MAX_SIZE)
+	{
+		memset(buffer, 0, HEADER_MAX_SIZE + 1);
+		readChar = read(fd, buffer, HEADER_MAX_SIZE);
+		if (readChar < 0)
+			throw(ServerException({"socket not available or empty"}));
+		stringRequest += buffer;
+	}
+	return (stringRequest);
 }
