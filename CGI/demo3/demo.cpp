@@ -6,37 +6,52 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <vector>
+#include <array>
 
 #include "HTTPparser.hpp"
 #include "Server.hpp"
 
 #define BUFFER_SIZE 10000 // hardcoded for poc
+#define CGI_ENV_SIZE 18
 
 std::vector<Server>	parseServers(char **av);
 
-char *const *createCgiEnv()
+std::array<std::string, CGI_ENV_SIZE> createCgiEnv(std::string serverName)
 {
-    char *const *CgiEnv = new char*[19] {
-        (char *)"AUTH_TYPE=",
-        (char *)"CONTENT_LENGTH=",
-        (char *)"CONTENT_TYPE=",
-        (char *)"GATEWAY_INTERFACE=1.1", //
-        (char *)"PATH_INFO=",
-        (char *)"PATH_TRANSLATED=",
-        (char *)"QUERY_STRING=",//
-        (char *)"REMOTE_ADDR=", //
-        (char *)"REMOTE_HOST=",
-        (char *)"REMOTE_IDENT=",
-        (char *)"REMOTE_USER=",
-        (char *)"REQUEST_METHOD=", //
-        (char *)"SCRIPT_NAME=", //
-        (char *)"SERVER_NAME=MyServer", //
-        (char *)"SERVER_PORT=", //
-        (char *)"SERVER_PROTOCOL=", //
-        (char *)"SERVER_SOFTWARE=WebServ", //
-        (char *)"HTTP_COOKIE=", //
-        NULL
+    std::array<std::string, CGI_ENV_SIZE> CGIEnv {
+        "AUTH_TYPE=",
+        "CONTENT_LENGTH=",
+        "CONTENT_TYPE=",
+        "GATEWAY_INTERFACE=1.1", //
+        "PATH_INFO=",
+        "PATH_TRANSLATED=",
+        "QUERY_STRING=", //
+        "REMOTE_ADDR=", //
+        "REMOTE_HOST=",
+        "REMOTE_IDENT=",
+        "REMOTE_USER=",
+        "REQUEST_METHOD=", //
+        "SCRIPT_NAME=", //
+        "SERVER_NAME=" + serverName, //
+        "SERVER_PORT=", //
+        "SERVER_PROTOCOL=", //
+        "SERVER_SOFTWARE=", //
+        "HTTP_COOKIE=", //
     };
+    return CGIEnv;
+}
+
+char **createCgiEnvCStyle(std::array<std::string, CGI_ENV_SIZE> CGIEnvArr)
+{
+    int i = 0;
+    char **CgiEnv = new char*[CGI_ENV_SIZE + 1];
+    while (i < CGI_ENV_SIZE)
+    {
+        CgiEnv[i] = new char[CGIEnvArr[i].length()+1];
+        strncpy(CgiEnv[i], CGIEnvArr[i].c_str(), CGIEnvArr[i].length()+1);
+        i++;
+    }
+    CgiEnv[i] = NULL;
     return CgiEnv;
 }
 
@@ -56,15 +71,17 @@ std::string runCgi(HTTPrequest &req, Server &srv)
 
     // run cgi, and write result into pipe
 	pipe(p1);
-    char *const *CgiEnv = createCgiEnv();
+
+    std::array<std::string, CGI_ENV_SIZE> cgiEnvArr = createCgiEnv("MyServer");
+    char **CgiEnvCStyle = createCgiEnvCStyle(cgiEnvArr);
+
 	pid_t childPid = fork();
 	if (childPid == 0)
 	{
 	    close(p1[0]);
         dup2(p1[1], STDOUT_FILENO);
         char *argv[2] = {(char*)cgiFileName.c_str(), NULL};
-        // std::cerr << "debug: " << cgiPath << std::endl;
-        int res = execve(cgiPath.c_str(), argv, CgiEnv);
+        int res = execve(cgiPath.c_str(), argv, CgiEnvCStyle);
         if (res != 0)
         {
             close(p1[1]);
@@ -72,7 +89,7 @@ std::string runCgi(HTTPrequest &req, Server &srv)
             exit(1); // exit() is not allowed!
         }
 	}
-    delete[] CgiEnv;
+    delete[] CgiEnvCStyle;
 
     // return cgi response
     int	stat_loc;
