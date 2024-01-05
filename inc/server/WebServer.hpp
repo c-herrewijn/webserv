@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/31 14:23:54 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/04 13:36:07 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,19 +16,19 @@
 #include <netdb.h>            // gai_strerror, getaddrinfo, freeaddrinfo
 #include <cerrno>            // errno
 #include <sys/socket.h>       // socketpair, htons, htonl, ntohs, ntohl, select
-#include <sys/epoll.h>     // epoll_create, epoll_ctl, epoll_wait
+// #include <sys/epoll.h>     // epoll_create, epoll_ctl, epoll_wait
 #include <sys/poll.h>     // poll
 #include <netinet/in.h>       // socket, accept, listen, bind, connect
 #include <arpa/inet.h>        // htons, htonl, ntohs, ntohl
 #include <sys/types.h>        // send, recv
 #include <sys/socket.h>       // send, recv
-#include <sys/types.h>        // chdir
-#include <sys/stat.h>         // stat
 #include <sys/wait.h>         // waitpid
-#include <fcntl.h>            // open
-#include <dirent.h>           // opendir, readdir, closedir
+// #include <fcntl.h>            // open
+// #include <sys/types.h>        // chdir
+// #include <sys/stat.h>         // stat
+// #include <dirent.h>           // opendir, readdir, closedir
 #include <signal.h>           // kill, signal
-#include <filesystem>           // filesystem::path, 
+// #include <filesystem>           // filesystem::path, access()
 #include <iostream>
 #include <initializer_list>
 #include <string>
@@ -36,8 +36,9 @@
 #include <set>
 #include <map>
 #include "HTTPparser.hpp"
-#define BACKLOG 10				        // max pending connection queued up
-#define MAX_TIMEOUT 60000               // maximum timeout with poll()
+#include "HTTPexecutor.hpp"
+#define BACKLOG 	10				        // max pending connection queued up
+#define MAX_TIMEOUT 60000               	// maximum timeout with poll()
 
 class ServerException : std::exception
 {

@@ -6,12 +6,13 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/31 16:48:13 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/03 16:48:42 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 #include <iostream>
+#include <sstream>
 #include <initializer_list>
 #include <string>
 #include <map>

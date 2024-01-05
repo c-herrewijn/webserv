@@ -122,13 +122,21 @@ void	WebServer::_handleRequest( int connfd )
 		stringRequest = _readSocket(connfd);
 		HTTPparser::parseRequest(stringRequest, req);
 	}
-	catch (ParserException const& err) 
-	{
+	catch (std::exception const& err) {
 		std::cout << err.what() << '\n';
 		this->_dropConn(connfd);
 		return ;
 	}
 	std::cout << "request received\n";
+	try
+	{
+		HTTPexecutor::execRequest(req);
+	}
+	catch (std::exception const& err) {
+		std::cout << err.what() << '\n';
+		this->_dropConn(connfd);
+		return ;
+	}
 	// HTTPparser::printData(req);
 	child = fork();
 	if (child == -1)
