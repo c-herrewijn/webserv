@@ -5,8 +5,8 @@
 #include <iostream>
 #include <string.h>
 #include <sys/wait.h>
-#include <vector>
 #include <array>
+#include <sstream>
 
 #include "HTTPparser.hpp"
 #include "Server.hpp"
@@ -16,27 +16,43 @@
 
 std::vector<Server>	parseServers(char **av);
 
-std::array<std::string, CGI_ENV_SIZE> createCgiEnv(std::string serverName)
+std::array<std::string, CGI_ENV_SIZE> createCgiEnv(HTTPrequest &req, Server &srv)
 {
+    // split "Host" in addr and port. TODO: error handling via try/catch
+    std::istringstream ss(req.headers["Host"]);
+    std::string addr;
+    std::string port;
+    std::getline(ss, addr, ':');
+    std::getline(ss, port);
+
+    std::string method;
+    if (req.head.method == HTTP_GET) {
+        method = "GET";
+    } else if (req.head.method == HTTP_POST) {
+        method = "POST";
+    } else if (req.head.method == HTTP_DELETE) {
+        method = "DELETE";
+    }
+
     std::array<std::string, CGI_ENV_SIZE> CGIEnv {
         "AUTH_TYPE=",
         "CONTENT_LENGTH=",
         "CONTENT_TYPE=",
-        "GATEWAY_INTERFACE=1.1", //
+        "GATEWAY_INTERFACE=CGI/1.1", // fixed
         "PATH_INFO=",
         "PATH_TRANSLATED=",
-        "QUERY_STRING=", //
-        "REMOTE_ADDR=", //
+        "QUERY_STRING=", // TODO (part behind '?'-char of the script URI)
+        "REMOTE_ADDR=" + addr,
         "REMOTE_HOST=",
         "REMOTE_IDENT=",
         "REMOTE_USER=",
-        "REQUEST_METHOD=", //
-        "SCRIPT_NAME=", //
-        "SERVER_NAME=" + serverName, //
-        "SERVER_PORT=", //
-        "SERVER_PROTOCOL=", //
-        "SERVER_SOFTWARE=", //
-        "HTTP_COOKIE=", //
+        "REQUEST_METHOD=" + method,
+        "SCRIPT_NAME=" + req.head.url.path,
+        "SERVER_NAME=" + srv.getNames()[0], // TODO: validations try/catch!
+        "SERVER_PORT=" + port,
+        "SERVER_PROTOCOL=HTTP/1.1", // fixed
+        "SERVER_SOFTWARE=WebServServer", // fixed
+        "HTTP_COOKIE=", // TODO
     };
     return CGIEnv;
 }
@@ -72,7 +88,7 @@ std::string runCgi(HTTPrequest &req, Server &srv)
     // run cgi, and write result into pipe
 	pipe(p1);
 
-    std::array<std::string, CGI_ENV_SIZE> cgiEnvArr = createCgiEnv("MyServer");
+    std::array<std::string, CGI_ENV_SIZE> cgiEnvArr = createCgiEnv(req, srv);
     char **CgiEnvCStyle = createCgiEnvCStyle(cgiEnvArr);
 
 	pid_t childPid = fork();
@@ -165,10 +181,7 @@ int main(int argc, char *argv[]) {
 
         reqStr = buffer;
         HTTPparser::parseRequest(reqStr, req);
-
-        // HTTPparser::printData(req);
-        std::cout << "parsing finished" << std::endl;
-
+        HTTPparser::printData(req);
 
         // run CGI to determine te response string
         std::string responseStr = runCgi(req, myServer);
