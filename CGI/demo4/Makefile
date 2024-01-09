@@ -1,5 +1,6 @@
 NAME = webserv
 SOURCES = demo.cpp \
+		  ./CGI.cpp \
 		  ./server/HTTPparser.cpp \
 		  ./server/WebServer.cpp \
 		  ./parser/Config.cpp \

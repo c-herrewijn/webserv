@@ -10,112 +10,12 @@
 
 #include "HTTPparser.hpp"
 #include "Server.hpp"
+#include "CGI.hpp"
 
 #define BUFFER_SIZE 10000 // hardcoded for poc
-#define CGI_ENV_SIZE 18
+// #define CGI_ENV_SIZE 18
 
 std::vector<Server>	parseServers(char **av);
-
-std::array<std::string, CGI_ENV_SIZE> createCgiEnv(HTTPrequest &req, Server &srv)
-{
-    // split "Host" in addr and port. TODO: error handling via try/catch
-    std::istringstream ss(req.headers["Host"]);
-    std::string addr;
-    std::string port;
-    std::getline(ss, addr, ':');
-    std::getline(ss, port);
-
-    std::string method;
-    if (req.head.method == HTTP_GET) {
-        method = "GET";
-    } else if (req.head.method == HTTP_POST) {
-        method = "POST";
-    } else if (req.head.method == HTTP_DELETE) {
-        method = "DELETE";
-    }
-
-    std::array<std::string, CGI_ENV_SIZE> CGIEnv {
-        "AUTH_TYPE=",
-        "CONTENT_LENGTH=",
-        "CONTENT_TYPE=",
-        "GATEWAY_INTERFACE=CGI/1.1", // fixed
-        "PATH_INFO=",
-        "PATH_TRANSLATED=",
-        "QUERY_STRING=", // TODO (part behind '?'-char of the script URI)
-        "REMOTE_ADDR=" + addr,
-        "REMOTE_HOST=",
-        "REMOTE_IDENT=",
-        "REMOTE_USER=",
-        "REQUEST_METHOD=" + method,
-        "SCRIPT_NAME=" + req.head.url.path,
-        "SERVER_NAME=" + srv.getNames()[0], // TODO: validations try/catch!
-        "SERVER_PORT=" + port,
-        "SERVER_PROTOCOL=HTTP/1.1", // fixed
-        "SERVER_SOFTWARE=WebServServer", // fixed
-        "HTTP_COOKIE=", // TODO
-    };
-    return CGIEnv;
-}
-
-char **createCgiEnvCStyle(std::array<std::string, CGI_ENV_SIZE> CGIEnvArr)
-{
-    int i = 0;
-    char **CgiEnv = new char*[CGI_ENV_SIZE + 1];
-    while (i < CGI_ENV_SIZE)
-    {
-        CgiEnv[i] = new char[CGIEnvArr[i].length()+1];
-        strncpy(CgiEnv[i], CGIEnvArr[i].c_str(), CGIEnvArr[i].length()+1);
-        i++;
-    }
-    CgiEnv[i] = NULL;
-    return CgiEnv;
-}
-
-// info needed:
-// - info for ENV ??
-// - info to find and call the cgi script (name and path)
-std::string runCgi(HTTPrequest &req, Server &srv)
-{
-    const std::string cgiFileName = "cgi.py";
-    const std::string cgiPath = "./cgi.py";
-
-    std::cout << "cgiDir:" << srv.getCgiDir() << std::endl;
-    std::cout << "CgiExtension:" << srv.getCgiExtension() << std::endl;
-    int p1[2];
-	char read_buff[BUFFER_SIZE];
-    bzero(read_buff, BUFFER_SIZE); // bzero() is not allowed!
-
-    // run cgi, and write result into pipe
-	pipe(p1);
-
-    std::array<std::string, CGI_ENV_SIZE> cgiEnvArr = createCgiEnv(req, srv);
-    char **CgiEnvCStyle = createCgiEnvCStyle(cgiEnvArr);
-
-	pid_t childPid = fork();
-	if (childPid == 0)
-	{
-	    close(p1[0]);
-        dup2(p1[1], STDOUT_FILENO);
-        char *argv[2] = {(char*)cgiFileName.c_str(), NULL};
-        int res = execve(cgiPath.c_str(), argv, CgiEnvCStyle);
-        if (res != 0)
-        {
-            close(p1[1]);
-            std::cerr << "execve error!" << std::endl;
-            exit(1); // exit() is not allowed!
-        }
-	}
-    delete[] CgiEnvCStyle;
-
-    // return cgi response
-    int	stat_loc;
-    close(p1[1]);
-    waitpid(childPid, &stat_loc, 0);
-    read(p1[0], read_buff, BUFFER_SIZE);
-    close(p1[0]);
-    std::string response = read_buff;
-    return response;
-}
 
 int main(int argc, char *argv[]) {
     // default settings to create web socket
@@ -183,8 +83,13 @@ int main(int argc, char *argv[]) {
         HTTPparser::parseRequest(reqStr, req);
         HTTPparser::printData(req);
 
-        // run CGI to determine te response string
-        std::string responseStr = runCgi(req, myServer);
+        // TODO: remove hardcoding!!
+        std::string CGIfileName = "cgi.py";
+        std::string CGIfilePath = "./cgi.py";
+        std::string serverName = "myServer";
+
+        CGI request(req, myServer, CGIfileName, CGIfilePath, serverName); // TODO: only keep req and myServer as inputs
+        std::string responseStr = request.getHTTPResponse();
 
         // write response:
         // - check via browser: http://localhost:8080/
