@@ -88,8 +88,13 @@ int main(int argc, char *argv[]) {
         // - check if CGI is allowed (in server config, based on file extention and/or CGI allowed flag)
         // - define CGIfileName and CGIfilePath based on (based on nested "Location" info in server config)
         // - check if CGIfile exists and is executable
-        std::string CGIfileName = "cgi.py";
-        std::string CGIfilePath = "./cgi.py";
+
+        std::string CGIfilePath = myServer.getParams().getRoot() + req.head.url.path;
+        // TODO: take into account scenario where the file path does not ahve a '/'
+        std::string CGIfileName = CGIfilePath.substr(CGIfilePath.rfind("/")+1); // fully stripped, only used for execve
+        // std::cout << "DEBUG CGIdir: " << myServer.getCgiDir() << std::endl;
+        // std::cout << "DEBUG root: " << myServer.getParams().getRoot() << std::endl;
+        // std::cout << "DEBUG url path: " << req.head.url.path << std::endl;
 
         CGI request(req, myServer, CGIfileName, CGIfilePath); // TODO: only keep req and myServer as inputs
         std::string responseStr = request.getHTTPResponse();
