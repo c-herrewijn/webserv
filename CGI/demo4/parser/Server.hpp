@@ -22,7 +22,9 @@
 # include "Location.hpp"
 # include "Listen.hpp"
 
-# define DEF_CONF "../../default/default.conf"
+# ifndef DEF_CONF
+#  define DEF_CONF "../../default/default.conf"
+# endif
 
 class Server
 {
