@@ -11,20 +11,19 @@ CGI::CGI(
     HTTPrequest &req,
     Server &srv,
     std::string CGIfileName,
-    std::string CGIfilePath,
-    std::string serverName
+    std::string CGIfilePath
 )
     : _cgiFileName(CGIfileName),
       _cgiPath(CGIfilePath),
-      _CGIEnvArr(this->createCgiEnv(req, srv)),
-      _CgiEnvCStyle(this->createCgiEnvCStyle())
+      _CGIEnvArr(this->_createCgiEnv(req, srv)),
+      _CgiEnvCStyle(this->_createCgiEnvCStyle())
 {}
 
 CGI::~CGI() {
     delete[] this->_CgiEnvCStyle;
 }
 
-std::array<std::string, CGI_ENV_SIZE> CGI::createCgiEnv(HTTPrequest &req, Server &srv)
+std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(HTTPrequest &req, Server &srv)
 {
     // split "Host" in addr and port. TODO: error handling via try/catch
     std::istringstream ss(req.headers["Host"]);
@@ -65,7 +64,7 @@ std::array<std::string, CGI_ENV_SIZE> CGI::createCgiEnv(HTTPrequest &req, Server
     return CGIEnv;
 }
 
-char **CGI::createCgiEnvCStyle(void)
+char **CGI::_createCgiEnvCStyle(void)
 {
     int i = 0;
     char **CgiEnv = new char*[CGI_ENV_SIZE + 1];

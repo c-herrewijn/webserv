@@ -83,12 +83,15 @@ int main(int argc, char *argv[]) {
         HTTPparser::parseRequest(reqStr, req);
         HTTPparser::printData(req);
 
-        // TODO: remove hardcoding!!
+        // Steps before creating the CGI object:
+        // - check if the uri is a cgi uri (based on nested "Location" info in server config)
+        // - check if CGI is allowed (in server config, based on file extention and/or CGI allowed flag)
+        // - define CGIfileName and CGIfilePath based on (based on nested "Location" info in server config)
+        // - check if CGIfile exists and is executable
         std::string CGIfileName = "cgi.py";
         std::string CGIfilePath = "./cgi.py";
-        std::string serverName = "myServer";
 
-        CGI request(req, myServer, CGIfileName, CGIfilePath, serverName); // TODO: only keep req and myServer as inputs
+        CGI request(req, myServer, CGIfileName, CGIfilePath); // TODO: only keep req and myServer as inputs
         std::string responseStr = request.getHTTPResponse();
 
         // write response:

@@ -15,7 +15,7 @@
 
 class  CGI {
 public:
-    CGI(HTTPrequest &req, Server &srv, std::string CGIfileName, std::string CGIfilePath, std::string serverName);
+    CGI(HTTPrequest &req, Server &srv, std::string CGIfileName, std::string CGIfilePath);
     ~CGI();
     std::string getHTTPResponse();
 
@@ -25,8 +25,8 @@ private:
     std::array<std::string, CGI_ENV_SIZE> _CGIEnvArr;
     char *const *_CgiEnvCStyle;
 
-    std::array<std::string, CGI_ENV_SIZE> createCgiEnv(HTTPrequest &req, Server &srv);
-    char **createCgiEnvCStyle();
+    std::array<std::string, CGI_ENV_SIZE> _createCgiEnv(HTTPrequest &req, Server &srv);
+    char **_createCgiEnvCStyle();
 
     // disabled default constructor, copy constructor, and copy assignment operator
     CGI();
