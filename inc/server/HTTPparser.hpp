@@ -14,6 +14,7 @@
 #include <iostream>
 #include <initializer_list>
 #include <string>
+#include <sstream>
 #include <map>
 #define HEADER_MAX_SIZE 	8192	        // max size of HTTP header
 #define HTTP_DEF_PORT		"80"			// default port
@@ -51,7 +52,7 @@ typedef struct HTTPversion_f
 typedef struct HTTPheadReq_f
 {
 	HTTPmethod	method;
-	HTTPurl		url;		
+	HTTPurl		url;
 	HTTPversion	version;
 } HTTPheadReq;
 
@@ -82,7 +83,7 @@ class HTTPexception : std::exception
 		HTTPexception( std::initializer_list<const char*> ) noexcept;
 		virtual const char* what() const noexcept override {return (this->_msg.c_str());}
 		virtual ~HTTPexception( void ) noexcept {}
-	
+
 	protected:
 		std::string _msg;
 };
