@@ -54,7 +54,7 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(HTTPrequest &req, Serve
         "REMOTE_IDENT=",
         "REMOTE_USER=",
         "REQUEST_METHOD=" + method,
-        "SCRIPT_NAME=" + req.head.url.path,
+        "SCRIPT_NAME=" + req.head.url.path, // script path relative to document root, e.g. /cgi-bin/myScript.cgi
         "SERVER_NAME=" + srv.getNames()[0], // TODO: validations try/catch!
         "SERVER_PORT=" + port,
         "SERVER_PROTOCOL=HTTP/1.1", // fixed
@@ -70,8 +70,7 @@ char **CGI::_createCgiEnvCStyle(void)
     char **CgiEnv = new char*[CGI_ENV_SIZE + 1];
     while (i < CGI_ENV_SIZE)
     {
-        CgiEnv[i] = new char[this->_CGIEnvArr[i].length()+1];
-        strncpy(CgiEnv[i], this->_CGIEnvArr[i].c_str(), this->_CGIEnvArr[i].length()+1);
+        CgiEnv[i] = (char *)this->_CGIEnvArr[i].c_str();
         i++;
     }
     CgiEnv[i] = NULL;
