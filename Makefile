@@ -23,7 +23,7 @@ SOURCES := $(shell find $(SRC_DIR) -type f -name '*.cpp')
 OBJECTS := $(patsubst $(SRC_DIR)%,$(OBJ_DIR)%,$(SOURCES:.cpp=.o))
 
 CC  := c++
-IFLAGS := -I$(INCLUDE) -I$(INCLUDE)/parser -I$(INCLUDE)/server
+IFLAGS := -I$(INCLUDE) -I$(INCLUDE)/parser -I$(INCLUDE)/server -I$(INCLUDE)/CGI
 CPPFLAGS = -Wall -Wextra -Werror -Wshadow -Wpedantic -g3 -fsanitize=address
 
 GREEN = \x1b[32;01m
@@ -49,7 +49,7 @@ client: $(CLIENT)
 $(CLIENT): $(OBJECTS) $(MAIN_CLI)
 	@$(CC) $(CPPFLAGS) $(IFLAGS) $^ -o $@
 	@printf "(WebServ) $(GREEN)Created program $@$(RESET)\n"
-	
+
 $(OBJ_DIR):
 	echo $(SOURCES)
 	@mkdir -p $(OBJ_DIR)
