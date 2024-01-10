@@ -13,7 +13,6 @@
 #include "CGI.hpp"
 
 #define BUFFER_SIZE 10000 // hardcoded for poc
-// #define CGI_ENV_SIZE 18
 
 std::vector<Server>	parseServers(char **av);
 
@@ -69,6 +68,7 @@ int main(int argc, char *argv[]) {
 
     // accept incoming connections (server waits for connections in a loop)
     std::cout << "wait for incoming connections..." << std::endl;
+    std::cout << "test CGI via: http://localhost:8080/cgi-bin/gettime.cgi" << std::endl;
     HTTPrequest	req;
     std::string reqStr;
     while (true)
@@ -83,24 +83,16 @@ int main(int argc, char *argv[]) {
         HTTPparser::parseRequest(reqStr, req);
         HTTPparser::printData(req);
 
-        // Steps before creating the CGI object:
+        // Only create CGI object if after the following validations (TODO):
         // - check if the uri is a cgi uri (based on nested "Location" info in server config)
         // - check if CGI is allowed (in server config, based on file extention and/or CGI allowed flag)
-        // - define CGIfileName and CGIfilePath based on (based on nested "Location" info in server config)
         // - check if CGIfile exists and is executable
 
-        std::string CGIfilePath = myServer.getParams().getRoot() + req.head.url.path;
-        // TODO: take into account scenario where the file path does not ahve a '/'
-        std::string CGIfileName = CGIfilePath.substr(CGIfilePath.rfind("/")+1); // fully stripped, only used for execve
-        // std::cout << "DEBUG CGIdir: " << myServer.getCgiDir() << std::endl;
-        // std::cout << "DEBUG root: " << myServer.getParams().getRoot() << std::endl;
-        // std::cout << "DEBUG url path: " << req.head.url.path << std::endl;
-
-        CGI request(req, myServer, CGIfileName, CGIfilePath); // TODO: only keep req and myServer as inputs
-        std::string responseStr = request.getHTTPResponse();
+        CGI CGIrequest(req, myServer);
+        std::string responseStr = CGIrequest.getHTTPResponse();
 
         // write response:
-        // - check via browser: http://localhost:8080/
+        // - check via browser: http://localhost:8080/cgi-bin/gettime.cgi
         // - check via curl: $ curl -d "myRequestFromCurl" localhost:8080
         if(write(connectionFd, (void *)responseStr.c_str(), strlen(responseStr.c_str())) < 0)
         {

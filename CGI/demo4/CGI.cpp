@@ -9,12 +9,10 @@
 
 CGI::CGI(
     HTTPrequest &req,
-    Server &srv,
-    std::string CGIfileName,
-    std::string CGIfilePath
+    Server &srv
 )
-    : _cgiFileName(CGIfileName),
-      _cgiPath(CGIfilePath),
+    : _req(req),
+      _srv(srv),
       _CGIEnvArr(this->_createCgiEnv(req, srv)),
       _CgiEnvCStyle(this->_createCgiEnvCStyle())
 {}
@@ -90,13 +88,14 @@ std::string CGI::getHTTPResponse()
 	{
 	    close(p1[0]);
         dup2(p1[1], STDOUT_FILENO);
-        char *argv[2] = {(char*)this->_cgiFileName.c_str(), NULL};
-
-        int res = execve(this->_cgiPath.c_str(), argv, this->_CgiEnvCStyle);
+        std::string CGIfilePath = _srv.getParams().getRoot() + _req.head.url.path;
+        std::string CGIfileName = CGIfilePath.substr(CGIfilePath.rfind("/")+1); // fully stripped, only used for execve
+        char *argv[2] = {(char*)CGIfileName.c_str(), NULL};
+        int res = execve(CGIfilePath.c_str(), argv, this->_CgiEnvCStyle);
         if (res != 0)
         {
             close(p1[1]);
-            std::cerr << "execve error!" << std::endl;
+            std::cerr << "Error in running CGI script!" << std::endl;
             perror("");
             exit(1); // exit() is not allowed!
         }
@@ -110,17 +109,4 @@ std::string CGI::getHTTPResponse()
     close(p1[0]);
     std::string response = read_buff;
     return response;
-}
-
-// disabled default constructor, copy constructor and copy assignment operator
-// -----------------------------------------
-CGI::CGI() {}
-
-CGI::CGI(const CGI &obj) {
-    *this = obj;
-}
-
-CGI &CGI::operator=(const CGI &obj) {
-    (void)obj;
-    return *this;
 }

@@ -5,7 +5,11 @@ import sys
 
 now = datetime.now()
 now_str = now.strftime('%H:%M:%S')
-html_content = f"<html><body><h1>Current time: {now_str}</h1><h2>server name: {environ['SERVER_NAME']}</h2></body></html>"
+html_content = f'''<html><body>
+                <h1>Current time: {now_str}</h1>
+                <h2>server name: {environ['SERVER_NAME']}
+                <h2>script name: {environ['SCRIPT_NAME']}
+                </h2></body></html>'''
 
 # todo: validate headers
 # if environ.has_key('SERVER_NAME'):
