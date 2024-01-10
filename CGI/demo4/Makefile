@@ -10,8 +10,7 @@ SOURCES = demo.cpp \
 		  ./parser/Server.cpp \
 		  ./parser/parser_utils.cpp
 
-
-CONFIG = \"/home/cherrewi/Documents/repositories/webserv/CGI/demo4/cgi_server.conf\"
+CONFIG = \"${PWD}/cgi_server.conf\"
 
 $(NAME): $(SOURCES)
 	c++ -DDEF_CONF=$(CONFIG) -I server -I parser $(SOURCES) -o $(NAME)
