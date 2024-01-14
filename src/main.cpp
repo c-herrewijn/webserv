@@ -73,7 +73,7 @@ int runWebServer( void )
 	}
 }
 
-int main1(int ac, char **av)
+int main(int ac, char **av)
 {
 	if (ac > 2)
 	{
