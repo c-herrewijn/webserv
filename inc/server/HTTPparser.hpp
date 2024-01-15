@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/03 16:48:42 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/15 19:52:19 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,13 +16,14 @@
 #include <initializer_list>
 #include <string>
 #include <map>
+#include <algorithm>
 #define HEADER_MAX_SIZE 	8192	        // max size of HTTP header
-#define HTTP_DEF_PORT		"80"			// default port
-#define HTTP_DEF_SCHEME		"HTTP"			// default scheme
-#define HTTP_TERM			"\r\n\r\n"		// http terminator
-#define HTTP_DELIM			"\r\n"			// http delimiter
-#define HTTP_SCHEME			"http"
-#define HTTPS_SCHEME		"https"
+#define HTTP_DEF_PORT		std::string("80")			// default port
+#define HTTP_SCHEME			std::string("HTTP")
+#define HTTPS_SCHEME		std::string("HTTPS")
+#define HTTP_TERM			std::string("\r\n\r\n")		// http terminator
+#define HTTP_DELIM			std::string("\r\n")			// http delimiter
+#define HTTP_SP				std::string(" ")
 
 typedef std::map<std::string, std::string> dict;
 
@@ -33,6 +34,7 @@ typedef enum HTTPmethod_s
 	HTTP_DELETE,
 } HTTPmethod;
 
+// NB: add toString() methods for every struct
 typedef struct HTTPurl_f
 {
 	std::string	scheme;
@@ -97,11 +99,14 @@ class ParserException : public HTTPexception
 class HTTPparser
 {
 	public:
-		static void	parseRequest( std::string, HTTPrequest& );
-		static void	printData( HTTPrequest ) noexcept;
+		static void			parseRequest( std::string, HTTPrequest& );
+		static void			buildResponse( HTTPresponse&, int, std::string& body );
+		// static std::string	reqToString( HTTPrequest& ) noexcept;
+		// static std::string	respToString( HTTPresponse& ) noexcept;
 		~HTTPparser( void ) noexcept {};
 
 	private:
+		// requests
 		static void	_setHead( std::string, HTTPheadReq& );
 		static void	_setHeaders( std::string, dict& );
 		static void	_setBody( std::string, std::string& );
@@ -115,6 +120,9 @@ class HTTPparser
 		static void	_setPath( std::string, std::string& );
 		static void	_setQuery( std::string, dict& );
 
+		// responses
+		static std::string	_mapStatus( int );
+		// static std::string const&	_mapMethod( HTTPmethod );
 		HTTPparser( void ) noexcept {};
 		HTTPparser( HTTPparser const& ) noexcept;
 		HTTPparser& operator=( HTTPparser const& ) noexcept;

@@ -87,7 +87,7 @@ void	WebServer::loop( void )
 		
 		if (nConn == -1)
 			throw(ServerException({"poll failure"}));
-		else if (nConn == 0)
+		else if (nConn == 0)		// timeout (NB: right?)
 			break;
 		for (size_t i=0; i<this->_connfds.size(); i++)
 		{
@@ -106,38 +106,44 @@ void	WebServer::loop( void )
 	}
 }
 
-// OPEN POINTS:
+// NB: OPEN POINTS:
 //	- chunked requests
 //	- relative URLs
 //	- update host & port when they're found in the headers
 void	WebServer::_handleRequest( int connfd )
 {
-	HTTPrequest		req;
-	pid_t 				child = -1;
-	int					exitStat = 0;
-	std::string			stringRequest;
+	HTTPrequest		request;
+	HTTPresponse	response;
+	pid_t 			child=-1;
+	int				reqStat=-1, forkStat=-1;
+	std::string		stringRequest, stringResponse, body;
 	
 	try
 	{
 		stringRequest = _readSocket(connfd);
-		HTTPparser::parseRequest(stringRequest, req);
+		HTTPparser::parseRequest(stringRequest, request);
+		// HTTPparser::printData(request);
+		std::cout << stringRequest << '\n';
+		reqStat = HTTPexecutor::execRequest(request, body);
+		HTTPparser::buildResponse(response, reqStat, body);
+		stringResponse = "HTTP/1.1 200 OK";		// NB must be updated with real response
+		_writeSocket(connfd, stringResponse);
+	}
+	catch (ParserException const& err) {	// NB why it is not catching the exeption in the next catch-block??
+		std::cout << err.what() << '\n';
+		this->_dropConn(connfd);
+		return ;
+	}
+	catch (ExecException const& err) {	// NB why it is not catching the exeption in the next catch-block??
+		std::cout << err.what() << '\n';
+		this->_dropConn(connfd);
+		return ;
 	}
 	catch (std::exception const& err) {
 		std::cout << err.what() << '\n';
 		this->_dropConn(connfd);
 		return ;
 	}
-	std::cout << "request received\n";
-	try
-	{
-		HTTPexecutor::execRequest(req);
-	}
-	catch (std::exception const& err) {
-		std::cout << err.what() << '\n';
-		this->_dropConn(connfd);
-		return ;
-	}
-	// HTTPparser::printData(req);
 	child = fork();
 	if (child == -1)
 		throw(ServerException({"fork failed"}));
@@ -147,12 +153,12 @@ void	WebServer::_handleRequest( int connfd )
 		// execve stuff ...
 		exit(1);
 	}
-	if (waitpid(child, &exitStat, 0) < 0)
+	if (waitpid(child, &forkStat, 0) < 0)
 		throw(ServerException({"error while terminating process"}));
 	this->_dropConn(connfd);		// <-- not always!
-	// else if (WIFEXITED(exitStat) == 0)
+	// else if (WIFEXITED(forkStat) == 0)
 	// 	std::cout << "child process killed by signal (unexpected)\n";
-	// else if (WEXITSTATUS(exitStat) == 1)
+	// else if (WEXITSTATUS(forkStat) == 1)
 	// 	std::cout << "bad request format\n";
 }
 
@@ -235,11 +241,28 @@ std::string	WebServer::_readSocket( int fd ) const
 
 	while (readChar == HEADER_MAX_SIZE)
 	{
-		memset(buffer, 0, HEADER_MAX_SIZE + 1);
-		readChar = read(fd, buffer, HEADER_MAX_SIZE);
+		memset(buffer, 0, HEADER_MAX_SIZE + 1);		// NB: remove C functions!
+		readChar = recv(fd, buffer, HEADER_MAX_SIZE, 0);
 		if (readChar < 0)
 			throw(ServerException({"socket not available or empty"}));
 		stringRequest += buffer;
 	}
 	return (stringRequest);
+}
+
+void	WebServer::_writeSocket( int fd, std::string const& content) const
+{
+	std::string toWrite, tmpResp = "HTTP/1.1 200 OK";
+	size_t	start=0, len=content.size();
+	ssize_t written=0;
+
+	while (start < content.size())
+	{
+		toWrite = content.substr(start, len);
+		written = send(fd, toWrite.c_str(), len, 0);
+		if (written < -1)
+			throw(ServerException({"failed writing on client socket"}));
+		start += written;
+		len -= written;
+	}
 }

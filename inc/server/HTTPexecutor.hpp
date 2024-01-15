@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:10:43 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/14 18:57:08 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/15 19:38:57 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,13 +35,13 @@ class ExecException : public HTTPexception
 class HTTPexecutor
 {
 	public:
-		static void	execRequest(HTTPrequest&);
+		static int	execRequest(HTTPrequest&, std::string&);
 		~HTTPexecutor( void ) noexcept {};
 
 	private:
-		static	void		_execGET(HTTPrequest&);
-		static	void		_execPOST(HTTPrequest&);
-		static	void		_execDELETE(HTTPrequest&);
+		static	std::string	_execGET(HTTPrequest&, int&);
+		static	std::string	_execPOST(HTTPrequest&, int&);
+		static	std::string	_execDELETE(HTTPrequest&, int&);
 		static	std::string	_readContent(std::filesystem::path&);
 
 		static	bool	_isCGI(std::filesystem::path const&);
@@ -51,6 +51,6 @@ class HTTPexecutor
 		HTTPexecutor( HTTPexecutor const& ) noexcept;
 		HTTPexecutor& operator=( HTTPexecutor const& ) noexcept;
 
-		static const std::map<HTTPmethod, std::function<void(HTTPrequest&)> > _methods;
+		static const std::map<HTTPmethod, std::function<std::string(HTTPrequest&, int&)> > _methods;
 };
 

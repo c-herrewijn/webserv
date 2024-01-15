@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/14 18:56:26 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/15 19:59:07 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,25 +20,28 @@ ExecException::ExecException( std::initializer_list<const char*> prompts) noexce
 		this->_msg += " " + std::string(prompt);
 }
 
-const std::map<HTTPmethod, std::function<void(HTTPrequest&)> > HTTPexecutor::_methods = 
+const std::map<HTTPmethod, std::function<std::string(HTTPrequest&, int&)> > HTTPexecutor::_methods = 
 {
 	{HTTP_GET, _execGET},
 	{HTTP_POST, _execPOST},
 	{HTTP_DELETE, _execDELETE},
 };
 
-void	HTTPexecutor::execRequest(HTTPrequest& req)
+int	HTTPexecutor::execRequest(HTTPrequest& req, std::string& body)
 {
+	int reqStatus = -1;
+
 	try
 	{
-		HTTPexecutor::_methods.at(req.head.method)(req);
+		body = HTTPexecutor::_methods.at(req.head.method)(req, reqStatus);
 	}
 	catch(const std::out_of_range& e) {
 		throw(ExecException({"unsupported HTTP method"}));
 	}
+	return(reqStatus);
 }
 
-void	HTTPexecutor::_execGET(HTTPrequest& req)
+std::string	HTTPexecutor::_execGET(HTTPrequest& req, int& status)
 {
 	std::filesystem::path pathReq = req.head.url.path;
 	std::string htmlBody;
@@ -61,20 +64,26 @@ void	HTTPexecutor::_execGET(HTTPrequest& req)
 		}
 		
 	}
-	
+	status = 200;
+	return (htmlBody);
 }
 
-void	HTTPexecutor::_execPOST(HTTPrequest& req)
+std::string	HTTPexecutor::_execPOST(HTTPrequest& req, int& status)
 {
 	if (_isCGI(req.head.url.path) == true)
 		std::cout << "CGI\n";
 	else
 		std::cout << "not CGI\n";
+	std::string body;
+	status = 200;
+	return ("");
 }
 
-void	HTTPexecutor::_execDELETE(HTTPrequest& req)
+std::string	HTTPexecutor::_execDELETE(HTTPrequest& req, int& status)
 {
 	(void) req;
+	status = 200;
+	return ("");
 }
 
 std::string	HTTPexecutor::_readContent(std::filesystem::path& pathReq)
@@ -96,7 +105,6 @@ void	HTTPexecutor::_checkPath(std::filesystem::path const& path)
 		throw(ExecException({"file not found"}));
 	else if (access(path.c_str(), R_OK) != 0)
 		throw(ExecException({"permission error"}));
-	
 }
 
 bool	HTTPexecutor::_isCGI(std::filesystem::path const& path)

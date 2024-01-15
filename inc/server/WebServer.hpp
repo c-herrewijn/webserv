@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/04 13:36:07 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/15 18:54:00 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,7 +54,7 @@ class ServerException : std::exception
 class WebServer
 {
 	public:
-		WebServer ( void ) {};
+		WebServer ( std::string const& servName) : _hostName(servName) {};
 		~WebServer ( void ) noexcept;
 
 		void			listenAt( const char*, const char* );
@@ -62,9 +62,11 @@ class WebServer
 		std::string		getAddress( const struct sockaddr_storage*) const noexcept ;
 
 	private:
+		std::string					_hostName;
 		std::vector<struct pollfd>	_connfds;
 		std::set<int>				_listeners;
 
+		WebServer ( void ) {};
 		WebServer ( WebServer const& ) noexcept;
 		WebServer& operator=( WebServer const& ) noexcept;
 
@@ -74,4 +76,5 @@ class WebServer
 		void		_handleRequest( int ) ;
 		bool		_isListener( int ) const ;
 		std::string	_readSocket( int ) const ;
+		void		_writeSocket( int, std::string const& ) const ;
 };

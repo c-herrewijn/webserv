@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/31 16:47:39 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/15 19:53:26 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,24 +56,15 @@ void	HTTPparser::parseRequest( std::string strReq, HTTPrequest &req )
 	_setHead(head, req.head);
 }
 
-void	HTTPparser::printData( HTTPrequest httpReq ) noexcept
+void	HTTPparser::buildResponse( HTTPresponse& resp, int statusCode, std::string& body )
 {
-	std::cout << "HEAD\n";
-	std::cout << "\tmethod: " << httpReq.head.method << "\n";
-	std::cout << "\tURL:\n\t\tdomain: " << httpReq.head.url.domain << "\n\t\tport: " << \
-		httpReq.head.url.port << "\n\t\tpath: " << httpReq.head.url.path << '\n';
-	if (httpReq.head.url.query.empty() == false)
-	{
-		std::cout << "\t\tqueries:\n";
-		for(auto option : httpReq.head.url.query)
-			std::cout << "\t\t\t" << option.first << '=' << option.second << '\n';
-	}
-	std::cout << "\tversion: " << httpReq.head.version.scheme << "/" << \
-		httpReq.head.version.major << '.' << httpReq.head.version.minor << '\n';
-	std::cout << "HEADERS\n";
-	for(auto option : httpReq.headers)
-		std::cout << "\t" << option.first << ": " << option.second << "\n";
-	std::cout << "BODY\n\t" << httpReq.body << "\n";
+	resp.head.version.scheme = HTTP_SCHEME;
+	resp.head.version.major = 1;
+	resp.head.version.minor = 1;
+	resp.head.exitCode = statusCode;
+	resp.head.status = _mapStatus(statusCode);
+	// headers have must be added, which of these are mandatory?
+	resp.body = body;
 }
 
 void	HTTPparser::_setHead(std::string header, HTTPheadReq& head )
@@ -157,6 +148,7 @@ void	HTTPparser::_setURL( std::string strURL, HTTPurl& url )
 
 void	HTTPparser::_setScheme( std::string strScheme, std::string& scheme)
 {
+	std::transform(strScheme.begin(), strScheme.end(), strScheme.begin(), ::toupper);
 	if ((strScheme != HTTP_SCHEME) and (strScheme != HTTPS_SCHEME))
 		throw(ParserException({"unsupported scheme", strScheme.c_str()}));
 	scheme = strScheme;
@@ -217,7 +209,7 @@ void	HTTPparser::_setVersion(std::string strVersion, HTTPversion& version)
 	if (del1 == std::string::npos)
 		throw(ParserException({"invalid version:", strVersion.c_str()}));
 	version.scheme = strVersion.substr(0, del1);
-	if (version.scheme != HTTP_DEF_SCHEME)
+	if (version.scheme != HTTP_SCHEME)
 		throw(ParserException({"invalid scheme:", strVersion.c_str()}));
 	del2 = strVersion.find('.');
 	if (del2 == std::string::npos)
@@ -236,6 +228,24 @@ void	HTTPparser::_setVersion(std::string strVersion, HTTPversion& version)
 		throw(ParserException({"unsupported HTTP version:", strVersion.c_str()}));
 }
 
+std::string	HTTPparser::_mapStatus( int status)
+{
+	(void) status;
+	return("OK");
+}
+
+// std::string const&	HTTPparser::_mapMethod( HTTPmethod method)
+// {
+// 	if (method == HTTP_GET)
+// 		return("GET");
+// 	else if (method == HTTP_POST)
+// 		return("POST");
+// 	else if (method == HTTP_DELETE)
+// 		return("DELETE");
+// 	else
+// 		return("");		// NB: throw exception instead
+// }
+
 HTTPparser::HTTPparser( HTTPparser const& other ) noexcept
 {
 	(void) other;
@@ -246,3 +256,35 @@ HTTPparser& HTTPparser::operator=( HTTPparser const& other ) noexcept
 	(void) other;
 	return (*this);
 }
+/*
+// std::string HTTPparser::reqToString( HTTPrequest& httpReq ) noexcept
+// {
+// 	std::string reqString;
+//
+// 	reqString = _mapMethod(httpReq.head.method) + HTTP_SP;
+// 	reqString += 
+//
+// 	std::cout << "HEAD\n";
+// 	std::cout << "\tmethod: " << httpReq.head.method << "\n";
+// 	std::cout << "\tURL:\n\t\tdomain: " << httpReq.head.url.domain << "\n\t\tport: " << \
+// 		httpReq.head.url.port << "\n\t\tpath: " << httpReq.head.url.path << '\n';
+// 	if (httpReq.head.url.query.empty() == false)
+// 	{
+// 		std::cout << "\t\tqueries:\n";
+// 		for(auto option : httpReq.head.url.query)
+// 			std::cout << "\t\t\t" << option.first << '=' << option.second << '\n';
+// 	}
+// 	std::cout << "\tversion: " << httpReq.head.version.scheme << "/" << \
+// 		httpReq.head.version.major << '.' << httpReq.head.version.minor << '\n';
+// 	std::cout << "HEADERS\n";
+// 	for(auto option : httpReq.headers)
+// 		std::cout << "\t" << option.first << ": " << option.second << "\n";
+// 	std::cout << "BODY\n\t" << httpReq.body << "\n";
+// }
+*/
+// std::string	HTTPparser::respToString( HTTPresponse& ) noexcept
+// {
+//
+// }
+
+		
