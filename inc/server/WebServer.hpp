@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/15 18:54:00 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/16 16:42:09 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,6 +51,9 @@ class ServerException : std::exception
 		std::string _msg;
 };
 
+// NB: non-blocking setup sockets
+// NB: non-blocking waitpid
+// NB: chucked requests
 class WebServer
 {
 	public:
