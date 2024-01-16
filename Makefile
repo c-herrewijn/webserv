@@ -6,7 +6,7 @@
 #    By: itopchu <itopchu@student.42.fr>              +#+                      #
 #                                                    +#+                       #
 #    Created: 2023/11/25 18:04:49 by fra           #+#    #+#                  #
-#    Updated: 2023/12/31 16:50:07 by fra           ########   odam.nl          #
+#    Updated: 2024/01/16 11:48:12 by faru          ########   odam.nl          #
 #                                                                              #
 # **************************************************************************** #
 
@@ -22,7 +22,7 @@ HEADERS := $(shell find $(INCLUDE) -type f -name '*.hpp')
 SOURCES := $(shell find $(SRC_DIR) -type f -name '*.cpp')
 OBJECTS := $(patsubst $(SRC_DIR)%,$(OBJ_DIR)%,$(SOURCES:.cpp=.o))
 
-CC  := c++
+CC  := g++
 IFLAGS := -I$(INCLUDE) -I$(INCLUDE)/parser -I$(INCLUDE)/server
 CPPFLAGS = -Wall -Wextra -Werror -Wshadow -Wpedantic -g3 -fsanitize=address
 

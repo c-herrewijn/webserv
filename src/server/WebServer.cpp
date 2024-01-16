@@ -123,7 +123,7 @@ void	WebServer::_handleRequest( int connfd )
 		stringRequest = _readSocket(connfd);
 		HTTPparser::parseRequest(stringRequest, request);
 		// HTTPparser::printData(request);
-		std::cout << stringRequest << '\n';
+		std::cout << stringRequest;	
 		reqStat = HTTPexecutor::execRequest(request, body);
 		HTTPparser::buildResponse(response, reqStat, body);
 		stringResponse = "HTTP/1.1 200 OK";		// NB must be updated with real response
