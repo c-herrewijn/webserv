@@ -6,19 +6,11 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/16 14:05:25 by faru          ########   odam.nl         */
+/*   Updated: 2024/01/18 14:11:17 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPexecutor.hpp"
-
-ExecException::ExecException( std::initializer_list<const char*> prompts) noexcept 
-	: HTTPexception(prompts)
-{
-	this->_msg = "request handling error -";
-	for (const char *prompt : prompts)
-		this->_msg += " " + std::string(prompt);
-}
 
 const std::map<HTTPmethod, std::function<std::string(HTTPrequest&, int&)> > HTTPexecutor::_methods = 
 {
@@ -91,7 +83,7 @@ std::string	HTTPexecutor::_readContent(std::string const& pathReq)
 	std::string		body, line;
 
 	if (!fd.is_open())
-		throw(ExecException({"error opening file", pathReq.c_str()}));
+		throw(ExecException({"error opening file", pathReq.c_str()}));	// NB not an exceptio! has to be the correspondante 40X error code
 	while (std::getline(fd, line))
 		body += line + std::string("\n");
 	fd.close();
@@ -101,7 +93,7 @@ std::string	HTTPexecutor::_readContent(std::string const& pathReq)
 void	HTTPexecutor::_checkPath(std::string const& path)
 {
 	if (access(path.c_str(), R_OK) != 0)
-		throw(ExecException({"permission error"}));
+		throw(ExecException({"permission error"}));	// NB not an exceptio! has to be the correspondante 40X error code
 }
 
 // bool	HTTPexecutor::_isCGI(std::filesystem::path const& path)

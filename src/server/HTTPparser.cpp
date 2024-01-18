@@ -6,27 +6,11 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/16 12:44:30 by faru          ########   odam.nl         */
+/*   Updated: 2024/01/18 17:06:08 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPparser.hpp"
-
-HTTPexception::HTTPexception( std::initializer_list<const char*> prompts) noexcept 
-	: std::exception()
-{
-	this->_msg = "HTTP anomaly -";
-	for (const char *prompt : prompts)
-		this->_msg += " " + std::string(prompt);
-}
-
-ParserException::ParserException( std::initializer_list<const char*> prompts) noexcept 
-	: HTTPexception(prompts)
-{
-	this->_msg = "parsing error -";
-	for (const char *prompt : prompts)
-		this->_msg += " " + std::string(prompt);
-}
 
 void	HTTPparser::parseRequest( std::string strReq, HTTPrequest &req )
 {
@@ -46,7 +30,7 @@ void	HTTPparser::parseRequest( std::string strReq, HTTPrequest &req )
 		body = strReq.substr(0, delimiter);
 		_setBody(body, req.body);
 	}
-	delimiter = head.find(HTTP_DELIM);		// there are headers
+	delimiter = head.find(HTTP_NL	// there are headers
 	if (delimiter + 2 != head.size())
 	{
 		headers = head.substr(delimiter + 2);
@@ -81,7 +65,7 @@ void	HTTPparser::_setHead(std::string header, HTTPheadReq& head )
 	if (! std::getline(stream, version, ' '))
 		throw(ParserException({"invalid header:", header.c_str()}));
 	_setVersion(version, head.version);
-	if (version.substr(version.size() - 2) != HTTP_DELIM)
+	if (version.substr(version.size() - 2) != HTTP_NL
 		throw(ParserException({"no termination header:", header.c_str()}));
 }
 
@@ -90,7 +74,7 @@ void	HTTPparser::_setHeaders( std::string headers, dict& options )
 	size_t del1, del2;
 	std::string key, value;
 
-	del1 = headers.find(HTTP_DELIM);
+	del1 = headers.find(HTTP_NL
 	do
 	{
 		del2 = headers.find(": ");
@@ -100,7 +84,7 @@ void	HTTPparser::_setHeaders( std::string headers, dict& options )
 		value = headers.substr(del2 + 2, del1 - del2 - 2);
 		options.insert({key, value});
 		headers = headers.substr(del1 + 2);
-		del1 = headers.find(HTTP_DELIM);
+		del1 = headers.find(HTTP_NL
 	} while (del1 != std::string::npos);
 }
 

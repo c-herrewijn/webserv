@@ -6,24 +6,24 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/15 19:52:19 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/18 17:06:28 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 #include <iostream>
 #include <sstream>
-#include <initializer_list>
 #include <string>
 #include <map>
 #include <algorithm>
-#define HEADER_MAX_SIZE 	8192	        // max size of HTTP header
+#include "Exception.hpp"
+#define HEADER_MAX_SIZE 	8192						// max size of HTTP header
 #define HTTP_DEF_PORT		std::string("80")			// default port
-#define HTTP_SCHEME			std::string("HTTP")
+#define HTTP_SCHEME			std::string("HTTP")			
 #define HTTPS_SCHEME		std::string("HTTPS")
 #define HTTP_TERM			std::string("\r\n\r\n")		// http terminator
-#define HTTP_DELIM			std::string("\r\n")			// http delimiter
-#define HTTP_SP				std::string(" ")
+#define HTTP_NL				std::string("\r\n")			// http delimiter
+#define HTTP_SP				std::string(" ")			// shortcut for space
 
 typedef std::map<std::string, std::string> dict;
 
@@ -79,23 +79,10 @@ typedef struct HTTPresponse_f
 	std::string		body;
 } HTTPresponse;
 
-class HTTPexception : std::exception
-{
-	public:
-		HTTPexception( std::initializer_list<const char*> ) noexcept;
-		virtual const char* what() const noexcept override {return (this->_msg.c_str());}
-		virtual ~HTTPexception( void ) noexcept {}
-	
-	protected:
-		std::string _msg;
-};
-
-class ParserException : public HTTPexception
-{
-	public:
-		ParserException( std::initializer_list<const char*> ) noexcept;
-};
-
+// NB: OPEN POINTS:
+//	- chunked requests
+//	- relative URLs
+//	- update host & port when they're found in the headers
 class HTTPparser
 {
 	public:

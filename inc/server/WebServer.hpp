@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/16 16:42:09 by faru          ########   odam.nl         */
+/*   Updated: 2024/01/18 17:27:26 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,19 +37,9 @@
 #include <map>
 #include "HTTPparser.hpp"
 #include "HTTPexecutor.hpp"
+#include "Exception.hpp"
 #define BACKLOG 	10				        // max pending connection queued up
 #define MAX_TIMEOUT 60000               	// maximum timeout with poll()
-
-class ServerException : std::exception
-{
-	public:
-		ServerException( std::initializer_list<const char*> prompts) noexcept;
-		virtual const char* what() const noexcept override {return (this->_msg.c_str());}
-		virtual ~ServerException( void ) noexcept {}
-	
-	private:
-		std::string _msg;
-};
 
 // NB: non-blocking setup sockets
 // NB: non-blocking waitpid
@@ -60,7 +50,7 @@ class WebServer
 		WebServer ( std::string const& servName) : _hostName(servName) {};
 		~WebServer ( void ) noexcept;
 
-		void			listenAt( const char*, const char* );
+		void			listenTo( const char*, const char* );
 		void			loop( void );
 		std::string		getAddress( const struct sockaddr_storage*) const noexcept ;
 
@@ -68,16 +58,18 @@ class WebServer
 		std::string					_hostName;
 		std::vector<struct pollfd>	_connfds;
 		std::set<int>				_listeners;
+		std::set<pid_t>				_currentJobs;
 
 		WebServer ( void ) {};
 		WebServer ( WebServer const& ) noexcept;
 		WebServer& operator=( WebServer const& ) noexcept;
 
-		void		_dropConn( int socket = -1 ) noexcept;
-		void		_addConn( int ) noexcept;
-		void		_acceptConnection( int ) ;
-		void		_handleRequest( int ) ;
-		bool		_isListener( int ) const ;
-		std::string	_readSocket( int ) const ;
-		void		_writeSocket( int, std::string const& ) const ;
+		void			_dropConn( int socket = -1 ) noexcept;
+		void			_addConn( int ) noexcept;
+		void			_acceptConnection( int ) ;
+		statusRequest	_handleRequest( int ) ;
+		bool			_isListener( int ) const ;
+		std::string		_readSocket( int ) const ;
+		void			_writeSocket( int, std::string const& ) const ;
+		void			_waitForChildren( void) ;
 };

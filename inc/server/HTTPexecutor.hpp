@@ -6,12 +6,11 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:10:43 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/16 12:54:33 by faru          ########   odam.nl         */
+/*   Updated: 2024/01/18 14:20:03 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
-#include "HTTPparser.hpp"
 #include <iostream>
 #include <unistd.h>
 #include <functional>
@@ -21,16 +20,12 @@
 #include <dirent.h>           	// opendir, readdir, closedir
 #include <fcntl.h>				// for access constants
 #include <fstream>
+#include "Exception.hpp"
+#include "HTTPparser.hpp"
 // #define CGI_DIR					std::filesystem::path("var/www/cgi-bin")
 // #define CGI_EXT_DEFAULT			std::filesystem::path(".cgi")
 // #define CGI_EXT_PY				std::filesystem::path(".py")
 // #define CGI_EXT_SH				std::filesystem::path(".sh")
-
-class ExecException : public HTTPexception
-{
-	public:
-		ExecException( std::initializer_list<const char*>) noexcept;
-};
 
 class HTTPexecutor
 {

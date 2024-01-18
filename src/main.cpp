@@ -60,9 +60,9 @@ int runWebServer( void )
 	try
 	{
 		WebServer webServ("HAL-9001");
-		webServ.listenAt("localhost","4242");
-		webServ.listenAt("localhost","4343");
-		webServ.listenAt("localhost","4444");
+		webServ.listenTo("localhost","4242");
+		webServ.listenTo("localhost","4343");
+		webServ.listenTo("localhost","4444");
 		webServ.loop();
 		return (0);
 	}
@@ -73,7 +73,7 @@ int runWebServer( void )
 	}
 }
 
-int main1(int ac, char **av)
+int main(int ac, char **av)
 {
 	if (ac > 2)
 	{
