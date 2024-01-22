@@ -6,11 +6,13 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 20:50:27 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/16 12:10:44 by faru          ########   odam.nl         */
+/*   Updated: 2024/01/22 23:04:34 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Client.hpp"
+#include <ctime>
+#include <iomanip>
 #define STD_REQUEST "GET http://test:21/home/faru/Documents/Codam/webserv/test.txt HTTP/1.1\r\nkey1: value1\r\nkey2: value2\r\n\r\nmuch body very http\r\n\r\n"
 #define STD_FULL "GET http://test:21/halo/find/me/here?bcd=123&gasd=255#sectione HTTP/1.1\r\nkey1: value1\r\nkey2: value2\r\n\r\nmuch body very http\r\n\r\n"
 #define STD_NOHEADS "GET http://test:21/halo/find/me/here HTTP/1.1\r\n\r\nmuch body very http\r\n\r\n"
@@ -77,6 +79,14 @@ int main( int argc, char** argv)
 		std::cout << "wrong parameters: host and port needed\n";
 		return(EXIT_FAILURE);
 	}
+	std::time_t rawtime;
+    std::tm* timeinfo;
+    char buffer[80];
+
+    std::time(&rawtime);
+    timeinfo = std::gmtime(&rawtime);
+    std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
+	std::cout << buffer << '\n';
 	runClient(argv[1], argv[2]);
 	return(EXIT_SUCCESS);
 }

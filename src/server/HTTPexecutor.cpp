@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/18 14:11:17 by faru          ########   odam.nl         */
+/*   Updated: 2024/01/22 18:41:20 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ int	HTTPexecutor::execRequest(HTTPrequest& req, std::string& body)
 		body = HTTPexecutor::_methods.at(req.head.method)(req, reqStatus);
 	}
 	catch(const std::out_of_range& e) {
-		throw(ExecException({"unsupported HTTP method"}));
+		throw(ExecException({"unsupported HTTP method"}));		// NB: that should be move inside the parser
 	}
 	return(reqStatus);
 }
@@ -38,24 +38,24 @@ std::string	HTTPexecutor::_execGET(HTTPrequest& req, int& status)
 	std::string pathReq = req.head.url.path;
 	std::string htmlBody;
 
-	_checkPath(pathReq);
-	// if (_isCGI(pathReq) == true)
-	// {
-	// 	std::cout << "CGI\n";
-	// 	// do CGI stuff ....
-	// }
-	// else
-	// {
 	try
 	{
-		htmlBody = _readContent(pathReq);
+		_checkPath(pathReq);
+		if (_isCGI(pathReq))
+		{
+			std::cout << "CGI\n";
+			// fork and do CGI
+		}
+		else
+		{
+			htmlBody = _readContent(pathReq);
+		}
+		status = 200;
 	}
-	catch(const ExecException& e) {
+	catch (ExecException const& e) {
 		std::cerr << e.what() << '\n';
-		// handle error, i.e. update status response
+		status = 403; // <-- e.g. !
 	}
-	// }
-	status = 200;
 	return (htmlBody);
 }
 
@@ -96,33 +96,16 @@ void	HTTPexecutor::_checkPath(std::string const& path)
 		throw(ExecException({"permission error"}));	// NB not an exceptio! has to be the correspondante 40X error code
 }
 
-// bool	HTTPexecutor::_isCGI(std::filesystem::path const& path)
-// {
-// 	std::filesystem::path 	baseDir;
-// 	// char 					*cwd;
-
-// 	// there may be other CGI paths if the config says so
-// 	baseDir = path.parent_path();
-// 	if (baseDir.is_absolute())
-// 	{
-// 		if (std::filesystem::absolute(CGI_DIR) != baseDir)
-// 			return (false);
-// 	}
-// 	else
-// 	{
-// 		// relative paths must be handled!
-// 	}
-// 	if (path.has_filename() == false)
-// 		return (false);
-// 	else if (path.has_extension() == false)
-// 		return (false);
-// 	else if ((path.extension() != CGI_EXT_DEFAULT) and
-// 		(path.extension() != CGI_EXT_PY) and
-// 		(path.extension() != CGI_EXT_SH))
-// 		return (false);
-// 	else
-// 		return (true);
-// }
+bool	HTTPexecutor::_isCGI(std::string const& path)
+{
+	// what about checks for the directory?
+	size_t		dotPos = path.rfind('.');
+	std::string	ext;
+	if (dotPos == std::string::npos)
+		return (false);
+	ext = path.substr(dotPos);
+	return ((ext == CGI_EXT_PY) or (ext == CGI_EXT_SH));
+}
 
 HTTPexecutor::HTTPexecutor( HTTPexecutor const& other ) noexcept
 {

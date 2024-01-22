@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/18 17:06:08 by faru          ########   odam.nl         */
+/*   Updated: 2024/01/22 23:45:39 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,7 @@ void	HTTPparser::parseRequest( std::string strReq, HTTPrequest &req )
 		body = strReq.substr(0, delimiter);
 		_setBody(body, req.body);
 	}
-	delimiter = head.find(HTTP_NL	// there are headers
+	delimiter = head.find(HTTP_NL);	// there are headers
 	if (delimiter + 2 != head.size())
 	{
 		headers = head.substr(delimiter + 2);
@@ -38,17 +38,6 @@ void	HTTPparser::parseRequest( std::string strReq, HTTPrequest &req )
 		_setHeaders(headers, req.headers);
 	}
 	_setHead(head, req.head);
-}
-
-void	HTTPparser::buildResponse( HTTPresponse& resp, int statusCode, std::string& body )
-{
-	resp.head.version.scheme = HTTP_SCHEME;
-	resp.head.version.major = 1;
-	resp.head.version.minor = 1;
-	resp.head.exitCode = statusCode;
-	resp.head.status = _mapStatus(statusCode);
-	// headers have must be added, which of these are mandatory?
-	resp.body = body;
 }
 
 void	HTTPparser::_setHead(std::string header, HTTPheadReq& head )
@@ -65,7 +54,7 @@ void	HTTPparser::_setHead(std::string header, HTTPheadReq& head )
 	if (! std::getline(stream, version, ' '))
 		throw(ParserException({"invalid header:", header.c_str()}));
 	_setVersion(version, head.version);
-	if (version.substr(version.size() - 2) != HTTP_NL
+	if (version.substr(version.size() - 2) != HTTP_NL)
 		throw(ParserException({"no termination header:", header.c_str()}));
 }
 
@@ -74,7 +63,7 @@ void	HTTPparser::_setHeaders( std::string headers, dict& options )
 	size_t del1, del2;
 	std::string key, value;
 
-	del1 = headers.find(HTTP_NL
+	del1 = headers.find(HTTP_NL);
 	do
 	{
 		del2 = headers.find(": ");
@@ -84,7 +73,7 @@ void	HTTPparser::_setHeaders( std::string headers, dict& options )
 		value = headers.substr(del2 + 2, del1 - del2 - 2);
 		options.insert({key, value});
 		headers = headers.substr(del1 + 2);
-		del1 = headers.find(HTTP_NL
+		del1 = headers.find(HTTP_NL);
 	} while (del1 != std::string::npos);
 }
 
@@ -212,24 +201,6 @@ void	HTTPparser::_setVersion(std::string strVersion, HTTPversion& version)
 		throw(ParserException({"unsupported HTTP version:", strVersion.c_str()}));
 }
 
-std::string	HTTPparser::_mapStatus( int status)
-{
-	(void) status;
-	return("OK");
-}
-
-// std::string const&	HTTPparser::_mapMethod( HTTPmethod method)
-// {
-// 	if (method == HTTP_GET)
-// 		return("GET");
-// 	else if (method == HTTP_POST)
-// 		return("POST");
-// 	else if (method == HTTP_DELETE)
-// 		return("DELETE");
-// 	else
-// 		return("");		// NB: throw exception instead
-// }
-
 HTTPparser::HTTPparser( HTTPparser const& other ) noexcept
 {
 	(void) other;
@@ -240,6 +211,7 @@ HTTPparser& HTTPparser::operator=( HTTPparser const& other ) noexcept
 	(void) other;
 	return (*this);
 }
+
 /*
 // std::string HTTPparser::reqToString( HTTPrequest& httpReq ) noexcept
 // {
@@ -266,9 +238,5 @@ HTTPparser& HTTPparser::operator=( HTTPparser const& other ) noexcept
 // 	std::cout << "BODY\n\t" << httpReq.body << "\n";
 // }
 */
-// std::string	HTTPparser::respToString( HTTPresponse& ) noexcept
-// {
-//
-// }
 
 		

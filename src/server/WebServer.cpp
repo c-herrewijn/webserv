@@ -70,10 +70,11 @@ void		WebServer::_acceptConnection( int listener )
 	this->_addConn(connfd);
 }
 
+// NB: what about POLLOUT?	( <-- Beej guide:: when I can send() data to this socket without blocking.)
+// NB: why do I need TIMEOUT if my sockets are non-blocking? I should count the time elsewhere...
 void	WebServer::loop( void )
 {
 	int				nConn;
-	pid_t			childProc;
 	statusRequest	exitStatus;
 
 	while (true)
@@ -81,8 +82,8 @@ void	WebServer::loop( void )
 		nConn = poll(this->_connfds.data(), this->_connfds.size(), MAX_TIMEOUT);
 		if (nConn == -1)
 		{
-			if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
-				throw(ServerException({"poll failed"}));
+			if ((errno != EAGAIN) and (errno != EWOULDBLOCK))	// <-- this check doesn't seem correct, poll() never sets errno to EWOULDBLOCK,
+				throw(ServerException({"poll failed"}));		//		maybe these checks have to be done when I try to read the socket, maybe...
 		}
 		else if (nConn == 0)		// timeout (NB: right?)
 			break;
@@ -94,27 +95,11 @@ void	WebServer::loop( void )
 					_acceptConnection(this->_connfds[i].fd);
 				else
 				{
-					childProc = fork();
-					if (childProc < 0)
-						throw(ServerException({"fork failed"}));
-					else if (childProc == 0)
-					{
-						exitStatus = _handleRequest(this->_connfds[i--].fd);
-						exit(exitStatus);
-					}
-					else
-					{
-						if (this->_currentJobs.insert(childProc).second == false)
-							throw(ServerException({"already existing child process with the same pid"}));
-					}
+					exitStatus = _handleRequest(this->_connfds[i--].fd);
+					(void) exitStatus;
 				}
 			}
-			else if (this->_connfds[i].revents & POLLOUT) 
-			{
-				// send HTTP response?
-			}
 		}
-		_waitForChildren();
 	}
 }
 
@@ -131,7 +116,7 @@ statusRequest	WebServer::_handleRequest( int connfd )
 		HTTPparser::parseRequest(stringRequest, request);
 		std::cout << stringRequest;	
 		reqStat = HTTPexecutor::execRequest(request, body);
-		HTTPparser::buildResponse(response, reqStat, body);
+		response = HTTPbuilder::buildResponse(reqStat, body);
 		_writeSocket(connfd, std::string("HTTP/1.1 200 OK"));
 	}
 	catch (WebServerException const& err) {
@@ -268,7 +253,7 @@ void	WebServer::_waitForChildren( void )
 		else if (WEXITSTATUS(statProc) != REQ_OK)
 		{
 			std::cout << "failed to a request, closing connection";
-			_dropConn()
+			_dropConn();
 		}
 	}
 }
