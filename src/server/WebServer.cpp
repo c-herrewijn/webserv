@@ -70,7 +70,7 @@ void		WebServer::_acceptConnection( int listener )
 	this->_addConn(connfd);
 }
 
-// NB: what about POLLOUT?	( <-- Beej guide:: when I can send() data to this socket without blocking.)
+// NB: refine POLLOUT
 // NB: why do I need TIMEOUT if my sockets are non-blocking? I should count the time elsewhere...
 void	WebServer::loop( void )
 {
@@ -121,10 +121,10 @@ statusRequest	WebServer::_handleRequest( int connfd )
 		stringRequest = _readSocket(connfd);
 		HTTPparser::parseRequest(stringRequest, request);
 		std::cout << request.toString();
-		reqStat = 200; //HTTPexecutor::execRequest(request, body);
-		response = HTTPbuilder::buildResponse(reqStat, body);
-		std::cout << response.toString();
-		_writeSocket(connfd, std::string(response.toString()));
+		reqStat = HTTPexecutor::execRequest(request, body);
+		// response = HTTPbuilder::buildResponse(reqStat, body);
+		// std::cout << response.toString();
+		// _writeSocket(connfd, std::string(response.toString()));
 	}
 	catch (WebServerException const& err) {
 		std::cout << err.what() << '\n';
@@ -178,7 +178,7 @@ void	WebServer::_dropConn(int toDrop) noexcept
 		currSocket = (*it).fd;
 		if ((toDrop == -1) or (currSocket == toDrop))
 		{
-			// shutdown(currSocket, SHUT_RDWR);
+			shutdown(currSocket, SHUT_RDWR);
 			close(currSocket);
 			this->_connfds.erase(it);
 			if (this->_isListener(currSocket) == true)

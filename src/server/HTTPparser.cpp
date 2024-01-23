@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/23 11:40:19 by faru          ########   odam.nl         */
+/*   Updated: 2024/01/23 17:35:21 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -201,32 +201,3 @@ HTTPparser& HTTPparser::operator=( HTTPparser const& other ) noexcept
 	(void) other;
 	return (*this);
 }
-
-/*
-// std::string HTTPparser::reqToString( HTTPrequest& httpReq ) noexcept
-// {
-// 	std::string reqString;
-//
-// 	reqString = _mapMethod(httpReq.head.method) + HTTP_SP;
-// 	reqString += 
-//
-// 	std::cout << "HEAD\n";
-// 	std::cout << "\tmethod: " << httpReq.head.method << "\n";
-// 	std::cout << "\tURL:\n\t\tdomain: " << httpReq.head.url.domain << "\n\t\tport: " << \
-// 		httpReq.head.url.port << "\n\t\tpath: " << httpReq.head.url.path << '\n';
-// 	if (httpReq.head.url.query.empty() == false)
-// 	{
-// 		std::cout << "\t\tqueries:\n";
-// 		for(auto option : httpReq.head.url.query)
-// 			std::cout << "\t\t\t" << option.first << '=' << option.second << '\n';
-// 	}
-// 	std::cout << "\tversion: " << httpReq.head.version.scheme << "/" << \
-// 		httpReq.head.version.major << '.' << httpReq.head.version.minor << '\n';
-// 	std::cout << "HEADERS\n";
-// 	for(auto option : httpReq.headers)
-// 		std::cout << "\t" << option.first << ": " << option.second << "\n";
-// 	std::cout << "BODY\n\t" << httpReq.body << "\n";
-// }
-*/
-
-		

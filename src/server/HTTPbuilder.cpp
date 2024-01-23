@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/22 18:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/22 23:44:25 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/23 17:32:11 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,11 +39,6 @@ HTTPresponse	HTTPbuilder::buildResponse( int statusCode, std::string& body )
 	resp.body = body;
 	return (resp);
 }
-
-// std::string	HTTPparser::respToString( HTTPresponse& ) noexcept
-// {
-//
-// }
 
 std::string	HTTPbuilder::_mapStatus( int status)
 {

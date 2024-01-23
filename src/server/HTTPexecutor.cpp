@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/22 18:41:20 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/23 17:34:58 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,7 +52,7 @@ std::string	HTTPexecutor::_execGET(HTTPrequest& req, int& status)
 		}
 		status = 200;
 	}
-	catch (ExecException const& e) {
+	catch (ExecException const& e) {	//	<-- add a specific exception handling
 		std::cerr << e.what() << '\n';
 		status = 403; // <-- e.g. !
 	}
@@ -61,10 +61,6 @@ std::string	HTTPexecutor::_execGET(HTTPrequest& req, int& status)
 
 std::string	HTTPexecutor::_execPOST(HTTPrequest& req, int& status)
 {
-	// if (_isCGI(req.head.url.path) == true)
-	// 	std::cout << "CGI\n";
-	// else
-	// 	std::cout << "not CGI\n";
 	(void) req;
 	status = 200;
 	return ("");
@@ -83,7 +79,7 @@ std::string	HTTPexecutor::_readContent(std::string const& pathReq)
 	std::string		body, line;
 
 	if (!fd.is_open())
-		throw(ExecException({"error opening file", pathReq.c_str()}));	// NB not an exceptio! has to be the correspondante 40X error code
+		throw(ExecException({"error opening file", pathReq.c_str()}));	// NB not an exception! has to be the correspondant to 40X error code
 	while (std::getline(fd, line))
 		body += line + std::string("\n");
 	fd.close();
@@ -93,7 +89,7 @@ std::string	HTTPexecutor::_readContent(std::string const& pathReq)
 void	HTTPexecutor::_checkPath(std::string const& path)
 {
 	if (access(path.c_str(), R_OK) != 0)
-		throw(ExecException({"permission error"}));	// NB not an exceptio! has to be the correspondante 40X error code
+		throw(ExecException({"permission error"}));	// NB not an exception! has to be the correspondant 40X error code
 }
 
 bool	HTTPexecutor::_isCGI(std::string const& path)
