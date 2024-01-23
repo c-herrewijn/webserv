@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/22 23:48:58 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/23 11:29:16 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,9 +38,7 @@
 #include "HTTPexecutor.hpp"
 #include "HTTPbuilder.hpp"
 #include "Exception.hpp"
-#define BACKLOG 			10				        	// max pending connection queued up
-#define MAX_TIMEOUT 		60000               		// maximum timeout with poll()
-#define HEADER_MAX_SIZE 	8192						// max size of HTTP header - 	NB has to be set from config file!
+#include "define.hpp"
 
 // NB: non-blocking setup sockets
 // NB: non-blocking waitpid
@@ -68,7 +66,7 @@ class WebServer
 		void			_dropConn( int socket = -1 ) noexcept;
 		void			_addConn( int ) noexcept;
 		void			_acceptConnection( int ) ;
-		statusRequest	_handleRequest( int ) ;		// NB: is the status (i.e. return value) necessary?
+		statusRequest	_handleRequest( int ) ;		// NB: is the status (i.e. returned value) necessary?
 		bool			_isListener( int ) const ;
 		std::string		_readSocket( int ) const ;
 		void			_writeSocket( int, std::string const& ) const ;

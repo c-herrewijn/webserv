@@ -81,10 +81,10 @@ void	WebServer::loop( void )
 	{
 		nConn = poll(this->_connfds.data(), this->_connfds.size(), MAX_TIMEOUT);
 		if (nConn == -1)
-		{
-			if ((errno != EAGAIN) and (errno != EWOULDBLOCK))	// <-- this check doesn't seem correct, poll() never sets errno to EWOULDBLOCK,
-				throw(ServerException({"poll failed"}));		//		maybe these checks have to be done when I try to read the socket, maybe...
-		}
+			throw(ServerException({"poll failed"}));		//		maybe these checks have to be done when I try to read the socket, maybe...
+		// {
+		// 	if ((errno != EAGAIN) and (errno != EWOULDBLOCK))	// <-- this check doesn't seem correct, poll() never sets errno to EWOULDBLOCK,
+		// }
 		else if (nConn == 0)		// timeout (NB: right?)
 			break;
 		for (size_t i=0; i<this->_connfds.size(); i++)
@@ -95,9 +95,15 @@ void	WebServer::loop( void )
 					_acceptConnection(this->_connfds[i].fd);
 				else
 				{
-					exitStatus = _handleRequest(this->_connfds[i--].fd);
+					exitStatus = _handleRequest(this->_connfds[i].fd);
 					(void) exitStatus;
 				}
+			}
+			else if (this->_connfds[i].revents & POLLOUT)
+			{
+				std::string bodyResp = "very body many https";
+				_writeSocket(this->_connfds[i].fd, HTTPbuilder::buildResponse(200, bodyResp).toString());
+				_dropConn(this->_connfds[i--].fd);
 			}
 		}
 	}
@@ -114,13 +120,15 @@ statusRequest	WebServer::_handleRequest( int connfd )
 	{
 		stringRequest = _readSocket(connfd);
 		HTTPparser::parseRequest(stringRequest, request);
-		std::cout << stringRequest;	
-		reqStat = HTTPexecutor::execRequest(request, body);
+		std::cout << request.toString();
+		reqStat = 200; //HTTPexecutor::execRequest(request, body);
 		response = HTTPbuilder::buildResponse(reqStat, body);
-		_writeSocket(connfd, std::string("HTTP/1.1 200 OK"));
+		std::cout << response.toString();
+		_writeSocket(connfd, std::string(response.toString()));
 	}
 	catch (WebServerException const& err) {
 		std::cout << err.what() << '\n';
+		_dropConn(connfd);
 		return (err.getType());
 	}
 	return (REQ_OK);
@@ -170,7 +178,7 @@ void	WebServer::_dropConn(int toDrop) noexcept
 		currSocket = (*it).fd;
 		if ((toDrop == -1) or (currSocket == toDrop))
 		{
-			shutdown(currSocket, SHUT_RDWR);
+			// shutdown(currSocket, SHUT_RDWR);
 			close(currSocket);
 			this->_connfds.erase(it);
 			if (this->_isListener(currSocket) == true)
@@ -217,7 +225,7 @@ std::string	WebServer::_readSocket( int fd ) const
 
 void	WebServer::_writeSocket( int fd, std::string const& content) const
 {
-	std::string toWrite, tmpResp = "HTTP/1.1 200 OK";
+	std::string toWrite;
 	size_t	start=0, len=content.size();
 	ssize_t written=0;
 

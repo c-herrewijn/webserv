@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/22 23:45:39 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/23 11:40:19 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,7 +47,7 @@ void	HTTPparser::_setHead(std::string header, HTTPheadReq& head )
 
 	if (! std::getline(stream, method, ' '))
 		throw(ParserException({"invalid header:", header.c_str()}));
-	_setMethod(method, head.method);
+	head.method = strToMeth(method);
 	if (! std::getline(stream, url, ' '))
 		throw(ParserException({"invalid header:", header.c_str()}));
 	_setURL(url, head.url);
@@ -83,18 +83,6 @@ void	HTTPparser::_setBody( std::string startBody, std::string& body )
 		body = startBody;
 }
 
-void	HTTPparser::_setMethod(std::string strMethod, HTTPmethod& method) 
-{
-	if (strMethod == "GET")
-		method = HTTP_GET;
-	else if (strMethod == "POST")
-		method = HTTP_POST;
-	else if (strMethod == "DELETE")
-		method = HTTP_DELETE;
-	else
-		throw(ParserException({"unknown http method:", strMethod.c_str()}));
-}
-
 void	HTTPparser::_setURL( std::string strURL, HTTPurl& url )
 {
 	size_t	delimiter;
@@ -124,21 +112,23 @@ void	HTTPparser::_setScheme( std::string strScheme, std::string& scheme)
 	std::transform(strScheme.begin(), strScheme.end(), strScheme.begin(), ::toupper);
 	if ((strScheme != HTTP_SCHEME) and (strScheme != HTTPS_SCHEME))
 		throw(ParserException({"unsupported scheme", strScheme.c_str()}));
+	std::transform(strScheme.begin(), strScheme.end(), strScheme.begin(), ::tolower);
 	scheme = strScheme;
 }
 
 void	HTTPparser::_setDomainPort( std::string strURL, HTTPurl& url)
 {
-	size_t delimiter = url.domain.find(':');
+	size_t delimiter = url.host.find(':');
 
+	std::cout << "\n\t" << strURL << '\n';
 	if (delimiter != std::string::npos)	// there's the port
 	{
-		url.domain = strURL.substr(0, delimiter);
-		url.port = strURL.substr(delimiter + 1);
+		url.host = strURL.substr(0, delimiter);
+		url.port = std::stoi(strURL.substr(delimiter + 1));
 	}
 	else
 	{
-		url.domain = strURL;
+		url.host = strURL;
 		url.port = HTTP_DEF_PORT;
 	}
 }

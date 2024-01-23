@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:10:43 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/22 23:40:06 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/23 16:18:43 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,6 @@
 #include <iostream>
 #include <unistd.h>
 #include <functional>
-// #include <filesystem>          	// filesystem::path, access()
 #include <sys/types.h>        	// chdir
 #include <sys/stat.h>         	// stat
 #include <dirent.h>           	// opendir, readdir, closedir
@@ -22,10 +21,7 @@
 #include <fstream>
 #include "Exception.hpp"
 #include "HTTPstructs.hpp"
-// #define CGI_DIR					std::filesystem::path("var/www/cgi-bin")
-// #define CGI_EXT_DEFAULT			std::filesystem::path(".cgi")
-#define CGI_EXT_PY				std::string(".py")
-#define CGI_EXT_SH				std::string(".sh")
+#include "define.hpp"
 
 class HTTPexecutor
 {

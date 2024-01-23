@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/22 23:48:03 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/23 11:29:09 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,12 +18,7 @@
 #include <algorithm>
 #include "Exception.hpp"
 #include "HTTPstructs.hpp"
-#define HTTP_DEF_PORT		std::string("80")			// default port	- 				NB has to be set from config file!
-#define HTTP_SCHEME			std::string("HTTP")			
-#define HTTPS_SCHEME		std::string("HTTPS")
-#define HTTP_TERM			std::string("\r\n\r\n")		// http terminator
-#define HTTP_NL				std::string("\r\n")			// http delimiter
-#define HTTP_SP				std::string(" ")			// shortcut for space
+#include "define.hpp"
 
 // NB: OPEN POINTS:
 //	- chunked requests
@@ -34,7 +29,6 @@ class HTTPparser
 {
 	public:
 		static void			parseRequest( std::string, HTTPrequest& );
-		// static std::string	reqToString( HTTPrequest& ) noexcept;
 		~HTTPparser( void ) noexcept {};
 
 	private:
@@ -42,7 +36,6 @@ class HTTPparser
 		static void	_setHeaders( std::string, dict& );
 		static void	_setBody( std::string, std::string& );
 
-		static void	_setMethod( std::string, HTTPmethod& );
 		static void	_setURL( std::string, HTTPurl& );
 		static void	_setVersion( std::string, HTTPversion& );
 
