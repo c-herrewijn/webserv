@@ -74,8 +74,9 @@ void		WebServer::_acceptConnection( int listener )
 // NB: why do I need TIMEOUT if my sockets are non-blocking? I should count the time elsewhere...
 void	WebServer::loop( void )
 {
-	int				nConn;
-	statusRequest	exitStatus;
+	int			nConn;
+	int			exitStatus = 200;
+	std::string bodyResp;
 
 	while (true)
 	{
@@ -95,32 +96,30 @@ void	WebServer::loop( void )
 					_acceptConnection(this->_connfds[i].fd);
 				else
 				{
-					exitStatus = _handleRequest(this->_connfds[i].fd);
-					(void) exitStatus;
+					exitStatus = _handleRequest(this->_connfds[i].fd, bodyResp);
 				}
 			}
-			else if (this->_connfds[i].revents & POLLOUT)
+			if (this->_connfds[i].revents & POLLOUT)
 			{
-				std::string bodyResp = "very body many https";
-				_writeSocket(this->_connfds[i].fd, HTTPbuilder::buildResponse(200, bodyResp).toString());
+				_writeSocket(this->_connfds[i].fd, HTTPbuilder::buildResponse(exitStatus, bodyResp).toString());		// NB _writeSocket() can throw exceptions!
 				_dropConn(this->_connfds[i--].fd);
 			}
 		}
 	}
 }
 
-statusRequest	WebServer::_handleRequest( int connfd )
+int	WebServer::_handleRequest( int connfd, std::string& body )
 {
 	HTTPrequest		request;
 	HTTPresponse	response;
 	int				reqStat = -1;
-	std::string		stringRequest, body;
+	std::string		stringRequest;
 	
 	try
 	{
 		stringRequest = _readSocket(connfd);
 		HTTPparser::parseRequest(stringRequest, request);
-		std::cout << request.toString();
+		// std::cout << request.toString();
 		reqStat = HTTPexecutor::execRequest(request, body);
 		// response = HTTPbuilder::buildResponse(reqStat, body);
 		// std::cout << response.toString();
@@ -129,9 +128,9 @@ statusRequest	WebServer::_handleRequest( int connfd )
 	catch (WebServerException const& err) {
 		std::cout << err.what() << '\n';
 		_dropConn(connfd);
-		return (err.getType());
+		return (500);
 	}
-	return (REQ_OK);
+	return (reqStat);
 }
 
 std::string	WebServer::getAddress( const struct sockaddr_storage *addr ) const noexcept

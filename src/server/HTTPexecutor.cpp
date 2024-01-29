@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/23 17:34:58 by faru          ########   odam.nl         */
+/*   Updated: 2024/01/29 18:10:43 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,20 +28,24 @@ int	HTTPexecutor::execRequest(HTTPrequest& req, std::string& body)
 		body = HTTPexecutor::_methods.at(req.head.method)(req, reqStatus);
 	}
 	catch(const std::out_of_range& e) {
-		throw(ExecException({"unsupported HTTP method"}));		// NB: that should be move inside the parser
+		std::cerr << "unsupported HTTP method\n";
+		reqStatus = 501;
 	}
 	return(reqStatus);
 }
 
 std::string	HTTPexecutor::_execGET(HTTPrequest& req, int& status)
 {
-	std::string pathReq = req.head.url.path;
+	std::string pathReq = "var/www/test.html"; //req.head.url.path;
 	std::string htmlBody;
+	(void) req;
 
 	try
 	{
-		_checkPath(pathReq);
-		if (_isCGI(pathReq))
+		status = _checkPath(pathReq, R_OK);
+		if (status != 200)
+			return ("");
+		else if (_isCGI(pathReq))
 		{
 			std::cout << "CGI\n";
 			// fork and do CGI
@@ -52,18 +56,39 @@ std::string	HTTPexecutor::_execGET(HTTPrequest& req, int& status)
 		}
 		status = 200;
 	}
-	catch (ExecException const& e) {	//	<-- add a specific exception handling
+	catch (ExecException const& e) {
 		std::cerr << e.what() << '\n';
-		status = 403; // <-- e.g. !
+		status = 500;
 	}
 	return (htmlBody);
 }
 
 std::string	HTTPexecutor::_execPOST(HTTPrequest& req, int& status)
 {
-	(void) req;
-	status = 200;
-	return ("");
+	std::string pathReq = req.head.url.path;
+	std::string htmlBody;
+
+	try
+	{
+		status = _checkPath(pathReq, W_OK);
+		if (status != 200)
+			return ("");
+		else if (_isCGI(pathReq))
+		{
+			std::cout << "CGI\n";
+			// fork and do CGI
+		}
+		else
+		{
+			htmlBody = "";
+		}
+		status = 200;
+	}
+	catch (ExecException const& e) {
+		std::cerr << e.what() << '\n';
+		status = 500;
+	}
+	return (htmlBody);
 }
 
 std::string	HTTPexecutor::_execDELETE(HTTPrequest& req, int& status)
@@ -86,10 +111,17 @@ std::string	HTTPexecutor::_readContent(std::string const& pathReq)
 	return (body);
 }
 
-void	HTTPexecutor::_checkPath(std::string const& path)
+int	HTTPexecutor::_checkPath(std::string const& path, int action)
 {
-	if (access(path.c_str(), R_OK) != 0)
-		throw(ExecException({"permission error"}));	// NB not an exception! has to be the correspondant 40X error code
+	if ((action != F_OK) and (action != R_OK) and (action != W_OK) and (action != X_OK))
+		throw(ExecException({"Unknown access mode:", std::to_string(action).c_str()}));
+	if (access(path.c_str(), F_OK) != 0)
+		return (404);
+	else if (access(path.c_str(), action) != 0)
+		return (403);
+	else
+		return (200);
+	
 }
 
 bool	HTTPexecutor::_isCGI(std::string const& path)

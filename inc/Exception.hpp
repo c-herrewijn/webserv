@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/18 14:04:44 by faru          #+#    #+#                 */
-/*   Updated: 2024/01/22 23:39:20 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/29 18:13:39 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 typedef enum statusRequest_t
 {
 	REQ_OK,
+	REQ_CGI,
 	REQ_ERROR_PARSE,
 	REQ_ERROR_EXEC,
 	REQ_ERROR_SOCK,

@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/23 11:29:16 by faru          ########   odam.nl         */
+/*   Updated: 2024/01/29 18:12:07 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,7 @@ class WebServer
 		void			_dropConn( int socket = -1 ) noexcept;
 		void			_addConn( int ) noexcept;
 		void			_acceptConnection( int ) ;
-		statusRequest	_handleRequest( int ) ;		// NB: is the status (i.e. returned value) necessary?
+		int				_handleRequest( int, std::string& ) ;		// NB: is the status (i.e. returned value) necessary?
 		bool			_isListener( int ) const ;
 		std::string		_readSocket( int ) const ;
 		void			_writeSocket( int, std::string const& ) const ;
