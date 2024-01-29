@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 20:22:27 by fra           #+#    #+#                 */
-/*   Updated: 2023/12/08 02:26:02 by fra           ########   odam.nl         */
+/*   Updated: 2024/01/16 12:44:18 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,11 +65,18 @@ void	Client::connectTo( const char* host, const char* port )
 
 void	Client::sendRequest( const char *request ) const
 {
-	ssize_t	sendBytes;
+	ssize_t	sendBytes, recvBytes;
+	char 	buf[1024];
+	size_t	sizeBuf=1024;
 
 	sendBytes = send(this->_sockfd, request, strlen(request), 0);
 	if (sendBytes < (ssize_t) strlen(request))
 		throw(ClientException({"error: failed to send message to", this->getAddress(&this->_serverAddr).c_str()}));
+	recvBytes = recv(this->_sockfd, buf, sizeBuf, 0);
+	if (recvBytes < 0)
+		throw(ClientException({"error: failed to read message from", this->getAddress(&this->_serverAddr).c_str()}));
+	buf[recvBytes] = '\0';
+	std::cout << buf << '\n';
 	shutdown(this->_sockfd, SHUT_RDWR);
 	close(this->_sockfd);
 }

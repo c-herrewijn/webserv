@@ -14,6 +14,7 @@
 # define LISTEN_HPP
 # include <string>
 # include <vector>
+#include <cstdint>
 # define DEF_PORT "80"
 # define DEF_HOST "127.0.0.1"
 # define MAX_PORT 65535
