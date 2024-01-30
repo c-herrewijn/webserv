@@ -59,10 +59,10 @@ int runWebServer( void )
 {
 	try
 	{
-		WebServer webServ;
-		webServ.listenAt("localhost","4242");
-		webServ.listenAt("localhost","4343");
-		webServ.listenAt("localhost","4444");
+		WebServer webServ("HAL-9001");
+		webServ.listenTo("localhost","4242");
+		webServ.listenTo("localhost","4343");
+		webServ.listenTo("localhost","4444");
 		webServ.loop();
 		return (0);
 	}

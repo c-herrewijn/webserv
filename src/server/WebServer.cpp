@@ -12,21 +12,13 @@
 
 #include "WebServer.hpp"
 
-ServerException::ServerException( std::initializer_list<const char*> prompts) noexcept 
-	: std::exception()
-{
-	this->_msg = "Webserver exception - ";
-	for (const char *prompt : prompts)
-		this->_msg += std::string(prompt) + " ";
-}
-
 WebServer::~WebServer ( void ) noexcept
 {
 	while(this->_connfds.empty() == false)
 		this->_dropConn();
 }
 
-void	WebServer::listenAt( const char* hostname, const char* port )
+void	WebServer::listenTo( const char* hostname, const char* port )
 {
 	struct addrinfo *tmp, *list, filter;
 	struct sockaddr_storage	hostip;
@@ -43,6 +35,7 @@ void	WebServer::listenAt( const char* hostname, const char* port )
 		listenSocket = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
 		if (listenSocket == -1)
 			continue;
+		fcntl(listenSocket, F_SETFL, O_NONBLOCK);
 		if (setsockopt(listenSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) != 0)
 			std::cout << "failed to update socket, trying to bind anyway... \n";
 		if (bind(listenSocket, tmp->ai_addr, tmp->ai_addrlen) == 0)
@@ -77,75 +70,67 @@ void		WebServer::_acceptConnection( int listener )
 	this->_addConn(connfd);
 }
 
+// NB: refine POLLOUT
+// NB: why do I need TIMEOUT if my sockets are non-blocking? I should count the time elsewhere...
 void	WebServer::loop( void )
 {
-	int	nConn;
+	int			nConn;
+	int			exitStatus = 200;
+	std::string bodyResp;
 
 	while (true)
 	{
 		nConn = poll(this->_connfds.data(), this->_connfds.size(), MAX_TIMEOUT);
-		
 		if (nConn == -1)
-			throw(ServerException({"poll failure"}));
-		else if (nConn == 0)
+			throw(ServerException({"poll failed"}));		//		maybe these checks have to be done when I try to read the socket, maybe...
+		// {
+		// 	if ((errno != EAGAIN) and (errno != EWOULDBLOCK))	// <-- this check doesn't seem correct, poll() never sets errno to EWOULDBLOCK,
+		// }
+		else if (nConn == 0)		// timeout (NB: right?)
 			break;
 		for (size_t i=0; i<this->_connfds.size(); i++)
 		{
 			if (this->_connfds[i].revents & POLLIN)
 			{
-				if (this->_isListener(this->_connfds[i].fd) == true) // new connection
-					this->_acceptConnection(this->_connfds[i].fd);
+				if (_isListener(this->_connfds[i].fd) == true) // new connection
+					_acceptConnection(this->_connfds[i].fd);
 				else
-					this->_handleRequest(this->_connfds[i--].fd);
+				{
+					exitStatus = _handleRequest(this->_connfds[i].fd, bodyResp);
+				}
 			}
-			else if (this->_connfds[i].revents & POLLOUT) 
+			if (this->_connfds[i].revents & POLLOUT)
 			{
-				// send HTTP response?
+				_writeSocket(this->_connfds[i].fd, HTTPbuilder::buildResponse(exitStatus, bodyResp).toString());		// NB _writeSocket() can throw exceptions!
+				_dropConn(this->_connfds[i--].fd);
 			}
 		}
 	}
 }
 
-// OPEN POINTS:
-//	- chunked requests
-//	- relative URLs
-//	- update host & port when they're found in the headers
-void	WebServer::_handleRequest( int connfd )
+int	WebServer::_handleRequest( int connfd, std::string& body )
 {
-	HTTPrequest		req;
-	pid_t 				child = -1;
-	int					exitStat = 0;
-	std::string			stringRequest;
+	HTTPrequest		request;
+	HTTPresponse	response;
+	int				reqStat = -1;
+	std::string		stringRequest;
 	
 	try
 	{
 		stringRequest = _readSocket(connfd);
-		HTTPparser::parseRequest(stringRequest, req);
+		HTTPparser::parseRequest(stringRequest, request);
+		// std::cout << request.toString();
+		reqStat = HTTPexecutor::execRequest(request, body);
+		// response = HTTPbuilder::buildResponse(reqStat, body);
+		// std::cout << response.toString();
+		// _writeSocket(connfd, std::string(response.toString()));
 	}
-	catch (ParserException const& err) 
-	{
+	catch (WebServerException const& err) {
 		std::cout << err.what() << '\n';
-		this->_dropConn(connfd);
-		return ;
+		_dropConn(connfd);
+		return (500);
 	}
-	std::cout << "request received\n";
-	// HTTPparser::printData(req);
-	child = fork();
-	if (child == -1)
-		throw(ServerException({"fork failed"}));
-	else if (child == 0)
-	{
-		// pipe setup (create a pipe and then dup one end to the client fd?)
-		// execve stuff ...
-		exit(1);
-	}
-	if (waitpid(child, &exitStat, 0) < 0)
-		throw(ServerException({"error while terminating process"}));
-	this->_dropConn(connfd);		// <-- not always!
-	// else if (WIFEXITED(exitStat) == 0)
-	// 	std::cout << "child process killed by signal (unexpected)\n";
-	// else if (WEXITSTATUS(exitStat) == 1)
-	// 	std::cout << "bad request format\n";
+	return (reqStat);
 }
 
 std::string	WebServer::getAddress( const struct sockaddr_storage *addr ) const noexcept
@@ -183,6 +168,7 @@ WebServer& WebServer::operator=( WebServer const& other ) noexcept
 	return (*this);
 }
 
+// NB: protection for erase(), i.e. check returned value
 void	WebServer::_dropConn(int toDrop) noexcept
 {
 	int currSocket;
@@ -227,11 +213,54 @@ std::string	WebServer::_readSocket( int fd ) const
 
 	while (readChar == HEADER_MAX_SIZE)
 	{
-		memset(buffer, 0, HEADER_MAX_SIZE + 1);
-		readChar = read(fd, buffer, HEADER_MAX_SIZE);
+		memset(buffer, 0, HEADER_MAX_SIZE + 1);		// NB: remove C functions!
+		readChar = recv(fd, buffer, HEADER_MAX_SIZE, 0);
 		if (readChar < 0)
 			throw(ServerException({"socket not available or empty"}));
 		stringRequest += buffer;
 	}
 	return (stringRequest);
+}
+
+void	WebServer::_writeSocket( int fd, std::string const& content) const
+{
+	std::string toWrite;
+	size_t	start=0, len=content.size();
+	ssize_t written=0;
+
+	while (start < content.size())
+	{
+		toWrite = content.substr(start, len);
+		written = send(fd, toWrite.c_str(), len, 0);
+		if (written < -1)
+			throw(ServerException({"failed writing on client socket"}));
+		start += written;
+		len -= written;
+	}
+}
+
+// NB: how can i keep the information about which connection close()?
+void	WebServer::_waitForChildren( void )
+{
+	int 	statProc;
+	pid_t	childProc;
+
+	if (this->_currentJobs.empty())
+		return ;
+	childProc = waitpid(-1, &statProc, WNOHANG);
+	if (childProc < 0)
+	{
+		if (errno != ECHILD)
+			throw(ServerException({"error while terminating process"}));
+	}
+	else
+	{
+		if (this->_currentJobs.erase(childProc) == 0)
+			throw(ServerException({"no child process found with id:", std::to_string(childProc).c_str()}));
+		else if (WEXITSTATUS(statProc) != REQ_OK)
+		{
+			std::cout << "failed to a request, closing connection";
+			_dropConn();
+		}
+	}
 }
