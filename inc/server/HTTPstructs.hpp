@@ -37,6 +37,7 @@ typedef struct HTTPurl_f
 	int			port;
 	std::string	path;
 	dict		query;
+	std::string queryRaw;
 
 	std::string	toString( void ) const ;
 } HTTPurl;
@@ -53,7 +54,7 @@ typedef struct HTTPversion_f
 typedef struct HTTPheadReq_f
 {
 	HTTPmethod	method;
-	HTTPurl		url;		
+	HTTPurl		url;
 	HTTPversion	version;
 
 	std::string	toString( void ) const ;
