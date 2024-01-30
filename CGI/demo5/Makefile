@@ -1,14 +1,8 @@
 NAME = webserv
 SOURCES = demo.cpp \
 		  ./CGI.cpp \
-		  ./server/HTTPparser.cpp \
-		  ./server/WebServer.cpp \
-		  ./parser/Config.cpp \
-		  ./parser/Listen.cpp \
-		  ./parser/Location.cpp \
-		  ./parser/Parameters.cpp \
-		  ./parser/Server.cpp \
-		  ./parser/parser_utils.cpp
+		  ./server/*.cpp \
+		  ./parser/*.cpp
 
 CONFIG = \"${PWD}/cgi_server.conf\"
 

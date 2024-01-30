@@ -137,7 +137,7 @@ void	HTTPparser::_setPath( std::string strPath, std::string& path)
 {
 	path = strPath.substr(0, strPath.find('?'));
 }
-	
+
 void	HTTPparser::_setQuery( std::string queries, dict& queryDict)
 {
 	std::string			key, value, keyValue=queries;
@@ -146,7 +146,7 @@ void	HTTPparser::_setQuery( std::string queries, dict& queryDict)
 	if (queries == "?")
 		throw(ParserException({"empty query"}));
 	else
-	while (true) 
+	while (true)
 	{
 		keyValue = keyValue.substr(1);	// remove leading '?' or '&'
 		del1 = keyValue.find('=');
@@ -164,7 +164,7 @@ void	HTTPparser::_setQuery( std::string queries, dict& queryDict)
     }
 }
 
-void	HTTPparser::_setVersion(std::string strVersion, HTTPversion& version) 
+void	HTTPparser::_setVersion(std::string strVersion, HTTPversion& version)
 {
 	size_t	del1, del2;
 
@@ -200,4 +200,26 @@ HTTPparser& HTTPparser::operator=( HTTPparser const& other ) noexcept
 {
 	(void) other;
 	return (*this);
+}
+
+void	HTTPparser::printData( HTTPrequest httpReq ) noexcept
+{
+	std::cout << "HEAD\n";
+	std::cout << "\tmethod: " << httpReq.head.method << "\n";
+	std::cout << "\tURL:\n\t\tscheme: " << httpReq.head.url.scheme
+			  << "\n\t\tport: " << httpReq.head.url.port << \
+			     "\n\t\tpath: " << httpReq.head.url.path << \
+			     "\n\t\thost: " << httpReq.head.url.host << '\n';
+	if (httpReq.head.url.query.empty() == false)
+	{
+		std::cout << "\t\tqueries:\n";
+		for(auto option : httpReq.head.url.query)
+			std::cout << "\t\t\t" << option.first << '=' << option.second << '\n';
+	}
+	std::cout << "\tversion: " << httpReq.head.version.scheme << "/" << \
+		httpReq.head.version.major << '.' << httpReq.head.version.minor << '\n';
+	std::cout << "HEADERS\n";
+	for(auto option : httpReq.headers)
+		std::cout << "\t" << option.first << ": " << option.second << "\n";
+	std::cout << "BODY\n\t" << httpReq.body << "\n";
 }
