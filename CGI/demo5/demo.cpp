@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
     int protocol = 0;
 
     std::vector<Server> servers = parseServers(argv);
-    Server myServer = servers[0]; // note: config only used for CGI in this demo
+    Server myServerConfig = servers[0]; // note: config only used for CGI in this demo
 
     // creating socket for webserver (returns a file descriptor)
     std::cout << "launching webserver..." << std::endl;
@@ -88,8 +88,28 @@ int main(int argc, char *argv[]) {
         // - check if CGI is allowed (in server config, based on file extention and/or CGI allowed flag)
         // - check if CGIfile exists and is executable
 
-        CGI CGIrequest(req, myServer);
-        std::string responseStr = CGIrequest.getHTTPResponse();
+        // create response
+        std::istringstream ss(req.head.url.path);
+        std::string reqExtension;
+        while (getline(ss, reqExtension, '.')) {} // get last part after '.'
+        std::string responseStr;
+        if (reqExtension == myServerConfig.getCgiExtension()
+            || "." + reqExtension == myServerConfig.getCgiExtension())
+        {
+            // CGI
+            std::cout << "doing cgi..." << std::endl;
+            CGI CGIrequest(req, myServerConfig);
+            responseStr = CGIrequest.getHTTPResponse();
+        }
+        else {
+            // Static page
+            HTTPresponse	response;
+            std::string     htmlBody;
+            std::cout << "doing static page..." << std::endl;
+            int reqStat = HTTPexecutor::execRequest(req, htmlBody);
+            response = HTTPbuilder::buildResponse(reqStat, htmlBody);
+            responseStr = response.toString();
+        }
 
         // write response:
         // - check via browser: http://localhost:8080/cgi-bin/gettime.cgi
