@@ -6,7 +6,7 @@
 #    By: itopchu <itopchu@student.42.fr>              +#+                      #
 #                                                    +#+                       #
 #    Created: 2023/11/25 18:04:49 by fra           #+#    #+#                  #
-#    Updated: 2024/01/23 17:01:41 by faru          ########   odam.nl          #
+#    Updated: 2024/01/30 10:43:13 by faru          ########   odam.nl          #
 #                                                                              #
 # **************************************************************************** #
 
@@ -26,7 +26,7 @@ CLIENT_SRCS := $(shell find $(CLI_DIR) -type f -name '*.cpp')
 
 CC  := c++
 IFLAGS := -I$(INCLUDE) -I$(INCLUDE)/parser -I$(INCLUDE)/server
-CPPFLAGS = -Wall -Wextra -Werror -Wshadow -Wpedantic -g3
+CPPFLAGS = -Wall -Wextra -Werror -Wshadow -Wpedantic -g3 -std=c++17 
 
 GREEN = \x1b[32;01m
 RED = \x1b[31;01m
