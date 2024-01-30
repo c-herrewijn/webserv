@@ -46,7 +46,7 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(HTTPrequest &req, Serve
         "GATEWAY_INTERFACE=CGI/1.1", // fixed
         "PATH_INFO=",
         "PATH_TRANSLATED=",
-        "QUERY_STRING=", // TODO (part behind '?'-char of the script URI)
+        "QUERY_STRING=" + req.head.url.queryRaw,
         "REMOTE_ADDR=" + addr,
         "REMOTE_HOST=",
         "REMOTE_IDENT=",

@@ -44,7 +44,7 @@ class HTTPparser
 		static void	_setScheme( std::string, std::string& );
 		static void	_setDomainPort( std::string, HTTPurl& );
 		static void	_setPath( std::string, std::string& );
-		static void	_setQuery( std::string, dict& );
+		static void	_setQuery( std::string, dict&, std::string& );
 
 		HTTPparser( void ) noexcept {};
 		HTTPparser( HTTPparser const& ) noexcept;

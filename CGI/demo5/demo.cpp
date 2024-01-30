@@ -69,10 +69,11 @@ int main(int argc, char *argv[]) {
     // accept incoming connections (server waits for connections in a loop)
     std::cout << "wait for incoming connections..." << std::endl;
     std::cout << "test CGI via: http://localhost:8080/cgi-bin/gettime.cgi" << std::endl;
-    HTTPrequest	req;
     std::string reqStr;
     while (true)
     {
+        HTTPrequest	*req = new HTTPrequest;
+        bzero(buffer, BUFFER_SIZE);
         connectionFd = accept(serverFd, (sockaddr*)&intServerSockAddr, &socketSize);
         std::cout << "connection established!" << std::endl;
 
@@ -80,8 +81,8 @@ int main(int argc, char *argv[]) {
         // std::cout << std::endl << "data received: " << std::endl<< buffer << std::endl;
 
         reqStr = buffer;
-        HTTPparser::parseRequest(reqStr, req);
-        HTTPparser::printData(req);
+        HTTPparser::parseRequest(reqStr, *req);
+        // HTTPparser::printData(*req);
 
         // Only create CGI object if after the following validations (TODO):
         // - check if the uri is a cgi uri (based on nested "Location" info in server config)
@@ -89,7 +90,7 @@ int main(int argc, char *argv[]) {
         // - check if CGIfile exists and is executable
 
         // create response
-        std::istringstream ss(req.head.url.path);
+        std::istringstream ss((*req).head.url.path);
         std::string reqExtension;
         while (getline(ss, reqExtension, '.')) {} // get last part after '.'
         std::string responseStr;
@@ -97,18 +98,21 @@ int main(int argc, char *argv[]) {
             || "." + reqExtension == myServerConfig.getCgiExtension())
         {
             // CGI
+            HTTPparser::printData(*req);
             std::cout << "doing cgi..." << std::endl;
-            CGI CGIrequest(req, myServerConfig);
+            CGI CGIrequest(*req, myServerConfig);
             responseStr = CGIrequest.getHTTPResponse();
         }
         else {
-            // Static page
-            HTTPresponse	response;
-            std::string     htmlBody;
-            std::cout << "doing static page..." << std::endl;
-            int reqStat = HTTPexecutor::execRequest(req, htmlBody);
-            response = HTTPbuilder::buildResponse(reqStat, htmlBody);
-            responseStr = response.toString();
+            if ((*req).head.url.path != "/favicon.ico") { // browser always asks for favicon.ico; skipping it for now;
+                // Static page
+                HTTPresponse	response;
+                std::string     htmlBody;
+                std::cout << "doing static page..." << std::endl;
+                int reqStat = HTTPexecutor::execRequest(*req, htmlBody);
+                response = HTTPbuilder::buildResponse(reqStat, htmlBody);
+                responseStr = response.toString();
+            }
         }
 
         // write response:
@@ -120,7 +124,7 @@ int main(int argc, char *argv[]) {
             return 1;
         }
         close(connectionFd); // closing connection
-        break; // dummy,server stops after first connection has been established, normally, it should keep running
+        delete req;
     }
 
     // closing socket for webserver

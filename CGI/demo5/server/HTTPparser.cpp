@@ -104,7 +104,7 @@ void	HTTPparser::_setURL( std::string strURL, HTTPurl& url )
 	_setPath(strURL, url.path);
 	delimiter = strURL.find('?');
 	if (delimiter != std::string::npos)
-		_setQuery(strURL.substr(delimiter), url.query);
+		_setQuery(strURL.substr(delimiter), url.query, url.queryRaw);
 }
 
 void	HTTPparser::_setScheme( std::string strScheme, std::string& scheme)
@@ -138,30 +138,32 @@ void	HTTPparser::_setPath( std::string strPath, std::string& path)
 	path = strPath.substr(0, strPath.find('?'));
 }
 
-void	HTTPparser::_setQuery( std::string queries, dict& queryDict)
+void	HTTPparser::_setQuery( std::string queries, dict& queryDict, std::string& queryRaw)
 {
 	std::string			key, value, keyValue=queries;
 	size_t 				del1, del2;
 
 	if (queries == "?")
 		throw(ParserException({"empty query"}));
-	else
-	while (true)
-	{
-		keyValue = keyValue.substr(1);	// remove leading '?' or '&'
-		del1 = keyValue.find('=');
-		if (del1 == std::string::npos)
-			throw(ParserException({"invalid query:", keyValue.c_str()}));
-		del2 = keyValue.find('&');
-		key = keyValue.substr(0, del1);
-		value = keyValue.substr(del1 + 1, del2 - del1 - 1);
-		if (key.empty() or value.empty())
-			throw(ParserException({"invalid query:", keyValue.c_str()}));
-		queryDict.insert({key, value});
-		if (del2 == std::string::npos)
-			break;
-		keyValue = keyValue.substr(del2);
-    }
+	else {
+		queryRaw = keyValue.substr(1);
+		while (true)
+		{
+			keyValue = keyValue.substr(1);	// remove leading '?' or '&'
+			del1 = keyValue.find('=');
+			if (del1 == std::string::npos)
+				throw(ParserException({"invalid query:", keyValue.c_str()}));
+			del2 = keyValue.find('&');
+			key = keyValue.substr(0, del1);
+			value = keyValue.substr(del1 + 1, del2 - del1 - 1);
+			if (key.empty() or value.empty())
+				throw(ParserException({"invalid query:", keyValue.c_str()}));
+			queryDict.insert({key, value});
+			if (del2 == std::string::npos)
+				break;
+			keyValue = keyValue.substr(del2);
+		}
+	}
 }
 
 void	HTTPparser::_setVersion(std::string strVersion, HTTPversion& version)
