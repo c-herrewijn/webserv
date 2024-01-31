@@ -16,6 +16,43 @@
 
 std::vector<Server>	parseServers(char **av);
 
+std::string create_response(HTTPrequest	&req, Server &serverCfg)
+{
+    std::cout << "requested path: " << req.head.url.path << std::endl;
+    // HTTPparser::printData(*req);
+
+    // Only create CGI object if after the following validations (TODO):
+    // - check if the uri is a cgi uri (based on nested "Location" info in server config)
+    // - check if CGI is allowed (in server config, based on file extention and/or CGI allowed flag)
+    // - check if CGIfile exists and is executable
+
+    // create response
+    std::istringstream ss((req).head.url.path);
+    std::string reqExtension;
+    while (getline(ss, reqExtension, '.')) {} // get last part after '.'
+    std::string responseStr;
+    if (reqExtension == serverCfg.getCgiExtension()
+        || "." + reqExtension == serverCfg.getCgiExtension())
+    {
+        // CGI
+        std::cout << "doing cgi..." << std::endl;
+        CGI CGIrequest(req, serverCfg);
+        responseStr = CGIrequest.getHTTPResponse();
+    }
+    else {
+        if (req.head.url.path != "/favicon.ico") { // browser always asks for favicon.ico; skipping it for now;
+            // Static page
+            HTTPresponse	response;
+            std::string     htmlBody;
+            std::cout << "doing static page..." << std::endl;
+            int reqStat = HTTPexecutor::execRequest(req, htmlBody);
+            response = HTTPbuilder::buildResponse(reqStat, htmlBody);
+            responseStr = response.toString();
+        }
+    }
+    return responseStr;
+}
+
 int main(int argc, char *argv[]) {
     // default settings to create web socket
     int domain = AF_INET;
@@ -72,61 +109,34 @@ int main(int argc, char *argv[]) {
     std::string reqStr;
     while (true)
     {
-        HTTPrequest	*req = new HTTPrequest;
         bzero(buffer, BUFFER_SIZE);
         connectionFd = accept(serverFd, (sockaddr*)&intServerSockAddr, &socketSize);
         std::cout << "connection established!" << std::endl;
-
         bytesReceived = read(connectionFd, buffer, BUFFER_SIZE);
-        // std::cout << std::endl << "data received: " << std::endl<< buffer << std::endl;
-
         reqStr = buffer;
-        HTTPparser::parseRequest(reqStr, *req);
-        // HTTPparser::printData(*req);
+        HTTPrequest	*req = new HTTPrequest;
+		try
+		{
+            HTTPparser::parseRequest(reqStr, *req);
+            std::string responseStr = create_response(*req, myServerConfig);
+            // write response:
+            // - check via browser: http://localhost:8080/cgi-bin/gettime.cgi
+            // - check via curl: $ curl -d "myRequestFromCurl" localhost:8080
+            if (write(connectionFd, (void *)responseStr.c_str(), strlen(responseStr.c_str())) < 0)
+                std::cerr << "Error: " << strerror(errno) << std::endl;
+            close(connectionFd); // closing connection
+            delete req;
 
-        // Only create CGI object if after the following validations (TODO):
-        // - check if the uri is a cgi uri (based on nested "Location" info in server config)
-        // - check if CGI is allowed (in server config, based on file extention and/or CGI allowed flag)
-        // - check if CGIfile exists and is executable
-
-        // create response
-        std::istringstream ss((*req).head.url.path);
-        std::string reqExtension;
-        while (getline(ss, reqExtension, '.')) {} // get last part after '.'
-        std::string responseStr;
-        if (reqExtension == myServerConfig.getCgiExtension()
-            || "." + reqExtension == myServerConfig.getCgiExtension())
-        {
-            // CGI
-            HTTPparser::printData(*req);
-            std::cout << "doing cgi..." << std::endl;
-            CGI CGIrequest(*req, myServerConfig);
-            responseStr = CGIrequest.getHTTPResponse();
-        }
-        else {
-            if ((*req).head.url.path != "/favicon.ico") { // browser always asks for favicon.ico; skipping it for now;
-                // Static page
-                HTTPresponse	response;
-                std::string     htmlBody;
-                std::cout << "doing static page..." << std::endl;
-                int reqStat = HTTPexecutor::execRequest(*req, htmlBody);
-                response = HTTPbuilder::buildResponse(reqStat, htmlBody);
-                responseStr = response.toString();
-            }
-        }
-
-        // write response:
-        // - check via browser: http://localhost:8080/cgi-bin/gettime.cgi
-        // - check via curl: $ curl -d "myRequestFromCurl" localhost:8080
-        if(write(connectionFd, (void *)responseStr.c_str(), strlen(responseStr.c_str())) < 0)
-        {
-            std::cerr << "Error: " << strerror(errno) << std::endl;
-            return 1;
-        }
-        close(connectionFd); // closing connection
-        delete req;
+		}
+		catch(const std::exception& e)
+		{
+			std::cerr << C_RED << "Error in handling request: " << C_RESET "\n";
+			std::cerr << C_YELLOW << e.what() << C_RESET "\n";
+			std::cerr << C_YELLOW "Continuing with parsing other requests...\n" C_RESET;
+            close(connectionFd); // closing connection
+            delete req;
+		}
     }
-
     // closing socket for webserver
     close(serverFd);
 }
