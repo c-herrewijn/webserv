@@ -104,8 +104,9 @@ int main(int argc, char *argv[]) {
     int bytesReceived;
 
     // accept incoming connections (server waits for connections in a loop)
+    // - check via curl: $ curl -d "myRequestFromCurl" localhost:8080
     std::cout << "wait for incoming connections..." << std::endl;
-    std::cout << "test CGI via: http://localhost:8080/cgi-bin/gettime.cgi" << std::endl;
+    std::cout << "test via: http://localhost:8080" << std::endl;
     std::string reqStr;
     while (true)
     {
@@ -120,8 +121,6 @@ int main(int argc, char *argv[]) {
             HTTPparser::parseRequest(reqStr, *req);
             std::string responseStr = create_response(*req, myServerConfig);
             // write response:
-            // - check via browser: http://localhost:8080/cgi-bin/gettime.cgi
-            // - check via curl: $ curl -d "myRequestFromCurl" localhost:8080
             if (write(connectionFd, (void *)responseStr.c_str(), strlen(responseStr.c_str())) < 0)
                 std::cerr << "Error: " << strerror(errno) << std::endl;
             close(connectionFd); // closing connection

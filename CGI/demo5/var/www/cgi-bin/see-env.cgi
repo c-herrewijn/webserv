@@ -1,18 +1,13 @@
 #!/usr/bin/python3
 from os import environ
-from datetime import datetime
 import sys
 
-now = datetime.now()
-now_str = now.strftime('%H:%M:%S')
-
+env_list_str = "".join(["<li>{0}: {1}</li>".format(name, value) for name, value in environ.items() if value])
 html_content = f'''<html><body>
-                <h1>Current time: {now_str}</h1>
+                <h1>meta properties of your request and server: </h1>
+                <ul>{env_list_str}</ul>
                 <a href="/">go home</a>
                 </body></html>'''
-
-# todo: validate headers
-# if environ.has_key('SERVER_NAME'):
 
 # print('Python debug line', file=sys.stderr)
 # for name, value in environ.items():
