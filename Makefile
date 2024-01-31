@@ -6,7 +6,7 @@
 #    By: itopchu <itopchu@student.42.fr>              +#+                      #
 #                                                    +#+                       #
 #    Created: 2023/11/25 18:04:49 by fra           #+#    #+#                  #
-#    Updated: 2024/01/30 10:43:13 by faru          ########   odam.nl          #
+#    Updated: 2024/01/31 16:57:55 by faru          ########   odam.nl          #
 #                                                                              #
 # **************************************************************************** #
 
@@ -33,11 +33,10 @@ RED = \x1b[31;01m
 BLUE = \x1b[34;01m
 RESET = \x1b[0m
 
-# NB: check relinking! (when modifying more than one file)
 all: $(NAME)
 
 run: $(NAME)
-	@clear
+	clear
 	@./$(NAME)
 
 $(NAME): $(OBJECTS)

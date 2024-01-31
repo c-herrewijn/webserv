@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/31 12:42:18 by faru          ########   odam.nl         */
+/*   Updated: 2024/01/31 17:25:11 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,9 +20,9 @@
 #include "HTTPstructs.hpp"
 #include "define.hpp"
 
-// NB: OPEN POINTS:
-//	- chunked requests
-// NB the parsing also depends on the parameters of the config file
+#include <vector>
+void	testReqs( void );
+
 class HTTPparser
 {
 	public:
@@ -40,13 +40,14 @@ class HTTPparser
 		static void	_setScheme( std::string, std::string& );
 		static void	_setHostPort( std::string, HTTPurl& );
 		static void	_setPath( std::string, std::string& );
-		static void	_setQuery( std::string, dict& );
+		static void	_setQuery( std::string, dict&, std::string& );
 
-		static void	_setChunked( std::string, std::string& );
+		static void	_setChunkedBody( std::string, std::string& );
 		static void	_setPlainBody( std::string, HTTPrequest& );
 	
 		HTTPparser( void ) noexcept {};
 		HTTPparser( HTTPparser const& ) noexcept;
 		HTTPparser& operator=( HTTPparser const& ) noexcept;
 };
+
 #include "WebServer.hpp"

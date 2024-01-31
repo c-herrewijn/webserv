@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/22 23:36:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/23 11:29:11 by faru          ########   odam.nl         */
+/*   Updated: 2024/01/31 14:54:58 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,6 @@ std::string	methToStr(HTTPmethod const&);
 
 HTTPmethod	strToMeth(std::string const&);
 
-// NB: add toString() methods for every struct
 typedef struct HTTPurl_f
 {
 	std::string	scheme;
@@ -37,6 +36,7 @@ typedef struct HTTPurl_f
 	int			port;
 	std::string	path;
 	dict		query;
+	std::string queryRaw;
 
 	std::string	toString( void ) const ;
 } HTTPurl;
@@ -53,7 +53,7 @@ typedef struct HTTPversion_f
 typedef struct HTTPheadReq_f
 {
 	HTTPmethod	method;
-	HTTPurl		url;		
+	HTTPurl		url;
 	HTTPversion	version;
 
 	std::string	toString( void ) const ;

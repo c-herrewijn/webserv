@@ -6,11 +6,60 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/31 12:48:53 by faru          ########   odam.nl         */
+/*   Updated: 2024/01/31 17:27:44 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPparser.hpp"
+
+
+void	testReqs( void )
+{
+	int i=1;
+	HTTPrequest request;
+	std::vector<const char*>	reqs({
+		// "GET http://halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\nkey2: value2\r\nContent-Type: text/plain\r\nContent-Length: 12\r\n\r\nmuch body very http\r\n\r\n",
+		// "GET http://test:21/halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\nkey2: value2\r\nContent-Type: text/plain\r\nContent-Length: 19\r\n\r\nmuch body very http\r\n\r\n",
+		// "GET http://test:21/halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:81\r\nkey2: value2\r\nContent-Type: text/plain\r\nContent-Length: 19\r\n\r\nmuch body very http\r\n\r\n",
+		// "GET http://test/halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:81\r\nkey2: value2\r\nContent-Type: text/plain\r\nContent-Length: 19\r\n\r\nmuch body very http\r\n\r\n",
+		// "GET http://test:/halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:81\r\nkey2: value2\r\nContent-Type: text/plain\r\nContent-Length: 19\r\n\r\nmuch body very http\r\n\r\n",
+		// "GET http://halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin\r\nkey2: value2\r\nContent-Type: text/plain\r\nContent-Length: 19\r\n\r\nmuch body very http\r\n\r\n",
+		// "GET http://halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin\r\nkey2: value2\r\nContent-Type: text/plain\r\nContent-Length: 19\r\n\r\nmuch body very http\r\n\r\n",
+		// "GET http://test:21/halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nkey1: value1\r\nkey2: value2\r\nContent-Type: text/plain\r\nContent-Length: 19\r\n\r\nmuch body very http\r\n\r\n",
+		// "GET http://halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\nkey2: value2\r\nContent-Type: text/plain\r\nContent-Length: 19\r\n\r\nmuch body very http\r\n\r\n",
+		// "GET http://halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\nkey2: value2\r\nContent-Type: text/plain\r\nContent-Length: 12much body very http\r\n\r\n",
+		// "GET http://halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\nkey2: value2\r\n",
+		// "GET http://halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\nkey2: value2\r\n\r\n",
+		// "GET http://halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nkey2: value2\r\n\r\nmuch body very http\r\n\r\n",
+		// "GET http://halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\nkey2: value2\r\n\r\n",
+		// "GET http://halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\nkey2: value2\r\n\r\nmuch body very http\r\n\r\n",
+		// "GET http://halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\nContent-Type: text/plain\r\nkey2: value2\r\n\r\nmuch body very http\r\n\r\n",
+		// "GET http://halo:123/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\nContent-Type: text/plain\r\nContent-Length: 19\r\nkey2: value2\r\n\r\nmuch body very http\r\n\r\n",
+		// // Chunked
+		// "GET http://halo:123/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\nContent-Type: text/plain\r\nContent-Length: 19\r\nkey2: value2\r\n\r\n7\r\nMozilla\r\n11\r\nDeveloper Network\r\n0\r\n\r\n",
+		// "GET http://halo:123/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\nContent-Type: text/plain\r\nkey2: value2\r\n\r\n7\r\nMozilla\r\n11\r\nDeveloper Network\r\n0\r\n\r\n",
+		// "GET http://halo:123/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\nContent-Type: text/plain\r\nTransfer-Encoding: chunked\r\nkey2: value2\r\n\r\n8\r\nMozilla \r\n12\r\nDeveloper Network \r\n0\r\n\r\n",
+		// hosts
+		"GET http://halo/find/me/here?amd=123&def=566 HTTP/1.1\r\n\r\n",
+		"GET http:///find/me/here?amd=123&def=566 HTTP/1.1\r\n\r\n",
+		"GET http:/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\n\r\n"
+	});
+	std::cout << "===========================================================================================\n";
+	for (auto req : reqs)
+	{
+		try
+		{
+			std::cout << i++ << ". " << req << "---------\n";
+			request = HTTPparser::parseRequest(req);
+			std::cout << request.toString();
+		}
+		catch(const ParserException& e)
+		{
+			std::cerr << e.what() << '\n' << req;
+		}
+		std::cout << "===========================================================================================" << '\n';
+	}
+}
 
 HTTPrequest	HTTPparser::parseRequest( std::string strReq )
 {
@@ -56,8 +105,9 @@ void	HTTPparser::_setHead(std::string header, HTTPrequest &req )
 
 void	HTTPparser::_setHeaders( std::string headers, HTTPrequest &req )
 {
-	size_t del1, del2;
+	size_t 		del1, del2;
 	std::string key, value;
+	bool		hostFound = false;
 
 	if (headers.empty())
 		return ;
@@ -68,27 +118,24 @@ void	HTTPparser::_setHeaders( std::string headers, HTTPrequest &req )
 		if (del2 == std::string::npos)
 			throw(ParserException({"invalid request - invalid header format:", headers.c_str()}));
 		key = headers.substr(0, del2);
+		if ((hostFound == false) and (key == "Host"))
+			hostFound = true;
 		value = headers.substr(del2 + 2, del1 - del2 - 2);
 		req.headers.insert({key, value});
 		headers = headers.substr(del1 + 2);
 		del1 = headers.find(HTTP_NL);
 	} while (del1 != std::string::npos);
+	if (hostFound == false)
+		throw(ParserException({"invalid request: no Host header"}));
 	if (req.head.url.host == "")
-	{
-		try {
-			_setHostPort(req.headers.at("Host"), req.head.url);
-		}
-		catch(const std::out_of_range& e) {
-			throw(ParserException({"invalid request: no Host header"}));
-		}
-	}
+		_setHostPort(req.headers["Host"], req.head.url);
 }
 
-void	HTTPparser::_setBody( std::string startBody, HTTPrequest &req )
+void	HTTPparser::_setBody( std::string body, HTTPrequest &req )
 {
 	bool	isChunked = false;
 
-	if (startBody.empty())
+	if (body.empty())
 		return ;
 	try {
 		req.headers.at("Content-Type");
@@ -105,34 +152,41 @@ void	HTTPparser::_setBody( std::string startBody, HTTPrequest &req )
 	catch(const std::out_of_range& e) {
 		throw(ParserException({"invalid request: no Content-Type header"}));
 	}
+	if (body.find(HTTP_TERM) == std::string::npos)
+		throw(ParserException({"invalid request: no body terminator"}));
 	if (isChunked)
-		_setChunked(startBody, req.body);
+		_setChunkedBody(body, req.body);
 	else
-		_setPlainBody(startBody, req);
+		_setPlainBody(body, req);
 }
 
 void	HTTPparser::_setURL( std::string strURL, HTTPurl& url )
 {
 	size_t	delimiter;
 
-	delimiter = strURL.find("://");
-	if (delimiter != std::string::npos)	// scheme is not implied
-	{
-		_setScheme(strURL.substr(0, delimiter), url.scheme);
-		strURL = strURL.substr(delimiter + 3);
-	}
-	delimiter = strURL.find('/');
+	delimiter = strURL.find(":/");
 	if (delimiter == std::string::npos)
-		throw(ParserException({"invalid request - invalid url:", strURL.c_str()}));
-	else if (delimiter != 0)		// there's the domain (and port)
+		throw(ParserException({"invalid request: no scheme"}));
+	_setScheme(strURL.substr(0, delimiter), url.scheme);
+	strURL = strURL.substr(delimiter + 2);
+	delimiter = strURL.find("//");
+	if (delimiter == 0)		// empty host --> host = localhost
 	{
+		_setHostPort("localhost", url);
+		strURL = strURL.substr(2);
+	}
+	else
+	{
+		delimiter = strURL.find("/");
+		if (delimiter == 0)
+			throw(ParserException({"invalid request: URLs like http://path are invalid"}));
 		_setHostPort(strURL.substr(0, delimiter), url);
-		strURL = strURL.substr(delimiter);
+		strURL = strURL.substr(delimiter + 1);
 	}
 	_setPath(strURL, url.path);
 	delimiter = strURL.find('?');
 	if (delimiter != std::string::npos)
-		_setQuery(strURL.substr(delimiter), url.query);
+		_setQuery(strURL.substr(delimiter), url.query, url.queryRaw);
 }
 
 void	HTTPparser::_setScheme( std::string strScheme, std::string& scheme)
@@ -146,13 +200,20 @@ void	HTTPparser::_setScheme( std::string strScheme, std::string& scheme)
 
 void	HTTPparser::_setHostPort( std::string strURL, HTTPurl& url)
 {
-	size_t delimiter = strURL.find(':');
-	// std::cout << url.host << '\n';
+	size_t 		delimiter = strURL.find(':');
+	std::string	port;
+
 	if (delimiter != std::string::npos)	// there's the port
 	{
 		url.host = strURL.substr(0, delimiter);
+		port = strURL.substr(delimiter + 1);
+		if (port.empty())		// because    http://ABC.com:/%7esmith/home.html is still valid
+		{
+			url.port = HTTP_DEF_PORT;
+			return ;
+		}
 		try {
-			url.port = std::stoi(strURL.substr(delimiter + 1));
+			url.port = std::stoi(port);
 		}
 		catch(const std::exception& e ) {
 			throw(ParserException({"invalid request - invalid port format:", strURL.substr(delimiter + 1).c_str()}));
@@ -169,34 +230,36 @@ void	HTTPparser::_setPath( std::string strPath, std::string& path)
 {
 	path = strPath.substr(0, strPath.find('?'));
 }
-	
-void	HTTPparser::_setQuery( std::string queries, dict& queryDict)
+
+void	HTTPparser::_setQuery( std::string queries, dict& queryDict, std::string& queryRaw)
 {
 	std::string			key, value, keyValue=queries;
 	size_t 				del1, del2;
 
 	if (queries == "?")
-		throw(ParserException({"invalid request - empty query"}));
-	else
-	while (true) 
-	{
-		keyValue = keyValue.substr(1);	// remove leading '?' or '&'
-		del1 = keyValue.find('=');
-		if (del1 == std::string::npos)
-			throw(ParserException({"invalid request - invalid query:", keyValue.c_str()}));
-		del2 = keyValue.find('&');
-		key = keyValue.substr(0, del1);
-		value = keyValue.substr(del1 + 1, del2 - del1 - 1);
-		if (key.empty() or value.empty())
-			throw(ParserException({"invalid request - invalid query:", keyValue.c_str()}));
-		queryDict.insert({key, value});
-		if (del2 == std::string::npos)
-			break;
-		keyValue = keyValue.substr(del2);
-    }
+		throw(ParserException({"empty query"}));
+	else {
+		queryRaw = keyValue.substr(1);
+		while (true)
+		{
+			keyValue = keyValue.substr(1);	// remove leading '?' or '&'
+			del1 = keyValue.find('=');
+			if (del1 == std::string::npos)
+				throw(ParserException({"invalid request - invalid query:", keyValue.c_str()}));
+			del2 = keyValue.find('&');
+			key = keyValue.substr(0, del1);
+			value = keyValue.substr(del1 + 1, del2 - del1 - 1);
+			if (key.empty() or value.empty())
+				throw(ParserException({"invalid request - invalid query:", keyValue.c_str()}));
+			queryDict.insert({key, value});
+			if (del2 == std::string::npos)
+				break;
+			keyValue = keyValue.substr(del2);
+		}
+	}
 }
 
-void	HTTPparser::_setVersion(std::string strVersion, HTTPversion& version) 
+void	HTTPparser::_setVersion(std::string strVersion, HTTPversion& version)
 {
 	size_t	del1, del2;
 
@@ -220,13 +283,13 @@ void	HTTPparser::_setVersion(std::string strVersion, HTTPversion& version)
 		throw(ParserException({"invalid request - unsupported HTTP version:", strVersion.c_str()}));
 }
 
-void	HTTPparser::_setChunked( std::string chunkedBody, std::string& body)
+void	HTTPparser::_setChunkedBody( std::string chunkedBody, std::string& body)
 {
 	size_t	sizeChunk=0, delimiter=0;
 
 	do
 	{
-		delimiter = chunkedBody.find(HTTP_NL, delimiter);
+		delimiter = chunkedBody.find(HTTP_NL);
 		if (delimiter == std::string::npos)
 			throw(ParserException({"invalid request: bad chunking"}));
 		try {
@@ -236,20 +299,13 @@ void	HTTPparser::_setChunked( std::string chunkedBody, std::string& body)
 			throw(ParserException({"invalid request: bad chunking"}));
 		}
 		body += chunkedBody.substr(delimiter + 2, sizeChunk);
-		delimiter = chunkedBody.find(HTTP_NL, delimiter);
-		if (delimiter == std::string::npos)
-			throw(ParserException({"invalid request: bad chunking"}));
+		chunkedBody = chunkedBody.substr(delimiter + sizeChunk + 4);
 	} while (sizeChunk != 0);
 }
 
 void	HTTPparser::_setPlainBody( std::string strBody, HTTPrequest& req)
 {
-	size_t	delimiter = 0;
-
-	delimiter = strBody.find(HTTP_TERM);
-	if (delimiter == std::string::npos)
-		throw(ParserException({"invalid request: no body terminator"}));
-	req.body = strBody.substr(0, delimiter);
+	req.body = strBody.substr(0, strBody.find(HTTP_TERM));
 	try {
 		if (req.body.size() != std::stoul(req.headers["Content-Length"]))
 			throw(ParserException({"invalid request: body lengths do not match"}));
