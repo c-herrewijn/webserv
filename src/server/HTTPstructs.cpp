@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/23 10:40:31 by faru          #+#    #+#                 */
-/*   Updated: 2024/01/23 11:35:42 by faru          ########   odam.nl         */
+/*   Updated: 2024/01/31 12:38:01 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,7 +47,7 @@ std::string	HTTPurl::toString( void ) const
 	strURL += "://";
 	strURL += this->host;
 	strURL += ":";
-	strURL += this->port;
+	strURL += std::to_string(this->port);
 	strURL += this->path;
 	if (!this->query.empty())
 	{

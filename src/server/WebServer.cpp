@@ -82,10 +82,7 @@ void	WebServer::loop( void )
 	{
 		nConn = poll(this->_connfds.data(), this->_connfds.size(), MAX_TIMEOUT);
 		if (nConn == -1)
-			throw(ServerException({"poll failed"}));		//		maybe these checks have to be done when I try to read the socket, maybe...
-		// {
-		// 	if ((errno != EAGAIN) and (errno != EWOULDBLOCK))	// <-- this check doesn't seem correct, poll() never sets errno to EWOULDBLOCK,
-		// }
+			throw(ServerException({"poll failed"}));
 		else if (nConn == 0)		// timeout (NB: right?)
 			break;
 		for (size_t i=0; i<this->_connfds.size(); i++)
@@ -118,12 +115,16 @@ int	WebServer::_handleRequest( int connfd, std::string& body )
 	try
 	{
 		stringRequest = _readSocket(connfd);
-		HTTPparser::parseRequest(stringRequest, request);
+		request = HTTPparser::parseRequest(stringRequest);
 		// std::cout << request.toString();
 		reqStat = HTTPexecutor::execRequest(request, body);
 		// response = HTTPbuilder::buildResponse(reqStat, body);
 		// std::cout << response.toString();
-		// _writeSocket(connfd, std::string(response.toString()));
+	}
+	catch (ParserException const& err) {
+		std::cout << err.what() << '\n';
+		_dropConn(connfd);
+		return (400);
 	}
 	catch (WebServerException const& err) {
 		std::cout << err.what() << '\n';
