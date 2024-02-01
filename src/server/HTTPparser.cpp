@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/31 17:27:44 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/01 16:26:18 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,9 +40,10 @@ void	testReqs( void )
 		// "GET http://halo:123/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\nContent-Type: text/plain\r\nkey2: value2\r\n\r\n7\r\nMozilla\r\n11\r\nDeveloper Network\r\n0\r\n\r\n",
 		// "GET http://halo:123/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\nContent-Type: text/plain\r\nTransfer-Encoding: chunked\r\nkey2: value2\r\n\r\n8\r\nMozilla \r\n12\r\nDeveloper Network \r\n0\r\n\r\n",
 		// hosts
+		"GET http:/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\n\r\n",
 		"GET http://halo/find/me/here?amd=123&def=566 HTTP/1.1\r\n\r\n",
 		"GET http:///find/me/here?amd=123&def=566 HTTP/1.1\r\n\r\n",
-		"GET http:/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\n\r\n"
+		"GET http://hostname/find/me/here?amd=123&def=566 HTTP/1.1\r\nHost: domin:23\r\n\r\n"
 	});
 	std::cout << "===========================================================================================\n";
 	for (auto req : reqs)
@@ -85,7 +86,7 @@ HTTPrequest	HTTPparser::parseRequest( std::string strReq )
 	return (req);
 }
 
-void	HTTPparser::_setHead(std::string header, HTTPrequest &req )
+void	HTTPparser::_setHead( std::string header, HTTPrequest &req )
 {
 	std::istringstream	stream(header);
 	std::string 		method, url, version;
@@ -129,6 +130,8 @@ void	HTTPparser::_setHeaders( std::string headers, HTTPrequest &req )
 		throw(ParserException({"invalid request: no Host header"}));
 	if (req.head.url.host == "")
 		_setHostPort(req.headers["Host"], req.head.url);
+	else if (req.head.url.host != req.headers["Host"])
+		throw(ParserException({"invalid request: hosts do not match"}));
 }
 
 void	HTTPparser::_setBody( std::string body, HTTPrequest &req )
@@ -164,41 +167,38 @@ void	HTTPparser::_setURL( std::string strURL, HTTPurl& url )
 {
 	size_t	delimiter;
 
-	delimiter = strURL.find(":/");
-	if (delimiter == std::string::npos)
-		throw(ParserException({"invalid request: no scheme"}));
-	_setScheme(strURL.substr(0, delimiter), url.scheme);
-	strURL = strURL.substr(delimiter + 2);
-	delimiter = strURL.find("//");
-	if (delimiter == 0)		// empty host --> host = localhost
+	delimiter = strURL.find(":");
+	if (delimiter != std::string::npos)
 	{
-		_setHostPort("localhost", url);
-		strURL = strURL.substr(2);
-	}
-	else
-	{
-		delimiter = strURL.find("/");
-		if (delimiter == 0)
-			throw(ParserException({"invalid request: URLs like http://path are invalid"}));
-		_setHostPort(strURL.substr(0, delimiter), url);
+		_setScheme(strURL.substr(0, delimiter), url.scheme);
 		strURL = strURL.substr(delimiter + 1);
 	}
-	_setPath(strURL, url.path);
-	delimiter = strURL.find('?');
+	else
+		_setScheme(HTTP_SCHEME, url.scheme);
+	delimiter = strURL.find("//");
 	if (delimiter != std::string::npos)
-		_setQuery(strURL.substr(delimiter), url.query, url.queryRaw);
+	{
+		if (delimiter != 0)
+			throw(ParserException({"invalid request - bad format URL:", strURL.c_str()}));
+		strURL = strURL.substr(2);
+		delimiter = strURL.find("/");
+		if (delimiter == 0)
+			_setHostPort("localhost", url);
+		else
+			_setHostPort(strURL.substr(0, delimiter), url);
+		strURL = strURL.substr(delimiter);
+	}
+	_setPath(strURL, url);
 }
 
-void	HTTPparser::_setScheme( std::string strScheme, std::string& scheme)
+void	HTTPparser::_setScheme( std::string strScheme, std::string& scheme )
 {
-	std::transform(strScheme.begin(), strScheme.end(), strScheme.begin(), ::toupper);
 	if ((strScheme != HTTP_SCHEME) and (strScheme != HTTPS_SCHEME))
 		throw(ParserException({"invalid request - unsupported scheme:", strScheme.c_str()}));
-	std::transform(strScheme.begin(), strScheme.end(), strScheme.begin(), ::tolower);
 	scheme = strScheme;
 }
 
-void	HTTPparser::_setHostPort( std::string strURL, HTTPurl& url)
+void	HTTPparser::_setHostPort( std::string strURL, HTTPurl& url )
 {
 	size_t 		delimiter = strURL.find(':');
 	std::string	port;
@@ -226,40 +226,58 @@ void	HTTPparser::_setHostPort( std::string strURL, HTTPurl& url)
 	}
 }
 
-void	HTTPparser::_setPath( std::string strPath, std::string& path)
+void	HTTPparser::_setPath( std::string strPath, HTTPurl& url )
 {
-	path = strPath.substr(0, strPath.find('?'));
+	size_t	del1, del2;
+
+	del1 = strPath.find('?');
+	del2 = strPath.find('#');
+	url.path = strPath.substr(0, std::min(del1, del2));
+	if (del1 != std::string::npos)
+	{
+		strPath = strPath.substr(del1);
+		_setQuery(strPath, url);
+	}
+	if (del2 != std::string::npos)
+	{
+		strPath = strPath.substr(del2);
+		_setFragment(strPath, url.fragment);
+	}
 }
 
-void	HTTPparser::_setQuery( std::string queries, dict& queryDict, std::string& queryRaw)
+void	HTTPparser::_setQuery( std::string queries, HTTPurl& url )
 {
 	std::string			key, value, keyValue=queries;
 	size_t 				del1, del2;
 
 	if (queries == "?")
 		throw(ParserException({"empty query"}));
-	else {
-		queryRaw = keyValue.substr(1);
-		while (true)
-		{
-			keyValue = keyValue.substr(1);	// remove leading '?' or '&'
-			del1 = keyValue.find('=');
-			if (del1 == std::string::npos)
-				throw(ParserException({"invalid request - invalid query:", keyValue.c_str()}));
-			del2 = keyValue.find('&');
-			key = keyValue.substr(0, del1);
-			value = keyValue.substr(del1 + 1, del2 - del1 - 1);
-			if (key.empty() or value.empty())
-				throw(ParserException({"invalid request - invalid query:", keyValue.c_str()}));
-			queryDict.insert({key, value});
-			if (del2 == std::string::npos)
-				break;
-			keyValue = keyValue.substr(del2);
-		}
+	url.queryRaw = keyValue.substr(1);
+	while (true)
+	{
+		keyValue = keyValue.substr(1);	// remove leading '?' or '&'
+		del1 = keyValue.find('=');
+		if (del1 == std::string::npos)
+			throw(ParserException({"invalid request - invalid query:", keyValue.c_str()}));
+		del2 = keyValue.find('&');
+		key = keyValue.substr(0, del1);
+		value = keyValue.substr(del1 + 1, del2 - del1 - 1);
+		if (key.empty() or value.empty())
+			throw(ParserException({"invalid request - invalid query:", keyValue.c_str()}));
+		url.query.insert({key, value});
+		if (del2 == std::string::npos)
+			break;
+		keyValue = keyValue.substr(del2);
 	}
 }
 
-void	HTTPparser::_setVersion(std::string strVersion, HTTPversion& version)
+void	HTTPparser::_setFragment( std::string strFragment, std::string& fragment)
+{
+	fragment = strFragment.substr(1);
+}
+
+// NB: use one delimiter and substr()
+void	HTTPparser::_setVersion( std::string strVersion, HTTPversion& version )
 {
 	size_t	del1, del2;
 
@@ -267,8 +285,10 @@ void	HTTPparser::_setVersion(std::string strVersion, HTTPversion& version)
 	if (del1 == std::string::npos)
 		throw(ParserException({"invalid request - invalid version:", strVersion.c_str()}));
 	version.scheme = strVersion.substr(0, del1);
+	std::transform(version.scheme.begin(), version.scheme.end(), version.scheme.begin(), ::tolower);
 	if (version.scheme != HTTP_SCHEME)
 		throw(ParserException({"invalid request - invalid scheme:", strVersion.c_str()}));
+	std::transform(version.scheme.begin(), version.scheme.end(), version.scheme.begin(), ::toupper);
 	del2 = strVersion.find('.');
 	if (del2 == std::string::npos)
 		throw(ParserException({"invalid request - invalid version:", strVersion.c_str()}));
@@ -283,7 +303,7 @@ void	HTTPparser::_setVersion(std::string strVersion, HTTPversion& version)
 		throw(ParserException({"invalid request - unsupported HTTP version:", strVersion.c_str()}));
 }
 
-void	HTTPparser::_setChunkedBody( std::string chunkedBody, std::string& body)
+void	HTTPparser::_setChunkedBody( std::string chunkedBody, std::string& body )
 {
 	size_t	sizeChunk=0, delimiter=0;
 
@@ -303,7 +323,7 @@ void	HTTPparser::_setChunkedBody( std::string chunkedBody, std::string& body)
 	} while (sizeChunk != 0);
 }
 
-void	HTTPparser::_setPlainBody( std::string strBody, HTTPrequest& req)
+void	HTTPparser::_setPlainBody( std::string strBody, HTTPrequest& req )
 {
 	req.body = strBody.substr(0, strBody.find(HTTP_TERM));
 	try {

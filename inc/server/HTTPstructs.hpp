@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/22 23:36:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/31 14:54:58 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/01 13:31:24 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,7 @@ typedef struct HTTPurl_f
 	std::string	path;
 	dict		query;
 	std::string queryRaw;
+	std::string fragment;
 
 	std::string	toString( void ) const ;
 } HTTPurl;

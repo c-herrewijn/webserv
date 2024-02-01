@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/23 10:40:31 by faru          #+#    #+#                 */
-/*   Updated: 2024/01/31 16:55:15 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/01 13:37:47 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,15 +49,15 @@ std::string	HTTPurl::toString( void ) const
 	strURL += ":";
 	strURL += std::to_string(this->port);
 	strURL += this->path;
-	if (!this->query.empty())
+	if (!this->queryRaw.empty())
 	{
 		strURL += "?";
-		for (auto item : this->query)
-		{
-			strURL += item.first;
-			strURL += "=";
-			strURL += item.second;
-		}
+		strURL += this->queryRaw;
+	}
+	if (!this->fragment.empty())
+	{
+		strURL += "#";
+		strURL += this->fragment;
 	}
 	return (strURL);
 }

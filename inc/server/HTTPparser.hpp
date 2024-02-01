@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/31 17:25:11 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/01 13:32:58 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,8 +39,9 @@ class HTTPparser
 
 		static void	_setScheme( std::string, std::string& );
 		static void	_setHostPort( std::string, HTTPurl& );
-		static void	_setPath( std::string, std::string& );
-		static void	_setQuery( std::string, dict&, std::string& );
+		static void	_setPath( std::string, HTTPurl& );
+		static void	_setQuery( std::string, HTTPurl& );
+		static void	_setFragment( std::string, std::string& );
 
 		static void	_setChunkedBody( std::string, std::string& );
 		static void	_setPlainBody( std::string, HTTPrequest& );
