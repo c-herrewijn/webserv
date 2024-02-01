@@ -18,6 +18,13 @@
         </p></li>
         <li><a href="/cgi-bin/gettime.cgi">Ask the time!</a></li>
         <li><a href="/cgi-bin/see-env.cgi">See some meta properties!</a></li>
+
+        <li><p>Upload a file
+            <form enctype = "multipart/form-data" action = "/cgi-bin/uploadfile.cgi" method = "post">
+            File: <input type = "file" name = "filename" />
+            <input type = "submit" value = "Upload" />
+            </form>
+        </p></li>
     </ul>
 </body>
 </html>

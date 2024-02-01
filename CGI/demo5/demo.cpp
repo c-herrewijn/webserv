@@ -19,7 +19,6 @@ std::vector<Server>	parseServers(char **av);
 std::string create_response(HTTPrequest	&req, Server &serverCfg)
 {
     std::cout << "requested path: " << req.head.url.path << std::endl;
-    // HTTPparser::printData(*req);
 
     // Only create CGI object if after the following validations (TODO):
     // - check if the uri is a cgi uri (based on nested "Location" info in server config)
@@ -36,6 +35,7 @@ std::string create_response(HTTPrequest	&req, Server &serverCfg)
     {
         // CGI
         std::cout << "doing cgi..." << std::endl;
+        // HTTPparser::printData(req);
         CGI CGIrequest(req, serverCfg);
         responseStr = CGIrequest.getHTTPResponse();
     }
@@ -119,6 +119,13 @@ int main(int argc, char *argv[]) {
 		try
 		{
             HTTPparser::parseRequest(reqStr, *req);
+
+            // debug-------
+            // if (req->head.url.path != "/favicon.ico") {
+            //     std::cout << C_GREEN << "request via write:" << C_RESET << std::endl;
+            //     write(1, buffer, bytesReceived);
+            // }
+            // ----------
             std::string responseStr = create_response(*req, myServerConfig);
             // write response:
             if (write(connectionFd, (void *)responseStr.c_str(), strlen(responseStr.c_str())) < 0)
