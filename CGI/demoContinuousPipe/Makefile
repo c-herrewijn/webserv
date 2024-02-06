@@ -5,3 +5,8 @@ writer: writer.cpp
 
 reader: reader.cpp
 	c++ -Wall -Werror -Wextra reader.cpp -o reader
+
+clean:
+	rm reader writer
+
+.PHONY: all clean
