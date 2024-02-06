@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/30 10:43:41 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/06 09:30:25 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,14 +42,13 @@
 
 // NB: non-blocking setup sockets
 // NB: non-blocking waitpid
-// NB: chucked requests
 class WebServer
 {
 	public:
 		WebServer ( std::string const& servName) : _hostName(servName) {};
 		~WebServer ( void ) noexcept;
 
-		void			listenTo( const char*, const char* );
+		void			listenTo( std::string const&, std::string const& );
 		void			loop( void );
 		std::string		getAddress( const struct sockaddr_storage*) const noexcept ;
 
@@ -57,7 +56,6 @@ class WebServer
 		std::string					_hostName;
 		std::vector<struct pollfd>	_connfds;
 		std::set<int>				_listeners;
-		std::set<pid_t>				_currentJobs;
 
 		WebServer ( void ) {};
 		WebServer ( WebServer const& ) noexcept;

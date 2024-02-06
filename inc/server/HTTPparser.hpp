@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/01 13:32:58 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/06 09:00:45 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,25 +26,25 @@ void	testReqs( void );
 class HTTPparser
 {
 	public:
-		static HTTPrequest	parseRequest( std::string );
+		static HTTPrequest	parseRequest( std::string const& );
 		~HTTPparser( void ) noexcept {};
 
 	private:
-		static void	_setHead( std::string, HTTPrequest& );
-		static void	_setHeaders( std::string, HTTPrequest& );
-		static void	_setBody( std::string, HTTPrequest& );
+		static void	_setHead( std::string const&, HTTPrequest& );
+		static void	_setHeaders( std::string const&, HTTPrequest& );
+		static void	_setBody( std::string const&, HTTPrequest& );
 
-		static void	_setURL( std::string, HTTPurl& );
-		static void	_setVersion( std::string, HTTPversion& );
+		static void	_setURL( std::string const&, HTTPurl& );
+		static void	_setVersion( std::string const&, HTTPversion& );
 
-		static void	_setScheme( std::string, std::string& );
-		static void	_setHostPort( std::string, HTTPurl& );
-		static void	_setPath( std::string, HTTPurl& );
-		static void	_setQuery( std::string, HTTPurl& );
-		static void	_setFragment( std::string, std::string& );
+		static void	_setScheme( std::string const&, std::string& );
+		static void	_setHostPort( std::string const&, HTTPurl& );
+		static void	_setPath( std::string const&, HTTPurl& );
+		static void	_setQuery( std::string const&, HTTPurl& );
+		static void	_setFragment( std::string const&, std::string& );
 
-		static void	_setChunkedBody( std::string, std::string& );
-		static void	_setPlainBody( std::string, HTTPrequest& );
+		static void	_setChunkedBody( std::string const&, std::string& );
+		static void	_setPlainBody( std::string const&, HTTPrequest& );
 	
 		HTTPparser( void ) noexcept {};
 		HTTPparser( HTTPparser const& ) noexcept;

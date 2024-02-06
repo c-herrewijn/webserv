@@ -18,7 +18,7 @@ WebServer::~WebServer ( void ) noexcept
 		this->_dropConn();
 }
 
-void	WebServer::listenTo( const char* hostname, const char* port )
+void	WebServer::listenTo( std::string const& hostname, std::string const& port )
 {
 	struct addrinfo *tmp, *list, filter;
 	struct sockaddr_storage	hostip;
@@ -28,8 +28,8 @@ void	WebServer::listenTo( const char* hostname, const char* port )
 	filter.ai_flags = AI_PASSIVE;
 	filter.ai_family = AF_UNSPEC;
 	filter.ai_protocol = IPPROTO_TCP;
-	if (getaddrinfo(hostname, port, &filter, &list) != 0)
-		throw(ServerException({"failed to get addresses for ", hostname, ":",port}));
+	if (getaddrinfo(hostname.c_str(), port.c_str(), &filter, &list) != 0)
+		throw(ServerException({"failed to get addresses for", hostname, ":", port}));
 	for (tmp=list; tmp!=nullptr; tmp=tmp->ai_next)
 	{
 		listenSocket = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
@@ -45,12 +45,12 @@ void	WebServer::listenTo( const char* hostname, const char* port )
 	if (tmp == nullptr)
 	{
 		freeaddrinfo(list);
-		throw(ServerException({"no available IP host found for ", hostname, ":",port}));
+		throw(ServerException({"no available IP host found for", hostname, ":",port}));
 	}
 	memmove(&hostip, tmp->ai_addr, std::min(sizeof(struct sockaddr), sizeof(struct sockaddr_storage)));
 	freeaddrinfo(list);
 	if (listen(listenSocket, BACKLOG) != 0)
-		throw(ServerException({"failed listen on", this->getAddress(&hostip).c_str()}));
+		throw(ServerException({"failed listen on", this->getAddress(&hostip)}));
 	std::cout << "listening on: " << this->getAddress(&hostip) << "\n";
 	this->_addConn(listenSocket);
 	this->_listeners.insert(listenSocket);
@@ -71,7 +71,7 @@ void		WebServer::_acceptConnection( int listener )
 }
 
 // NB: refine POLLOUT
-// NB: why do I need TIMEOUT if my sockets are non-blocking? I should count the time elsewhere...
+// NB: fix when closing the connection, maybe the for loop has to be different?
 void	WebServer::loop( void )
 {
 	int			nConn;
@@ -98,8 +98,22 @@ void	WebServer::loop( void )
 			}
 			if (this->_connfds[i].revents & POLLOUT)
 			{
-				_writeSocket(this->_connfds[i].fd, HTTPbuilder::buildResponse(exitStatus, bodyResp).toString());		// NB _writeSocket() can throw exceptions!
-				_dropConn(this->_connfds[i--].fd);
+				try
+				{
+					_writeSocket(this->_connfds[i].fd, HTTPbuilder::buildResponse(exitStatus, bodyResp).toString());
+				}
+				catch(const std::exception& e) {
+					std::cerr << e.what() << '\n';
+					_dropConn(this->_connfds[i].fd);
+				}
+				if (exitStatus >= 400)
+					_dropConn(this->_connfds[i].fd);
+				// try
+				// {
+				// 	if (request.headers.at("Connection") == "close")
+				// 		_dropConn(this->_connfds[i].fd);
+				// }
+				// catch(...) {}
 			}
 		}
 	}
@@ -118,17 +132,14 @@ int	WebServer::_handleRequest( int connfd, std::string& body )
 		request = HTTPparser::parseRequest(stringRequest);
 		// std::cout << request.toString();
 		reqStat = HTTPexecutor::execRequest(request, body);
-		// response = HTTPbuilder::buildResponse(reqStat, body);
 		// std::cout << response.toString();
 	}
 	catch (ParserException const& err) {
 		std::cout << err.what() << '\n';
-		_dropConn(connfd);
 		return (400);
 	}
 	catch (WebServerException const& err) {
 		std::cout << err.what() << '\n';
-		_dropConn(connfd);
 		return (500);
 	}
 	return (reqStat);
@@ -169,7 +180,6 @@ WebServer& WebServer::operator=( WebServer const& other ) noexcept
 	return (*this);
 }
 
-// NB: protection for erase(), i.e. check returned value
 void	WebServer::_dropConn(int toDrop) noexcept
 {
 	int currSocket;
@@ -241,13 +251,14 @@ void	WebServer::_writeSocket( int fd, std::string const& content) const
 }
 
 // NB: how can i keep the information about which connection close()?
+// NB: the whole function needs to be changed
 void	WebServer::_waitForChildren( void )
 {
 	int 	statProc;
 	pid_t	childProc;
 
-	if (this->_currentJobs.empty())
-		return ;
+	// if (this->_currentJobs.empty())
+	// 	return ;
 	childProc = waitpid(-1, &statProc, WNOHANG);
 	if (childProc < 0)
 	{
@@ -256,9 +267,9 @@ void	WebServer::_waitForChildren( void )
 	}
 	else
 	{
-		if (this->_currentJobs.erase(childProc) == 0)
-			throw(ServerException({"no child process found with id:", std::to_string(childProc).c_str()}));
-		else if (WEXITSTATUS(statProc) != REQ_OK)
+		// if (this->_currentJobs.erase(childProc) == 0)
+		// 	throw(ServerException({"no child process found with id:", std::to_string(childProc).c_str()}));
+		if (WEXITSTATUS(statProc) != 0)
 		{
 			std::cout << "failed to a request, closing connection";
 			_dropConn();

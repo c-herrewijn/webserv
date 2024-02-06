@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/22 18:43:11 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/23 11:29:05 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/06 09:01:35 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@ class HTTPbuilder
 {
 	public:
 		~HTTPbuilder( void ) noexcept {};
-		static HTTPresponse		buildResponse( int, std::string& body );
+		static HTTPresponse		buildResponse( int, std::string const& body );
 
 	private:
 		static std::string	_mapStatus( int );

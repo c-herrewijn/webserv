@@ -6,40 +6,36 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/18 14:04:58 by faru          #+#    #+#                 */
-/*   Updated: 2024/01/22 23:39:44 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/06 09:26:02 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Exception.hpp"
 
-ServerException::ServerException( std::initializer_list<const char*> prompts) noexcept
+ServerException::ServerException( std::initializer_list<std::string> const& prompts) noexcept
 {
 	this->_msg = "server error -";
-	for (const char *prompt : prompts)
-		this->_msg += " " + std::string(prompt);
-	this->_type = REQ_ERROR_GEN;
+	for (std::string prompt : prompts)
+		this->_msg += " " + prompt;
 }
 
-ParserException::ParserException( std::initializer_list<const char*> prompts) noexcept
+ParserException::ParserException( std::initializer_list<std::string> const& prompts) noexcept
 {
 	this->_msg = "parsing error -";
-	for (const char *prompt : prompts)
-		this->_msg += " " + std::string(prompt);
-	this->_type = REQ_ERROR_PARSE;
+	for (std::string prompt : prompts)
+		this->_msg += " " + prompt;
 }
 
-ExecException::ExecException( std::initializer_list<const char*> prompts) noexcept
+ExecException::ExecException( std::initializer_list<std::string> const& prompts) noexcept
 {
 	this->_msg = "request execution error -";
-	for (const char *prompt : prompts)
-		this->_msg += " " + std::string(prompt);
-	this->_type = REQ_ERROR_EXEC;
+	for (std::string prompt : prompts)
+		this->_msg += " " + prompt;
 }
 
-BuilderException::BuilderException( std::initializer_list<const char*> prompts) noexcept
+BuilderException::BuilderException( std::initializer_list<std::string> const& prompts) noexcept
 {
 	this->_msg = "response builder error -";
-	for (const char *prompt : prompts)
-		this->_msg += " " + std::string(prompt);
-	this->_type = REQ_ERROR_RESP;
+	for (std::string prompt : prompts)
+		this->_msg += " " + prompt;
 }

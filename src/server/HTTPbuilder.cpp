@@ -6,13 +6,13 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/22 18:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/29 18:16:43 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/06 09:26:51 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPbuilder.hpp"
 
-HTTPresponse	HTTPbuilder::buildResponse( int statusCode, std::string& body )
+HTTPresponse	HTTPbuilder::buildResponse( int statusCode, std::string const& body )
 {
 	HTTPresponse resp;
 
@@ -119,7 +119,7 @@ std::string	HTTPbuilder::_mapStatus( int status)
 		return (std::string(mapStatus.at(status)));
 	}
 	catch(const std::out_of_range& e) {
-		throw(BuilderException({"Unknown HTTP response code:", std::to_string(status).c_str()}));
+		throw(BuilderException({"Unknown HTTP response code:", std::to_string(status)}));
 	}
 }
 

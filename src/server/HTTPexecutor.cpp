@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/29 18:10:43 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/06 09:27:10 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -104,7 +104,7 @@ std::string	HTTPexecutor::_readContent(std::string const& pathReq)
 	std::string		body, line;
 
 	if (!fd.is_open())
-		throw(ExecException({"error opening file", pathReq.c_str()}));	// NB not an exception! has to be the correspondant to 40X error code
+		throw(ExecException({"error opening file", pathReq}));	// NB not an exception! has to be the correspondant to 40X error code
 	while (std::getline(fd, line))
 		body += line + std::string("\n");
 	fd.close();
@@ -114,7 +114,7 @@ std::string	HTTPexecutor::_readContent(std::string const& pathReq)
 int	HTTPexecutor::_checkPath(std::string const& path, int action)
 {
 	if ((action != F_OK) and (action != R_OK) and (action != W_OK) and (action != X_OK))
-		throw(ExecException({"Unknown access mode:", std::to_string(action).c_str()}));
+		throw(ExecException({"Unknown access mode:", std::to_string(action)}));
 	if (access(path.c_str(), F_OK) != 0)
 		return (404);
 	else if (access(path.c_str(), action) != 0)

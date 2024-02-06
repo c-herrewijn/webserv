@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/23 10:40:31 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/01 13:37:47 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/06 09:29:03 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,7 @@ HTTPmethod	strToMeth(std::string const& strMethod)
 	else if (strMethod == "DELETE")
 		return (HTTP_DELETE);
 	else
-		throw(ServerException({"unknown http method:", strMethod.c_str()}));
+		throw(ServerException({"unknown http method:", strMethod}));
 }
 
 std::string	HTTPurl::toString( void ) const
