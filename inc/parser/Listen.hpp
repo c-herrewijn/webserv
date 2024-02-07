@@ -42,6 +42,8 @@ class Listen
 		const uint16_t&				getPortInt(void) const;
 		const bool&					getDef(void) const;
 		const bool&					getAll(void) const;
+		bool						operator==(Listen const&) const;
+		bool						operator!=(Listen const&) const;
 
 		Listen(const Listen& copy);
 		Listen&	operator=(const Listen& assign);
@@ -56,6 +58,8 @@ class Listen
 			private:
 				std::string errorMessage;
 		};
+    bool			operator==(const Listen&) const;
+    bool			operator!=(const Listen&) const;
     friend std::ostream& operator<<(std::ostream& os, const Listen& listen);
 };
 

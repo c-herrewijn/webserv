@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/07 10:02:25 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/07 16:40:17 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,7 +45,7 @@
 class WebServer
 {
 	public:
-		WebServer ( std::vector<Server> const& servers ) : _servers(servers) {};
+		WebServer ( std::vector<Server> const& );
 		~WebServer ( void ) noexcept;
 
 		void			loop( void );
@@ -54,6 +54,7 @@ class WebServer
 
 	private:
 		std::vector<Server>			_servers;
+		std::set<Listen>			_listenAddress;
 		std::vector<struct pollfd>	_connfds;
 		std::set<int>				_listeners;
 
@@ -65,5 +66,5 @@ class WebServer
 		bool			_isListener( int ) const ;
 		std::string		_readSocket( int ) const ;
 		void			_writeSocket( int, std::string const& ) const ;
-		void			_waitForChildren( void) ;
+		// void			_waitForChildren( void) ;
 };

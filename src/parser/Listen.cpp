@@ -222,6 +222,17 @@ void	Listen::setAll(bool	status)
 	all = status;
 }
 
+bool Listen::operator==(const Listen& other) const
+{
+	return ((this->i_ip == other.getIpInt()) and (this->i_port == other.getPortInt()));
+}
+
+bool Listen::operator!=(const Listen& other) const
+{
+	return(!(*this == other));
+}
+
+
 std::ostream& operator<<(std::ostream& os, const Listen& listen) {
     os << "listen " << listen.getIpString();
     if (!listen.getPortString().empty()) {

@@ -12,6 +12,15 @@
 
 #include "WebServer.hpp"
 
+WebServer::WebServer ( std::vector<Server> const& servers ) : _servers(servers)
+{
+	for (auto server :this->_servers)
+	{
+		for (auto listAddress : server.getListens())
+			this->_listenAddress.insert(listAddress);
+	}
+}
+
 WebServer::~WebServer ( void ) noexcept
 {
 	while(this->_connfds.empty() == false)
@@ -20,20 +29,21 @@ WebServer::~WebServer ( void ) noexcept
 
 void	WebServer::startListen( void )
 {
-	for (auto server :this->_servers)
+	try
 	{
-		for (auto hostPort : server.getListens())
-		{
-			
-		}
-
+		for (auto listAddress : this->_listenAddress)
+			this->_listenTo(listAddress.getIpString(), listAddress.getPortString());
 	}
+	catch(const WebServerException& e) {
+		std::cout << e.what() << '\n';
+	}
+	
 }
 
 void	WebServer::_listenTo( std::string const& hostname, std::string const& port )
 {
 	struct addrinfo *tmp, *list, filter;
-	struct sockaddr_storage	hostip;
+	struct sockaddr_storage	hostIP;
 	int yes=1, listenSocket=-1;
 
 	bzero(&filter, sizeof(struct addrinfo));
@@ -59,11 +69,14 @@ void	WebServer::_listenTo( std::string const& hostname, std::string const& port 
 		freeaddrinfo(list);
 		throw(ServerException({"no available IP host found for", hostname, ":",port}));
 	}
-	memmove(&hostip, tmp->ai_addr, std::min(sizeof(struct sockaddr), sizeof(struct sockaddr_storage)));
+	memmove(&hostIP, tmp->ai_addr, std::min(sizeof(struct sockaddr), sizeof(struct sockaddr_storage)));
 	freeaddrinfo(list);
 	if (listen(listenSocket, BACKLOG) != 0)
-		throw(ServerException({"failed listen on", this->getAddress(&hostip)}));
-	std::cout << "listening on: " << this->getAddress(&hostip) << "\n";
+	{
+		close(listenSocket);
+		throw(ServerException({"failed listen on", this->getAddress(&hostIP)}));
+	}
+	std::cout << "listening on: " << this->getAddress(&hostIP) << "\n";
 	this->_addConn(listenSocket);
 	this->_listeners.insert(listenSocket);
 }
@@ -84,6 +97,7 @@ void		WebServer::_acceptConnection( int listener )
 
 // NB: refine POLLOUT
 // NB: fix when closing the connection, maybe the for loop has to be different?
+// NB: the connection ready for POLLIN needs to assigned to the proper server
 void	WebServer::loop( void )
 {
 	int			nConn;
@@ -213,6 +227,7 @@ bool	WebServer::_isListener( int socket ) const
 	return (this->_listeners.find(socket) != this->_listeners.end());
 }
 
+// NB: use streams!
 std::string	WebServer::_readSocket( int fd ) const
 {
 	char			buffer[HEADER_MAX_SIZE + 1];
@@ -249,27 +264,27 @@ void	WebServer::_writeSocket( int fd, std::string const& content) const
 
 // NB: how can i keep the information about which connection close()?
 // NB: the whole function needs to be changed
-void	WebServer::_waitForChildren( void )
-{
-	int 	statProc;
-	pid_t	childProc;
+// void	WebServer::_waitForChildren( void )
+// {
+// 	int 	statProc;
+// 	pid_t	childProc;
 
-	// if (this->_currentJobs.empty())
-	// 	return ;
-	childProc = waitpid(-1, &statProc, WNOHANG);
-	if (childProc < 0)
-	{
-		if (errno != ECHILD)
-			throw(ServerException({"error while terminating process"}));
-	}
-	else
-	{
-		// if (this->_currentJobs.erase(childProc) == 0)
-		// 	throw(ServerException({"no child process found with id:", std::to_string(childProc).c_str()}));
-		if (WEXITSTATUS(statProc) != 0)
-		{
-			std::cout << "failed to a request, closing connection";
-			_dropConn();
-		}
-	}
-}
+// 	// if (this->_currentJobs.empty())
+// 	// 	return ;
+// 	childProc = waitpid(-1, &statProc, WNOHANG);
+// 	if (childProc < 0)
+// 	{
+// 		if (errno != ECHILD)
+// 			throw(ServerException({"error while terminating process"}));
+// 	}
+// 	else
+// 	{
+// 		// if (this->_currentJobs.erase(childProc) == 0)
+// 		// 	throw(ServerException({"no child process found with id:", std::to_string(childProc).c_str()}));
+// 		if (WEXITSTATUS(statProc) != 0)
+// 		{
+// 			std::cout << "failed to a request, closing connection";
+// 			_dropConn();
+// 		}
+// 	}
+// }
