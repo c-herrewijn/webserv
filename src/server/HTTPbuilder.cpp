@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/22 18:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/06 09:26:51 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/07 09:53:28 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -139,15 +139,3 @@ std::string	HTTPbuilder::_getDateTime( void )
     std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
 	return (std::string(buffer));
 }
-
-HTTPbuilder::HTTPbuilder( HTTPbuilder const& other ) noexcept
-{
-	(void) other;
-}
-
-HTTPbuilder& HTTPbuilder::operator=( HTTPbuilder const& other ) noexcept
-{
-	(void) other;
-	return (*this);
-}
-

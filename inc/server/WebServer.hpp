@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/06 09:30:25 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/07 10:02:25 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,6 @@
 #include <netdb.h>            // gai_strerror, getaddrinfo, freeaddrinfo
 #include <cerrno>            // errno
 #include <sys/socket.h>       // socketpair, htons, htonl, ntohs, ntohl, select
-// #include <sys/epoll.h>     // epoll_create, epoll_ctl, epoll_wait
 #include <sys/poll.h>     // poll
 #include <netinet/in.h>       // socket, accept, listen, bind, connect
 #include <arpa/inet.h>        // htons, htonl, ntohs, ntohl
@@ -29,7 +28,6 @@
 // #include <dirent.h>           // opendir, readdir, closedir
 #include <signal.h>           // kill, signal
 #include <iostream>
-// #include <initializer_list>
 #include <string>
 #include <vector>
 #include <set>
@@ -39,28 +37,27 @@
 #include "HTTPbuilder.hpp"
 #include "Exception.hpp"
 #include "define.hpp"
+#include "Server.hpp"
 
 // NB: non-blocking setup sockets
 // NB: non-blocking waitpid
+// NB: in case of terminating error child process must be killed with signals
 class WebServer
 {
 	public:
-		WebServer ( std::string const& servName) : _hostName(servName) {};
+		WebServer ( std::vector<Server> const& servers ) : _servers(servers) {};
 		~WebServer ( void ) noexcept;
 
-		void			listenTo( std::string const&, std::string const& );
 		void			loop( void );
+		void			startListen( void );
 		std::string		getAddress( const struct sockaddr_storage*) const noexcept ;
 
 	private:
-		std::string					_hostName;
+		std::vector<Server>			_servers;
 		std::vector<struct pollfd>	_connfds;
 		std::set<int>				_listeners;
 
-		WebServer ( void ) {};
-		WebServer ( WebServer const& ) noexcept;
-		WebServer& operator=( WebServer const& ) noexcept;
-
+		void			_listenTo( std::string const&, std::string const& );
 		void			_dropConn( int socket = -1 ) noexcept;
 		void			_addConn( int ) noexcept;
 		void			_acceptConnection( int ) ;

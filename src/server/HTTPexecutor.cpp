@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/06 09:27:10 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/07 09:53:33 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -133,15 +133,4 @@ bool	HTTPexecutor::_isCGI(std::string const& path)
 		return (false);
 	ext = path.substr(dotPos);
 	return ((ext == CGI_EXT_PY) or (ext == CGI_EXT_SH));
-}
-
-HTTPexecutor::HTTPexecutor( HTTPexecutor const& other ) noexcept
-{
-	(void) other;
-}
-
-HTTPexecutor& HTTPexecutor::operator=( HTTPexecutor const& other ) noexcept
-{
-	(void) other;
-	return (*this);
 }

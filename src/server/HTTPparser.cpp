@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/06 09:28:50 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/07 09:53:41 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -335,15 +335,4 @@ void	HTTPparser::_setPlainBody( std::string const& strBody, HTTPrequest& req )
 	catch(const std::out_of_range& e ) {
 		throw(ParserException({"invalid Content-Length:", req.headers["Content-Length"]}));
 	}
-}
-
-HTTPparser::HTTPparser( HTTPparser const& other ) noexcept
-{
-	(void) other;
-}
-
-HTTPparser& HTTPparser::operator=( HTTPparser const& other ) noexcept
-{
-	(void) other;
-	return (*this);
 }

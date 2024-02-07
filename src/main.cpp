@@ -55,24 +55,6 @@ std::vector<Server>	parseServers(char **av)
 	return (servers);
 }
 
-int runWebServer( void )
-{
-	try
-	{
-		WebServer webServ("HAL-9001");
-		webServ.listenTo("localhost","4242");
-		webServ.listenTo("localhost","4343");
-		webServ.listenTo("localhost","4444");
-		webServ.loop();
-		return (0);
-	}
-	catch(ServerException const& e)
-	{
-		std::cout << e.what() << "\n";
-		return (-1);
-	}
-}
-
 int main(int ac, char **av)
 {
 	if (ac > 2)
@@ -85,7 +67,8 @@ int main(int ac, char **av)
 		std::cout << "---Printing Server index: "  C_GREEN << i << C_RESET "---\n";
 		std::cout << servers[i];
 	}
-	testReqs();
-	// runWebServer();
+	WebServer webserv(servers);
+	webserv.startListen();
+	webserv.loop();
 	return (0);
 }

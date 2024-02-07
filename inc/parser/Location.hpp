@@ -31,21 +31,25 @@ class Location
 		std::string 			alias; // Last given alias
 		Parameters				params; // Local values to use. If default it will be a copy of "server" context
 		std::vector<Location> 	nested; // Possible nested locations
+	
 		void	parseAllowedMethod(std::vector<std::string>& block);
 		void	parseAlias(std::vector<std::string>& block);
 		Location(void);
+
 	public:
 		Location(std::vector<std::string>& block, const Parameters& param);
 		virtual ~Location(void);
 		Location(const Location& copy);
 		Location&	operator=(const Location& assign);
-		void setBlockIndex(const size_t& ref);
-		const size_t& getBlockIndex(void) const;
-		const std::vector<Location>& getNested(void) const;
-		const Parameters&	getParams(void) const;
-		const std::bitset<M_SIZE>&	getAllowedMethods(void) const;
-		const std::string& getAlias(void) const;
-		const std::string& getURL(void) const;
+
+		void 							setBlockIndex(const size_t& ref);
+		const size_t& 					getBlockIndex(void) const;
+		const std::vector<Location>&	getNested(void) const;
+		const Parameters&				getParams(void) const;
+		const std::bitset<M_SIZE>&		getAllowedMethods(void) const;
+		const std::string& 				getAlias(void) const;
+		const std::string& 				getURL(void) const;
+
 		class ErrorCatch : public std::exception {
 			public:
 				ErrorCatch(const std::string& message) : errorMessage(message) {}

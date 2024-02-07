@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:10:43 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/29 10:59:46 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/07 09:53:02 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,10 +37,6 @@ class HTTPexecutor
 
 		static	bool	_isCGI(std::string const&);
 		static	int		_checkPath(std::string const&, int);
-
-		HTTPexecutor( void ) noexcept {};
-		HTTPexecutor( HTTPexecutor const& ) noexcept;
-		HTTPexecutor& operator=( HTTPexecutor const& ) noexcept;
 
 		static const std::map<HTTPmethod, std::function<std::string(HTTPrequest&, int&)> > _methods;
 };

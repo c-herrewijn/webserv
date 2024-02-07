@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/22 18:43:11 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/06 09:01:35 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/07 09:53:12 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,7 +31,4 @@ class HTTPbuilder
 		static std::string	_mapStatus( int );
 		static void			_addHeader(HTTPresponse&, std::string const&, std::string const&);
 		static std::string	_getDateTime( void );
-		HTTPbuilder( void ) noexcept {};
-		HTTPbuilder( HTTPbuilder const& ) noexcept;
-		HTTPbuilder& operator=( HTTPbuilder const& ) noexcept;	
 };

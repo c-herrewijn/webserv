@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 14:40:36 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/06 09:00:45 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/07 09:52:54 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,10 +45,6 @@ class HTTPparser
 
 		static void	_setChunkedBody( std::string const&, std::string& );
 		static void	_setPlainBody( std::string const&, HTTPrequest& );
-	
-		HTTPparser( void ) noexcept {};
-		HTTPparser( HTTPparser const& ) noexcept;
-		HTTPparser& operator=( HTTPparser const& ) noexcept;
 };
 
 #include "WebServer.hpp"

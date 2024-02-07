@@ -18,7 +18,19 @@ WebServer::~WebServer ( void ) noexcept
 		this->_dropConn();
 }
 
-void	WebServer::listenTo( std::string const& hostname, std::string const& port )
+void	WebServer::startListen( void )
+{
+	for (auto server :this->_servers)
+	{
+		for (auto hostPort : server.getListens())
+		{
+			
+		}
+
+	}
+}
+
+void	WebServer::_listenTo( std::string const& hostname, std::string const& port )
 {
 	struct addrinfo *tmp, *list, filter;
 	struct sockaddr_storage	hostip;
@@ -163,21 +175,6 @@ std::string	WebServer::getAddress( const struct sockaddr_storage *addr ) const n
 		ipAddress = std::string(ipv6) + std::string(":") + std::to_string(ntohs(addr_v6->sin6_port));
 	}
 	return (ipAddress);
-}
-
-WebServer::WebServer ( WebServer const& other ) noexcept
-{
-	// ofc shallow copy of port and IP attributes would be problematic because
-	// of the cuncurrency of two servers accessing the same ip:port, if fact it 
-	// makes no sense to create copies of servers
-	(void) other;
-}
-
-WebServer& WebServer::operator=( WebServer const& other ) noexcept
-{
-	// see copy constructor
-	(void) other;
-	return (*this);
 }
 
 void	WebServer::_dropConn(int toDrop) noexcept

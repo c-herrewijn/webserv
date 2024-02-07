@@ -21,25 +21,28 @@
 class Listen
 {
 	private:
-		uint16_t	i_port;	// Port val;
+		uint16_t				i_port;	// Port val;
 		std::vector<uint8_t>	i_ip;	// Ip vals
-		std::string	s_ip;	// String ip
-		std::string	s_port;	// String port
-		bool		def;	// Check for default_server
-		bool		all;	// Check for *:"port"
+		std::string				s_ip;	// String ip
+		std::string				s_port;	// String port
+		bool					def;	// Check for default_server
+		bool					all;	// Check for *:"port"
+
 		void	fillFull(std::vector<std::string>& block);
 		void	fillIp(std::vector<std::string>& block);
 		void	fillPort(std::vector<std::string>& block);
+
 	public:
-		void	fillValues(std::vector<std::string>& block);
-		void	setDef(bool	status);
-		void	setAll(bool status);
-		const std::string&	getIpString(void) const;
+		void						fillValues(std::vector<std::string>& block);
+		void						setDef(bool	status);
+		void						setAll(bool status);
+		const std::string&			getIpString(void) const;
 		const std::vector<uint8_t>&	getIpInt(void) const;
-		const std::string&	getPortString(void) const;
-		const uint16_t&	getPortInt(void) const;
-		const bool&	getDef(void) const;
-		const bool&	getAll(void) const;
+		const std::string&			getPortString(void) const;
+		const uint16_t&				getPortInt(void) const;
+		const bool&					getDef(void) const;
+		const bool&					getAll(void) const;
+
 		Listen(const Listen& copy);
 		Listen&	operator=(const Listen& assign);
 		Listen(void);

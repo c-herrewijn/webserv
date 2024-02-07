@@ -163,14 +163,14 @@ std::ostream& operator<<(std::ostream& os, const Location& location)
 {
     size_t indentation = location.getBlockIndex();
     // Print the opening line for the current location
-    os << std::string(indentation, '\t') << "location " << location.URL << " {\n";
+    os << std::string(indentation, '\t') << "location " << location.getURL() << " {\n";
 
     // Print alias and allowMethods
-    os << std::string(indentation + 1, '\t') << "alias " << location.alias << ";\n";
-    os << std::string(indentation + 1, '\t') << "allowMethods " << location.allowedMethods << ";\n";
+    os << std::string(indentation + 1, '\t') << "alias " << location.getAlias() << ";\n";
+    os << std::string(indentation + 1, '\t') << "allowMethods " << location.getAllowedMethods() << ";\n";
 
     // Print location params
-    os << location.params;
+    os << location.getParams();
 
     // Print Nested Locations
     const auto& nestedLocations = location.getNested();
