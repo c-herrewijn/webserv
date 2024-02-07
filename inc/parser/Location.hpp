@@ -25,12 +25,12 @@
 class Location
 {
 	private:
-		size_t block_index;
-		std::bitset<M_SIZE> allowedMethods;	// Allowed methods
-		std::string	URL; // Default "location" param
-		std::string alias; // Last given alias
-		Parameters	params; // Local values to use. If default it will be a copy of "server" context
-		std::vector<Location> nested; // Possible nested locations
+		size_t 					block_index;
+		std::bitset<M_SIZE> 	allowedMethods;	// Allowed methods
+		std::string				URL; // Default "location" param
+		std::string 			alias; // Last given alias
+		Parameters				params; // Local values to use. If default it will be a copy of "server" context
+		std::vector<Location> 	nested; // Possible nested locations
 		void	parseAllowedMethod(std::vector<std::string>& block);
 		void	parseAlias(std::vector<std::string>& block);
 		Location(void);

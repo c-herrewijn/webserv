@@ -27,13 +27,13 @@
 class Server
 {
 	private:
-		std::vector<Listen> listens; // Listens
-		std::vector<std::string> names; // is the given "server_name".
-		Parameters	params; // Default parameters for whole server block
-		std::vector<Location>	locations; // declared Locations
-		std::string	cgi_directory;	// bin for cgi
-		std::string	cgi_extension;	// extention .py .sh
-		bool		cgi_allowed;	// Check for permissions
+		std::vector<Listen> 		listens; // Listens
+		std::vector<std::string>	names; // is the given "server_name".
+		Parameters					params; // Default parameters for whole server block
+		std::vector<Location>		locations; // declared Locations
+		std::string					cgi_directory;	// bin for cgi
+		std::string					cgi_extension;	// extention .py .sh
+		bool						cgi_allowed;	// Check for permissions
 		// Parsers
 		void	parseListen(std::vector<std::string>& block);
 		void	parseServerName(std::vector<std::string>& block);

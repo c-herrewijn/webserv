@@ -35,7 +35,7 @@ class Config
 		void	checkBrackets(void);
 		void	printContent(void);
 		std::vector<std::string>	file_content;
-		std::string raw_input;
+		std::string 				raw_input;
 	public:
 		// Form
 		Config(void);

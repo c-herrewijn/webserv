@@ -25,11 +25,11 @@
 class Parameters
 {
 	private:
-		size_t block_index;
-		std::pair<size_t, char> max_size;	// Will be overwriten by last found
-		bool	autoindex;	// FALSE in default, will be overwriten.
-		std::unordered_set<std::string>	indexes;	// Will be searched in given order
-		std::string	root;		// Last found will be used.
+		size_t 									block_index;
+		std::pair<size_t, char> 				max_size;	// Will be overwriten by last found
+		bool									autoindex;	// FALSE in default, will be overwriten.
+		std::unordered_set<std::string>			indexes;	// Will be searched in given order
+		std::string								root;		// Last found will be used.
 		std::unordered_map<size_t, std::string>	error_pages;	// Same status codes will be overwriten
 		std::unordered_map<size_t, std::string>	returns;	// Same reponse codes are overwriten by the last
 		void	parseRoot(std::vector<std::string>& block);
