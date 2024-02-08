@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/07 16:40:17 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/08 14:42:11 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,9 +28,11 @@
 // #include <dirent.h>           // opendir, readdir, closedir
 #include <signal.h>           // kill, signal
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
 #include <set>
+#include <algorithm>
 #include <filesystem>
 #include "HTTPparser.hpp"
 #include "HTTPexecutor.hpp"
@@ -54,17 +56,17 @@ class WebServer
 
 	private:
 		std::vector<Server>			_servers;
-		std::set<Listen>			_listenAddress;
+		std::vector<Listen>			_listenAddress;
 		std::vector<struct pollfd>	_connfds;
 		std::set<int>				_listeners;
 
-		void			_listenTo( std::string const&, std::string const& );
-		void			_dropConn( int socket = -1 ) noexcept;
-		void			_addConn( int ) noexcept;
-		void			_acceptConnection( int ) ;
-		int				_handleRequest( int, std::string& ) ;		// NB: is the status (i.e. returned value) necessary?
-		bool			_isListener( int ) const ;
-		std::string		_readSocket( int ) const ;
-		void			_writeSocket( int, std::string const& ) const ;
+		void	_listenTo( std::string const&, std::string const& );
+		void	_dropConn( int socket = -1 ) noexcept;
+		void	_addConn( int ) noexcept;
+		void	_acceptConnection( int ) ;
+		int		_handleRequest( int, std::string& ) ;		// NB: is the status (i.e. returned value) necessary?
+		bool	_isListener( int ) const ;
+		int		_readHead( int , std::string& ) const;
+		void	_writeSocket( int, std::string const& ) const ;
 		// void			_waitForChildren( void) ;
 };

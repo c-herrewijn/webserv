@@ -58,16 +58,10 @@ std::vector<Server>	parseServers(char **av)
 int main(int ac, char **av)
 {
 	if (ac > 2)
-	{
 		std::cerr << "Wrong amount of arguments received\n\tValid usage: " << av[0] << " " << av[1] <<  "\n";
-	}
 	std::vector<Server> servers = parseServers(av);
-	for (size_t i = 0; i < servers.size(); i++)
-	{
-		std::cout << "---Printing Server index: "  C_GREEN << i << C_RESET "---\n";
-		std::cout << servers[i];
-	}
-	WebServer webserv(servers);
+	WebServer 			webserv(servers);
+
 	webserv.startListen();
 	webserv.loop();
 	return (0);

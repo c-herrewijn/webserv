@@ -26,23 +26,6 @@
 
 class Server
 {
-	private:
-		std::vector<Listen> 		listens; // Listens
-		std::vector<std::string>	names; // is the given "server_name".
-		Parameters					params; // Default parameters for whole server block
-		std::vector<Location>		locations; // declared Locations
-		std::string					cgi_directory;	// bin for cgi
-		std::string					cgi_extension;	// extention .py .sh
-		bool						cgi_allowed;	// Check for permissions
-		// Parsers
-		void	parseListen(std::vector<std::string>& block);
-		void	parseServerName(std::vector<std::string>& block);
-		void	parseLocation(std::vector<std::string>& block);
-		void	parseCgiDir(std::vector<std::string>& block);
-		void	parseCgiExtension(std::vector<std::string>& block);
-		void	parseCgiAllowed(std::vector<std::string>& block);
-		// Setup
-		void	fillServer(std::vector<std::string>& block);
 	public:
 		// Form
 		Server(const Server& copy);
@@ -68,6 +51,24 @@ class Server
 			private:
 				std::string errorMessage;
 		};
+
+	private:
+		std::vector<Listen> 		listens; // Listens
+		std::vector<std::string>	names; // is the given "server_name".
+		Parameters					params; // Default parameters for whole server block
+		std::vector<Location>		locations; // declared Locations
+		std::string					cgi_directory;	// bin for cgi
+		std::string					cgi_extension;	// extention .py .sh
+		bool						cgi_allowed;	// Check for permissions
+		// Parsers
+		void	parseListen(std::vector<std::string>& block);
+		void	parseServerName(std::vector<std::string>& block);
+		void	parseLocation(std::vector<std::string>& block);
+		void	parseCgiDir(std::vector<std::string>& block);
+		void	parseCgiExtension(std::vector<std::string>& block);
+		void	parseCgiAllowed(std::vector<std::string>& block);
+		// Setup
+		void	fillServer(std::vector<std::string>& block);
     friend std::ostream& operator<<(std::ostream& os, const Server& server);
 };
 

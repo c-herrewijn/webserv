@@ -17,7 +17,11 @@ WebServer::WebServer ( std::vector<Server> const& servers ) : _servers(servers)
 	for (auto server :this->_servers)
 	{
 		for (auto listAddress : server.getListens())
-			this->_listenAddress.insert(listAddress);
+		{
+			auto isPresent = std::find(this->_listenAddress.begin(),this->_listenAddress.end(), listAddress);
+			if ( isPresent == this->_listenAddress.end())
+				this->_listenAddress.push_back(listAddress);
+		}
 	}
 }
 
@@ -29,8 +33,7 @@ WebServer::~WebServer ( void ) noexcept
 
 void	WebServer::startListen( void )
 {
-	try
-	{
+	try {
 		for (auto listAddress : this->_listenAddress)
 			this->_listenTo(listAddress.getIpString(), listAddress.getPortString());
 	}
@@ -98,6 +101,7 @@ void		WebServer::_acceptConnection( int listener )
 // NB: refine POLLOUT
 // NB: fix when closing the connection, maybe the for loop has to be different?
 // NB: the connection ready for POLLIN needs to assigned to the proper server
+// NB: re-add errno checking after poll() you silly goose!
 void	WebServer::loop( void )
 {
 	int			nConn;
@@ -150,15 +154,13 @@ int	WebServer::_handleRequest( int connfd, std::string& body )
 	HTTPrequest		request;
 	HTTPresponse	response;
 	int				reqStat = -1;
-	std::string		stringRequest;
+	std::string		strHead, strBody;
 	
-	try
-	{
-		stringRequest = _readSocket(connfd);
-		request = HTTPparser::parseRequest(stringRequest);
-		// std::cout << request.toString();
-		reqStat = HTTPexecutor::execRequest(request, body);
-		// std::cout << response.toString();
+	try {
+		reqStat = _readHead(connfd, strHead);
+		if (reqStat != 200)
+			return (reqStat);
+		
 	}
 	catch (ParserException const& err) {
 		std::cout << err.what() << '\n';
@@ -194,6 +196,7 @@ std::string	WebServer::getAddress( const struct sockaddr_storage *addr ) const n
 void	WebServer::_dropConn(int toDrop) noexcept
 {
 	int currSocket;
+
 	for (auto it=this->_connfds.begin(); it!=this->_connfds.end(); it++)
 	{
 		currSocket = (*it).fd;
@@ -227,22 +230,37 @@ bool	WebServer::_isListener( int socket ) const
 	return (this->_listeners.find(socket) != this->_listeners.end());
 }
 
-// NB: use streams!
-std::string	WebServer::_readSocket( int fd ) const
+int		WebServer::_readHead( int fd, std::string& strHead) const
 {
 	char			buffer[HEADER_MAX_SIZE + 1];
 	ssize_t 		readChar = HEADER_MAX_SIZE;
-	std::string		stringRequest;
-
-	while (readChar == HEADER_MAX_SIZE)
+	size_t			endHeadPos;
+	bool			keepReading = true;
+	int				statusRead = 200;
+	
+	while (true)
 	{
-		memset(buffer, 0, HEADER_MAX_SIZE + 1);		// NB: remove C functions!
+		bzero(buffer, HEADER_MAX_SIZE + 1);
 		readChar = recv(fd, buffer, HEADER_MAX_SIZE, 0);
 		if (readChar < 0)
 			throw(ServerException({"socket not available or empty"}));
-		stringRequest += buffer;
+		endHeadPos = std::string(buffer).find(HTTP_TERM);
+		if (endHeadPos != std::string::npos)
+		{
+			if (lseek(fd, endHeadPos + 4, SEEK_SET) < 0)
+				throw(ServerException({"error resetting the cursor position"}));
+			strHead += std::string(buffer).substr(0, endHeadPos);
+			break;
+		}
+		else if (readChar < HEADER_MAX_SIZE)
+		{
+			statusRead = 400;
+			break;
+		}
+		else
+			strHead += std::string(buffer);
 	}
-	return (stringRequest);
+	return (statusRead);
 }
 
 void	WebServer::_writeSocket( int fd, std::string const& content) const
