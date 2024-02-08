@@ -130,7 +130,7 @@ void	WebServer::loop( void )
 			{
 				try
 				{
-					_writeSocket(this->_connfds[i].fd, HTTPbuilder::buildResponse(exitStatus, bodyResp).toString());
+					// _writeSocket(this->_connfds[i].fd, HTTPresponse().exitStatus, bodyResp).toString());
 				}
 				catch(const std::exception& e) {
 					std::cerr << e.what() << '\n';
@@ -162,7 +162,7 @@ int	WebServer::_handleRequest( int connfd, std::string& body )
 			return (reqStat);
 		
 	}
-	catch (ParserException const& err) {
+	catch (RequestException const& err) {
 		std::cout << err.what() << '\n';
 		return (400);
 	}

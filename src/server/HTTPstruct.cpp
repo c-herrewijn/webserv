@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/09 00:00:04 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/09 00:32:49 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,7 +53,7 @@
 // 			request = HTTPparser::parseRequest(req);
 // 			std::cout << request.toString();
 // 		}
-// 		catch(const ParserException& e)
+// 		catch(const ServerException& e)
 // 		{
 // 			std::cerr << e.what() << '\n' << req;
 // 		}
@@ -79,7 +79,7 @@ void	HTTPstruct::parseHead( std::string const& strReq )
 
 	delimiter = strReq.find(HTTP_TERM);
 	if (delimiter == std::string::npos)
-		throw(ParserException({"invalid request: no terminator"}));
+		throw(ServerException({"invalid request: no terminator"}));
 	head = strReq.substr(0, delimiter + 2);
 	delimiter = head.find(HTTP_NL);
 	if (delimiter + 2 != head.size())		// we have the headers
@@ -104,12 +104,12 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 	{
 		del2 = tmpHeaders.find(": ");
 		if (del2 == std::string::npos)
-			throw(ParserException({"invalid request - invalid header format:", tmpHeaders}));
+			throw(ServerException({"invalid request - invalid header format:", tmpHeaders}));
 		key = tmpHeaders.substr(0, del2);
 		// if ((hostFound == false) and (key == "Host"))
 		// 	hostFound = true;
 		value = tmpHeaders.substr(del2 + 2, del1 - del2 - 2);
-		this->headers.insert({key, value});
+		this->_headers.insert({key, value});
 		tmpHeaders = tmpHeaders.substr(del1 + 2);
 		del1 = tmpHeaders.find(HTTP_NL);
 	} while (del1 != std::string::npos);
@@ -122,24 +122,24 @@ void	HTTPstruct::_setVersion( std::string const& strVersion )
 
 	del1 = strVersion.find('/');
 	if (del1 == std::string::npos)
-		throw(ParserException({"invalid request - invalid version:", strVersion}));
-	this->version.scheme = strVersion.substr(0, del1);
-	std::transform(this->version.scheme.begin(), this->version.scheme.end(), this->version.scheme.begin(), ::tolower);
-	if (this->version.scheme != HTTP_SCHEME)
-		throw(ParserException({"invalid request - invalid scheme:", strVersion}));
-	std::transform(this->version.scheme.begin(), this->version.scheme.end(), this->version.scheme.begin(), ::toupper);
+		throw(ServerException({"invalid request - invalid version:", strVersion}));
+	this->_version.scheme = strVersion.substr(0, del1);
+	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::tolower);
+	if (this->_version.scheme != HTTP_SCHEME)
+		throw(ServerException({"invalid request - invalid scheme:", strVersion}));
+	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::toupper);
 	del2 = strVersion.find('.');
 	if (del2 == std::string::npos)
-		throw(ParserException({"invalid request - invalid version:", strVersion}));
+		throw(ServerException({"invalid request - invalid version:", strVersion}));
 	try {
-		this->version.major = std::stoi(strVersion.substr(del1 + 1, del2 - del1 - 1));
-		this->version.minor = std::stoi(strVersion.substr(del2 + 1));
+		this->_version.major = std::stoi(strVersion.substr(del1 + 1, del2 - del1 - 1));
+		this->_version.minor = std::stoi(strVersion.substr(del2 + 1));
 	}
 	catch (std::exception const& e) {
-		throw(ParserException({"invalid request - invalid version numbers:", strVersion}));
+		throw(ServerException({"invalid request - invalid version numbers:", strVersion}));
 	}
-	if (this->version.major + this->version.minor != 2)
-		throw(ParserException({"invalid request - unsupported HTTP version:", strVersion}));
+	if (this->_version.major + this->_version.minor != 2)
+		throw(ServerException({"invalid request - unsupported HTTP version:", strVersion}));
 }
 
 void	HTTPstruct::_setBody( std::string const& strBody )
@@ -148,17 +148,17 @@ void	HTTPstruct::_setBody( std::string const& strBody )
     size_t      delimiter = strBody.find(HTTP_TERM);
 
     if (delimiter == std::string::npos)
-		throw(ParserException({"invalid request: no body terminator"}));
+		throw(ServerException({"invalid request: no body terminator"}));
 	tmpBody = strBody.substr(0, delimiter);
 	try {
-		if (tmpBody.size() != std::stoul(this->headers["Content-Length"]))
-			throw(ParserException({"invalid request: body lengths do not match"}));
+		if (tmpBody.size() != std::stoul(this->_headers["Content-Length"]))
+			throw(ServerException({"invalid request: body lengths do not match"}));
 	}
 	catch(const std::invalid_argument& e ) {
-		throw(ParserException({"invalid Content-Length:", this->headers["Content-Length"]}));
+		throw(ServerException({"invalid Content-Length:", this->_headers["Content-Length"]}));
 	}
 	catch(const std::out_of_range& e ) {
-		throw(ParserException({"missing or overflow Content-Length header"}));
+		throw(ServerException({"missing or overflow Content-Length header"}));
 	}
     this->_body = tmpBody;
 }
