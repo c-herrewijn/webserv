@@ -61,6 +61,4 @@ class Listen
 		friend std::ostream& operator<<(std::ostream& os, const Listen& listen);
 };
 
-Listen a;
-cout << a;
 #endif

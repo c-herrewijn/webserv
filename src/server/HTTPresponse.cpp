@@ -1,46 +1,97 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        ::::::::            */
-/*   HTTPbuilder.cpp                                    :+:    :+:            */
+/*   HTTPresponse.cpp                                   :+:    :+:            */
 /*                                                     +:+                    */
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
-/*   Created: 2024/01/22 18:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/07 09:53:28 by faru          ########   odam.nl         */
+/*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
+/*   Updated: 2024/02/09 00:26:42 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "HTTPbuilder.hpp"
+#include "HTTPresponse.hpp"
 
-HTTPresponse	HTTPbuilder::buildResponse( int statusCode, std::string const& body )
+HTTPresponse::HTTPresponse( std::string const& strHeads, std::string const& strBody ) : HTTPstruct()
+{
+	if (strHeads.empty() == false)
+		_setHead(strHeads);
+	if (strBody.empty() == false)
+		_setBody(strBody); 
+}
+
+void	HTTPresponse::parseBody( std::string const& strBody)
+{
+    if (strBody.empty())
+		return ;
+	_addHeader("Content-Length", std::to_string(strBody.size()));
+	_addHeader("Content-Type", std::string("text/html; charset=utf-8"));	// NB: do I need other formats?
+	_setBody(strBody + HTTP_TERM);
+}
+
+std::string	HTTPresponse::toString( void ) const
+{
+	std::string	strResp;
+
+	strResp += this->_version.toString();
+	strResp += HTTP_SP;
+	strResp += std::to_string(this->_statusCode);
+	strResp += HTTP_SP;
+	strResp += this->_statusStr;
+	strResp += HTTP_NL;
+	if (!this->_headers.empty())
+	{
+		for (auto item : this->_headers)
+		{
+			strResp += item.first;
+			strResp += ":";
+			strResp += HTTP_SP;
+			strResp += item.second;
+			strResp += HTTP_NL;
+		}
+	}
+	strResp += HTTP_NL;
+	if (!this->_body.empty())
+	{
+		strResp += this->_body;
+		strResp += HTTP_TERM;
+	}
+	return (strResp);
+}
+
+// NB: todo
+void		_setHead( std::string const& strHead)
+{
+	(void) strHead;
+}
+
+void	HTTPresponse::_setHead( int statusCode, std::string const& servName )
 {
 	HTTPresponse resp;
 
-	resp.head.version.scheme = HTTP_SCHEME;
-	resp.head.version.major = 1;
-	resp.head.version.minor = 1;
-	resp.head.exitCode = statusCode;
+	this->_version.scheme = HTTP_SCHEME;
+	this->_version.major = 1;
+	this->_version.minor = 1;
+	this->_statusCode = statusCode;
 	try
 	{
-		resp.head.status = _mapStatus(statusCode);
+		this->_statusStr = _mapStatus(statusCode);
 	}
-	catch(const BuilderException& e) {
+	catch(const ResponseException& e) {
 		std::cout << e.what() << '\n';
-		resp.head.exitCode = 500;
-		resp.head.status = _mapStatus(500);
+		this->_statusCode = 500;
+		this->_statusStr = _mapStatus(500);
 	}
-	_addHeader(resp, "Date", _getDateTime());
-	// _addHeader(resp, "Server", "<server name>")
-	if (!body.empty())
-	{
-		_addHeader(resp, "Content-Length", std::to_string(body.size()));
-		_addHeader(resp, "Content-Type", std::string("text/html; charset=utf-8"));	// NB: do I need other formats?
-	}
-	resp.body = body;
-	return (resp);
+	_addHeader("Date", _getDateTime());
+	_addHeader("Server", servName);
 }
 
-std::string	HTTPbuilder::_mapStatus( int status)
+void	HTTPresponse::_addHeader(std::string const& name, std::string const& content)
+{
+	this->_headers[name] = content;
+}
+
+std::string	HTTPresponse::_mapStatus( int status) const
 {
 	std::map<int, std::string> mapStatus = 
 	{
@@ -119,16 +170,11 @@ std::string	HTTPbuilder::_mapStatus( int status)
 		return (std::string(mapStatus.at(status)));
 	}
 	catch(const std::out_of_range& e) {
-		throw(BuilderException({"Unknown HTTP response code:", std::to_string(status)}));
+		throw(ResponseException({"Unknown HTTP response code:", std::to_string(status)}));
 	}
 }
 
-void	HTTPbuilder::_addHeader(HTTPresponse& resp, std::string const& name, std::string const& content)
-{
-	resp.headers[name] = content;
-}
-
-std::string	HTTPbuilder::_getDateTime( void )
+std::string	HTTPresponse::_getDateTime( void ) const
 {
 	std::time_t rawtime;
     std::tm* timeinfo;

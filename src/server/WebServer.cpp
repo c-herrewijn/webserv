@@ -247,7 +247,8 @@ int		WebServer::_readHead( int fd, std::string& strHead) const
 		endHeadPos = std::string(buffer).find(HTTP_TERM);
 		if (endHeadPos != std::string::npos)
 		{
-			if (lseek(fd, endHeadPos + 4, SEEK_SET) < 0)
+			endHeadPos += HTTP_TERM.size();
+			if (lseek(fd, endHeadPos, SEEK_SET) < 0)
 				throw(ServerException({"error resetting the cursor position"}));
 			strHead += std::string(buffer).substr(0, endHeadPos);
 			break;

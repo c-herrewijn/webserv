@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:10:43 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/07 09:53:02 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/09 00:10:50 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,6 @@
 #include <fcntl.h>				// for access constants
 #include <fstream>
 #include "Exception.hpp"
-#include "HTTPstructs.hpp"
 #include "define.hpp"
 
 class HTTPexecutor

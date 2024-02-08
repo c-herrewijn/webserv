@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/18 14:04:44 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/06 09:25:31 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/09 00:05:33 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,10 +31,10 @@ class ServerException : public WebServerException
 		ServerException( std::initializer_list<std::string> const& ) noexcept;
 };
 
-class ParserException : public WebServerException
+class RequestException : public WebServerException
 {
 	public:
-		ParserException( std::initializer_list<std::string> const& ) noexcept;
+		RequestException( std::initializer_list<std::string> const& ) noexcept;
 };
 
 class ExecException : public WebServerException
@@ -43,8 +43,8 @@ class ExecException : public WebServerException
 		ExecException( std::initializer_list<std::string> const& ) noexcept;
 };
 
-class BuilderException : public WebServerException
+class ResponseException : public WebServerException
 {
 	public:
-		BuilderException( std::initializer_list<std::string> const& ) noexcept;
+		ResponseException( std::initializer_list<std::string> const& ) noexcept;
 };

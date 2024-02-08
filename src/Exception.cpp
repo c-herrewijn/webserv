@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/18 14:04:58 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/06 09:26:02 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/09 00:06:00 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,9 +19,9 @@ ServerException::ServerException( std::initializer_list<std::string> const& prom
 		this->_msg += " " + prompt;
 }
 
-ParserException::ParserException( std::initializer_list<std::string> const& prompts) noexcept
+RequestException::RequestException( std::initializer_list<std::string> const& prompts) noexcept
 {
-	this->_msg = "parsing error -";
+	this->_msg = "request parsing error -";
 	for (std::string prompt : prompts)
 		this->_msg += " " + prompt;
 }
@@ -33,9 +33,9 @@ ExecException::ExecException( std::initializer_list<std::string> const& prompts)
 		this->_msg += " " + prompt;
 }
 
-BuilderException::BuilderException( std::initializer_list<std::string> const& prompts) noexcept
+ResponseException::ResponseException( std::initializer_list<std::string> const& prompts) noexcept
 {
-	this->_msg = "response builder error -";
+	this->_msg = "response building error -";
 	for (std::string prompt : prompts)
 		this->_msg += " " + prompt;
 }

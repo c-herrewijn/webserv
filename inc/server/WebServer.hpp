@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/08 14:42:11 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/09 00:10:28 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,9 +34,8 @@
 #include <set>
 #include <algorithm>
 #include <filesystem>
-#include "HTTPparser.hpp"
-#include "HTTPexecutor.hpp"
-#include "HTTPbuilder.hpp"
+#include "HTTPrequest.hpp"
+#include "HTTPresponse.hpp"
 #include "Exception.hpp"
 #include "define.hpp"
 #include "Server.hpp"
