@@ -6,11 +6,57 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/22 23:36:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/01 13:31:24 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/08 17:28:07 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
-#pragma once
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <map>
+#include <algorithm>
+#include "Exception.hpp"
+#include "HTTPstructs.hpp"
+#include "define.hpp"
+
+#include <vector>
+void	testReqs( void );
+
+class HTTPstruct
+{
+	public:
+		static void	parse( std::string const& );
+		~HTTPstruct( void ) noexcept {};
+
+	private:
+		std::map<std::string, std::string> 		headers;
+		std::string								body;
+
+		// main part
+		// static void	_setHead( std::string const&, HTTPrequest& );
+		void	_setHeaders( std::string const&, HTTPrequest& )=0;
+		void	_setBody( std::string const&, HTTPrequest& )=0;
+
+		// head
+		// static void _setMethod( std::string );
+		// static void	_setURL( std::string const&, HTTPurl& );
+		// static void	_setVersion( std::string const&, HTTPversion& );
+
+		// URL
+		// static void	_setScheme( std::string const&, std::string& );
+		// static void	_setHostPort( std::string const&, HTTPurl& );
+		// static void	_setPath( std::string const&, HTTPurl& );
+		// static void	_setQuery( std::string const&, HTTPurl& );
+		// static void	_setFragment( std::string const&, std::string& );
+
+		// body
+		// static void	_setChunkedBody( std::string const&, std::string& );
+		// static void	_setPlainBody( std::string const&, HTTPrequest& );
+};
+
+
+
+
 #include <map>
 #include <string>
 #include "Exception.hpp"
@@ -60,14 +106,14 @@ typedef struct HTTPheadReq_f
 	std::string	toString( void ) const ;
 } HTTPheadReq;
 
-typedef struct HTTPrequest_f
-{
-	HTTPheadReq	head;
-	dict 		headers;
-	std::string	body;
+// typedef struct HTTPrequest_f
+// {
+// 	HTTPheadReq	head;
+// 	dict 		headers;
+// 	std::string	body;
 
-	std::string	toString( void ) const ;
-} HTTPrequest;
+// 	std::string	toString( void ) const ;
+// } HTTPrequest;
 
 typedef struct HTTPheadResp_f
 {
@@ -78,11 +124,11 @@ typedef struct HTTPheadResp_f
 	std::string	toString( void ) const ;
 } HTTPheadResp;
 
-typedef struct HTTPresponse_f
-{
-	HTTPheadResp	head;
-	dict 			headers;
-	std::string		body;
+// typedef struct HTTPresponse_f
+// {
+// 	HTTPheadResp	head;
+// 	dict 			headers;
+// 	std::string		body;
 
-	std::string	toString( void ) const ;
-} HTTPresponse;
+// 	std::string	toString( void ) const ;
+// } HTTPresponse;
