@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/09 00:30:15 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/09 15:12:41 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,6 @@ class HTTPresponse : public HTTPstruct
 		void		parseBody( std::string const& ) override;
 		// void	buildResponse( int code, std::string const& body );
 		std::string	toString( void ) const override;
-
 
 	protected:
 		int         _statusCode;

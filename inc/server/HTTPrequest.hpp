@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/09 00:18:31 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/09 15:04:32 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,8 +46,8 @@ class HTTPrequest : public HTTPstruct
 		HTTPmethod	_method;
 		HTTPurl		_url;
 
-		void	_setHead( std::string const&) override;
-		void	_setHeaders( std::string const&) override;
+		void	_setHead( std::string const& ) override;
+		void	_setHeaders( std::string const& ) override;
 
 		void	_setMethod( std::string const& );
 		void	_setURL( std::string const& );

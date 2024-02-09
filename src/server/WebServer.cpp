@@ -160,7 +160,7 @@ int	WebServer::_handleRequest( int connfd, std::string& body )
 		reqStat = _readHead(connfd, strHead);
 		if (reqStat != 200)
 			return (reqStat);
-		
+		(void) body;
 	}
 	catch (RequestException const& err) {
 		std::cout << err.what() << '\n';
@@ -235,7 +235,6 @@ int		WebServer::_readHead( int fd, std::string& strHead) const
 	char			buffer[HEADER_MAX_SIZE + 1];
 	ssize_t 		readChar = HEADER_MAX_SIZE;
 	size_t			endHeadPos;
-	bool			keepReading = true;
 	int				statusRead = 200;
 	
 	while (true)

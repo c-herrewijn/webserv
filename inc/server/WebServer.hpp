@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/09 00:10:28 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/09 14:54:44 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,6 +34,7 @@
 #include <set>
 #include <algorithm>
 #include <filesystem>
+#include <fcntl.h>
 #include "HTTPrequest.hpp"
 #include "HTTPresponse.hpp"
 #include "Exception.hpp"

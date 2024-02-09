@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/09 00:26:42 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/09 15:13:29 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,7 +60,7 @@ std::string	HTTPresponse::toString( void ) const
 }
 
 // NB: todo
-void		_setHead( std::string const& strHead)
+void	HTTPresponse::_setHead( std::string const& strHead)
 {
 	(void) strHead;
 }

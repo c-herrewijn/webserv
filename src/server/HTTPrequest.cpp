@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/09 00:23:40 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/09 15:04:56 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,12 +50,12 @@ void	HTTPrequest::parseBody( std::string const& strBody)
     if (strBody.empty())
 		return ;
 	try {
-		this->headers.at("Content-Type");
+		this->_headers.at("Content-Type");
 		try {
-			this->headers.at("Content-Length");
+			this->_headers.at("Content-Length");
 		}
 		catch(const std::out_of_range& e) {
-			if (this->headers["Transfer-Encoding"] == "chunked")
+			if (this->_headers["Transfer-Encoding"] == "chunked")
 				isChunked = true;
 			else
 				throw(RequestException({"invalid request: no Content-Length header"}));
@@ -86,13 +86,13 @@ std::string	HTTPrequest::toString( void ) const
 			throw(RequestException({"Unknown HTTP method"}));
 	}
 	strReq += HTTP_SP;
-	strURL += this->_url.toString();
+	strReq += this->_url.toString();
 	strReq += HTTP_SP;
 	strReq += this->_version.toString();
 	strReq += HTTP_NL;
-	if (!this->headers.empty())
+	if (!this->_headers.empty())
 	{
-		for (auto item : this->headers)
+		for (auto item : this->_headers)
 		{
 			strReq += item.first;
 			strReq += ":";
@@ -102,9 +102,9 @@ std::string	HTTPrequest::toString( void ) const
 		}
 	}
 	strReq += HTTP_NL;
-	if (!this->body.empty())
+	if (!this->_body.empty())
 	{
-		strReq += this->body;
+		strReq += this->_body;
 		strReq += HTTP_TERM;
 	}
 	return (strReq);
@@ -117,7 +117,7 @@ void	HTTPrequest::_setHead( std::string const& header )
 
 	if (! std::getline(stream, method, ' '))
 		throw(RequestException({"invalid request - invalid header:", header}));
-	this->head.method = strToMeth(method);
+	_setMethod(method);
 	if (! std::getline(stream, url, ' '))
 		throw(RequestException({"invalid request - invalid header:", header}));
 	_setURL(url);
@@ -128,14 +128,14 @@ void	HTTPrequest::_setHead( std::string const& header )
 		throw(RequestException({"invalid request - no termination header:", header}));
 }
 
-void	HTTPrequest::_setHeaders( std::string& headers)
+void	HTTPrequest::_setHeaders( std::string const& headers)
 {
-	HTTPstruct._setHeaders(headers);
+	HTTPstruct::_setHeaders(headers);
 	try {
-		std::string currentHost = this->headers.at["Host"];
-		if (this->head.url.host == "")
+		std::string currentHost = this->_headers.at("Host");
+		if (this->_url.host == "")
 			_setHostPort(currentHost);
-		else if (this->head.url.host != currentHost)
+		else if (this->_url.host != currentHost)
 			throw(RequestException({"invalid request: hosts do not match"}));
 	}
 	catch(std::out_of_range const& e) {
@@ -188,7 +188,7 @@ void	HTTPrequest::_setScheme( std::string const& strScheme )
 {
 	if ((strScheme != HTTP_SCHEME) and (strScheme != HTTPS_SCHEME))
 		throw(RequestException({"invalid request - unsupported scheme:", strScheme}));
-	this->scheme = strScheme;
+	this->_url.scheme = strScheme;
 }
 
 void	HTTPrequest::_setHostPort( std::string const& strURL )
@@ -196,24 +196,24 @@ void	HTTPrequest::_setHostPort( std::string const& strURL )
 	size_t 		delimiter = strURL.find(':');
 	std::string	port;
 
-	this->url.host = strURL.substr(0, delimiter);
+	this->_url.host = strURL.substr(0, delimiter);
 	if (delimiter != std::string::npos)	// there's the port
 	{
 		port = strURL.substr(delimiter + 1);
 		if (port.empty())		// because    http://ABC.com:/%7esmith/home.html is still valid
 		{
-			this->url.port = HTTP_DEF_PORT;
+			this->_url.port = HTTP_DEF_PORT;
 			return ;
 		}
 		try {
-			this->url.port = std::stoi(port);
+			this->_url.port = std::stoi(port);
 		}
 		catch(const std::exception& e ) {
 			throw(RequestException({"invalid request - invalid port format:", strURL.substr(delimiter + 1)}));
 		}
 	}
 	else
-		this->url.port = HTTP_DEF_PORT;
+		this->_url.port = HTTP_DEF_PORT;
 }
 
 void	HTTPrequest::_setPath( std::string const& strPath )
@@ -223,7 +223,7 @@ void	HTTPrequest::_setPath( std::string const& strPath )
 
 	del1 = tmpPath.find('?');
 	del2 = tmpPath.find('#');
-	this->url.path = tmpPath.substr(0, std::min(del1, del2));
+	this->_url.path = tmpPath.substr(0, std::min(del1, del2));
 	if (del1 != std::string::npos)
 	{
 		tmpPath = tmpPath.substr(del1);
@@ -243,7 +243,7 @@ void	HTTPrequest::_setQuery( std::string const& queries )
 
 	if (queries == "?")
 		throw(RequestException({"empty query"}));
-	this->url.queryRaw = keyValue.substr(1);
+	this->_url.queryRaw = keyValue.substr(1);
 	while (true)
 	{
 		keyValue = keyValue.substr(1);	// remove leading '?' or '&'
@@ -255,7 +255,7 @@ void	HTTPrequest::_setQuery( std::string const& queries )
 		value = keyValue.substr(del1 + 1, del2 - del1 - 1);
 		if (key.empty() or value.empty())
 			throw(RequestException({"invalid request - invalid query:", keyValue}));
-		this->url.query.insert({key, value});
+		this->_url.query.insert({key, value});
 		if (del2 == std::string::npos)
 			break;
 		keyValue = keyValue.substr(del2);
@@ -264,7 +264,7 @@ void	HTTPrequest::_setQuery( std::string const& queries )
 
 void	HTTPrequest::_setFragment( std::string const& strFragment)
 {
-	this->fragment = strFragment.substr(1);
+	this->_url.fragment = strFragment.substr(1);
 }
 
 void	HTTPrequest::_setChunkedBody( std::string const& chunkedBody)
