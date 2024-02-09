@@ -63,9 +63,9 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 	while (block.front() != "}")
 	{
 		if (block.front() == "alias")
-			parseAlias(block);
+			_parseAlias(block);
 		else if (block.front() == "allowMethods")
-			parseAllowedMethod(block);
+			_parseAllowedMethod(block);
 		else if (block.front() == "location")
 		{
 			Location local(block, params);
@@ -82,7 +82,7 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 	block.erase(block.begin());
 }
 
-void	Location::parseAllowedMethod(std::vector<std::string>& block)
+void	Location::_parseAllowedMethod(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	while (1)
@@ -110,7 +110,7 @@ void	Location::parseAllowedMethod(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
-void	Location::parseAlias(std::vector<std::string>& block)
+void	Location::_parseAlias(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front().find_first_of(" ") != std::string::npos)

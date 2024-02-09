@@ -24,22 +24,11 @@
 
 class Location
 {
-	private:
-		size_t 					block_index;
-		std::bitset<M_SIZE> 	allowedMethods;	// Allowed methods
-		std::string				URL; // Default "location" param
-		std::string 			alias; // Last given alias
-		Parameters				params; // Local values to use. If default it will be a copy of "server" context
-		std::vector<Location> 	nested; // Possible nested locations
-	
-		void	parseAllowedMethod(std::vector<std::string>& block);
-		void	parseAlias(std::vector<std::string>& block);
-		Location(void);
-
 	public:
 		Location(std::vector<std::string>& block, const Parameters& param);
 		virtual ~Location(void);
 		Location(const Location& copy);
+		Location(void);
 		Location&	operator=(const Location& assign);
 
 		void 							setBlockIndex(const size_t& ref);
@@ -59,6 +48,18 @@ class Location
 			private:
 				std::string errorMessage;
 		};
+
+	private:
+		size_t 					block_index;
+		std::bitset<M_SIZE> 	allowedMethods;	// Allowed methods
+		std::string				URL; // Default "location" param
+		std::string 			alias; // Last given alias
+		Parameters				params; // Local values to use. If default it will be a copy of "server" context
+		std::vector<Location> 	nested; // Possible nested locations
+	
+		void	_parseAllowedMethod(std::vector<std::string>& block);
+		void	_parseAlias(std::vector<std::string>& block);
+
     friend std::ostream& operator<<(std::ostream& os, const Location& location);
 };
 

@@ -46,7 +46,7 @@ Parameters&	Parameters::operator=(const Parameters& assign)
 	return (*this);
 }
 
-void	Parameters::parseRoot(std::vector<std::string>& block)
+void	Parameters::_parseRoot(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == ";")
@@ -58,7 +58,7 @@ void	Parameters::parseRoot(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
-void	Parameters::parseBodySize(std::vector<std::string>& block)
+void	Parameters::_parseBodySize(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == ";")
@@ -87,7 +87,7 @@ void	Parameters::parseBodySize(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
-void	Parameters::parseAutoindex(std::vector<std::string>& block)
+void	Parameters::_parseAutoindex(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == ";")
@@ -104,7 +104,7 @@ void	Parameters::parseAutoindex(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
-void	Parameters::parseIndex(std::vector<std::string>& block)
+void	Parameters::_parseIndex(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == ";")
@@ -123,7 +123,7 @@ void	Parameters::parseIndex(std::vector<std::string>& block)
 	}
 }
 
-void	Parameters::parseErrorPage(std::vector<std::string>& block)
+void	Parameters::_parseErrorPage(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == ";")
@@ -150,7 +150,7 @@ void	Parameters::parseErrorPage(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
-void	Parameters::parseReturn(std::vector<std::string>& block)
+void	Parameters::_parseReturn(std::vector<std::string>& block)
 {
 	int code;
 	block.erase(block.begin());
@@ -230,17 +230,17 @@ void	Parameters::setRoot(std::string& val)
 void	Parameters::fill(std::vector<std::string>& block)
 {
 	if (block.front() == "root")
-		parseRoot(block);
+		_parseRoot(block);
 	else if (block.front() == "client_max_body_size")
-		parseBodySize(block);
+		_parseBodySize(block);
 	else if (block.front() == "autoindex")
-		parseAutoindex(block);
+		_parseAutoindex(block);
 	else if (block.front() == "index")
-		parseIndex(block);
+		_parseIndex(block);
 	else if (block.front() == "error_page")
-		parseErrorPage(block);
+		_parseErrorPage(block);
 	else if (block.front() == "return")
-		parseReturn(block);
+		_parseReturn(block);
 	else
 		throw ErrorCatch("\"" + block.front() + "\" is not a valid parameter");
 }

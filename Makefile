@@ -6,7 +6,7 @@
 #    By: itopchu <itopchu@student.42.fr>              +#+                      #
 #                                                    +#+                       #
 #    Created: 2023/11/25 18:04:49 by fra           #+#    #+#                  #
-#    Updated: 2024/02/01 13:39:59 by faru          ########   odam.nl          #
+#    Updated: 2024/02/09 16:36:59 by faru          ########   odam.nl          #
 #                                                                              #
 # **************************************************************************** #
 
@@ -54,7 +54,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS) Makefile
 
 client: $(CLIENT)
 	@clear
-	@./$(CLIENT) "localhost" "4242"
+	@./$(CLIENT) "localhost" "8000"
 
 $(CLIENT): $(CLIENT_SRCS)
 	@$(CC) $(CPPFLAGS) $^ -o $@

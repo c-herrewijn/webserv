@@ -12,11 +12,6 @@
 
 #include "Server.hpp"
 
-Server::Server(void)
-{
-
-}
-
 Server::~Server(void)
 {
 	listens.clear();
@@ -34,7 +29,6 @@ Server::Server(const Server& copy) :
 	cgi_extension(copy.cgi_extension),
 	cgi_allowed(copy.cgi_allowed)
 {
-
 }
 
 Server&	Server::operator=(const Server& assign)
@@ -53,7 +47,7 @@ Server&	Server::operator=(const Server& assign)
 	return (*this);
 }
 
-void	Server::parseCgiDir(std::vector<std::string>& block)
+void	Server::_parseCgiDir(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front().find(' ') != std::string::npos)
@@ -67,7 +61,7 @@ void	Server::parseCgiDir(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
-void	Server::parseCgiExtension(std::vector<std::string>& block)
+void	Server::_parseCgiExtension(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front().find(' ') != std::string::npos)
@@ -79,7 +73,7 @@ void	Server::parseCgiExtension(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
-void	Server::parseCgiAllowed(std::vector<std::string>& block)
+void	Server::_parseCgiAllowed(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == "true")
@@ -94,7 +88,7 @@ void	Server::parseCgiAllowed(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
-void	Server::parseListen(std::vector<std::string>& block)
+void	Server::_parseListen(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == ";")
@@ -114,7 +108,7 @@ void	Server::parseListen(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
-void	Server::parseServerName(std::vector<std::string>& block)
+void	Server::_parseServerName(std::vector<std::string>& block)
 {
 	// THIS PART IS SUS. What about asterix?
 	block.erase(block.begin());
@@ -132,30 +126,30 @@ void	Server::parseServerName(std::vector<std::string>& block)
 	}
 }
 
-void	Server::parseLocation(std::vector<std::string>& block)
+void	Server::_parseLocation(std::vector<std::string>& block)
 {
 	Location	local(block, params);
 	locations.push_back(local);
 }
 
-void	Server::fillServer(std::vector<std::string>& block)
+void	Server::_fillServer(std::vector<std::string>& block)
 {
 	params.setBlockIndex(0);
 	// Parser keyword separations
 	for (std::vector<std::string>::iterator it = block.begin(); it != block.end();)
 	{
 		if (*it == "listen")
-			parseListen(block);
+			_parseListen(block);
 		else if (*it == "server_name")
-			parseServerName(block);
+			_parseServerName(block);
 		else if (*it == "location")
-			parseLocation(block);
+			_parseLocation(block);
 		else if (block.front() == "cgi_directory")
-			parseCgiDir(block);
+			_parseCgiDir(block);
 		else if (block.front() == "cgi_extension")
-			parseCgiExtension(block);
+			_parseCgiExtension(block);
 		else if (block.front() == "cgi_allowed")
-			parseCgiAllowed(block);
+			_parseCgiAllowed(block);
 		else
 			params.fill(block);
 	}
@@ -172,7 +166,7 @@ void	Server::parseBlock(std::vector<std::string>& block)
 	if (block[block.size() - 1] != "}")
 		throw ErrorCatch("Last element is not a '}");
 	block.pop_back();
-	fillServer(block);
+	_fillServer(block);
 }
 
 const std::string& Server::getCgiDir(void) const
@@ -208,6 +202,11 @@ const Parameters&	Server::getParams(void) const
 const std::vector<Location>&	Server::getLocations() const
 {
 	return (locations);
+}
+
+void	Server::executeRequest(HTTPrequest& req) const
+{
+	(void) req;
 }
 
 std::ostream& operator<<(std::ostream& os, const Server& server) {

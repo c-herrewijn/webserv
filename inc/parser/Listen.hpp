@@ -20,19 +20,12 @@
 # define MAX_PORT 65535
 class Listen
 {
-	private:
-		uint16_t				i_port;	// Port val;
-		std::vector<uint8_t>	i_ip;	// Ip vals
-		std::string				s_ip;	// String ip
-		std::string				s_port;	// String port
-		bool					def;	// Check for default_server
-		bool					all;	// Check for *:"port"
-
-		void	fillFull(std::vector<std::string>& block);
-		void	fillIp(std::vector<std::string>& block);
-		void	fillPort(std::vector<std::string>& block);
-
 	public:
+		Listen(const Listen& copy);
+		Listen&	operator=(const Listen& assign);
+		Listen(void);
+		virtual ~Listen(void);
+
 		void						fillValues(std::vector<std::string>& block);
 		void						setDef(bool	status);
 		void						setAll(bool status);
@@ -45,10 +38,6 @@ class Listen
 		bool						operator==(const Listen&) const;
 		bool						operator!=(const Listen&) const;
 
-		Listen(const Listen& copy);
-		Listen&	operator=(const Listen& assign);
-		Listen(void);
-		virtual ~Listen(void);
 		class ErrorCatch : public std::exception {
 			public:
 				ErrorCatch(const std::string& message) : errorMessage(message) {}
@@ -58,6 +47,19 @@ class Listen
 			private:
 				std::string errorMessage;
 		};
+
+	private:
+		uint16_t				i_port;	// Port val;
+		std::vector<uint8_t>	i_ip;	// Ip vals
+		std::string				s_ip;	// String ip
+		std::string				s_port;	// String port
+		bool					def;	// Check for default_server
+		bool					all;	// Check for *:"port"
+
+		void	_fillFull(std::vector<std::string>& block);
+		void	_fillIp(std::vector<std::string>& block);
+		void	_fillPort(std::vector<std::string>& block);
+		
 		friend std::ostream& operator<<(std::ostream& os, const Listen& listen);
 };
 

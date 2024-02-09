@@ -19,11 +19,11 @@ Config::~Config(void) { }
 
 void	Config::fillConfig(const std::string& file)
 {
-	readFile(file);
-	tokenizeFile();
+	_readFile(file);
+	_tokenizeFile();
 	if (clearEmpty())
 		throw ErrorCatch("Config file is empty.");
-	checkBrackets();
+	_checkBrackets();
 }
 
 std::vector<std::vector<std::string>>	Config::divideContent(void)
@@ -69,7 +69,7 @@ std::vector<std::string>	Config::getFileContent(void)
 	return (file_content);
 }
 
-void	Config::readFile(const std::string& file_path)
+void	Config::_readFile(const std::string& file_path)
 {
 	std::ifstream inputFile(file_path);
 	if (!inputFile.is_open())
@@ -86,7 +86,7 @@ void	Config::readFile(const std::string& file_path)
 		throw ErrorCatch("The file is empty: " + file_path);
 }
 
-size_t	Config::doComment(size_t &i)
+size_t	Config::_doComment(size_t &i)
 {
 	if (raw_input[i] != '#')
 		return (i);
@@ -95,7 +95,7 @@ size_t	Config::doComment(size_t &i)
 	return (i);
 }
 
-void	Config::doQuote(size_t& i, size_t& j)
+void	Config::_doQuote(size_t& i, size_t& j)
 {
 	if (raw_input[i] != '\'' && raw_input[i] != '"')
 		return ;
@@ -113,7 +113,7 @@ void	Config::doQuote(size_t& i, size_t& j)
 	i = j;
 }
 
-size_t	Config::doSpace(size_t& i)
+size_t	Config::_doSpace(size_t& i)
 {
 	if (!std::isspace(raw_input[i]))
 		return (i);
@@ -124,13 +124,13 @@ size_t	Config::doSpace(size_t& i)
 	return (i);
 }
 
-void	Config::doExceptions(size_t& i)
+void	Config::_doExceptions(size_t& i)
 {
 	if ((raw_input[i] >= 1 && 8 <= raw_input[i]) || (raw_input[i] >= 14 && raw_input[i] <= 31))
 		throw ErrorCatch("Invalid character in the file.");
 }
 
-void	Config::doToken(size_t& i, size_t& j)
+void	Config::_doToken(size_t& i, size_t& j)
 {
 	if (j >= raw_input.size()
 		|| std::isspace(raw_input[j])
@@ -155,7 +155,7 @@ void	Config::doToken(size_t& i, size_t& j)
 	i = j;
 }
 
-void	Config::doClean()
+void	Config::_doClean()
 {
 	for (std::vector<std::string>::iterator it = file_content.begin(); it != file_content.end();)
 	{
@@ -179,24 +179,24 @@ void	Config::doClean()
 	}
 }
 
-void	Config::tokenizeFile(void)
+void	Config::_tokenizeFile(void)
 {
 	size_t	i = 0, j = 0;
 	while (i < raw_input.size())
 	{
-		j = doSpace(i);
-		j = doComment(i);
-		j = doSpace(i);
-		doQuote(i, j);
-		j = doSpace(i);
-		doToken(i, j);
+		j = _doSpace(i);
+		j = _doComment(i);
+		j = _doSpace(i);
+		_doQuote(i, j);
+		j = _doSpace(i);
+		_doToken(i, j);
 	}
 	if (file_content.size() == 0)
 		throw ErrorCatch("No valuable input found in given config file.");
-	doClean();
+	_doClean();
 }
 
-void	Config::checkBrackets(void)
+void	Config::_checkBrackets(void)
 {
 	int bracks = 0;
 	std::vector<std::string>::iterator it;
@@ -214,7 +214,7 @@ void	Config::checkBrackets(void)
 		throw ErrorCatch("Missing brackets");
 }
 
-void	Config::printContent(void)
+void	Config::_printContent(void)
 {
 	size_t i = 0;
 	while (i < file_content.size())

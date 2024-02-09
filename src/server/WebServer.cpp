@@ -14,12 +14,12 @@
 
 WebServer::WebServer ( std::vector<Server> const& servers ) : _servers(servers)
 {
-	for (auto server :this->_servers)
+	for (auto const& server : this->_servers)
 	{
-		for (auto listAddress : server.getListens())
+		for (auto const& listAddress : server.getListens())
 		{
 			auto isPresent = std::find(this->_listenAddress.begin(),this->_listenAddress.end(), listAddress);
-			if ( isPresent == this->_listenAddress.end())
+			if ( isPresent == this->_listenAddress.end() )
 				this->_listenAddress.push_back(listAddress);
 		}
 	}
@@ -33,12 +33,14 @@ WebServer::~WebServer ( void ) noexcept
 
 void	WebServer::startListen( void )
 {
-	try {
-		for (auto listAddress : this->_listenAddress)
+	for (auto const& listAddress : this->_listenAddress)
+	{
+		try {
 			this->_listenTo(listAddress.getIpString(), listAddress.getPortString());
-	}
-	catch(const WebServerException& e) {
-		std::cout << e.what() << '\n';
+		}
+		catch(const WebServerException& e) {
+			std::cout << e.what() << '\n';
+		}
 	}
 	
 }
@@ -70,7 +72,7 @@ void	WebServer::_listenTo( std::string const& hostname, std::string const& port 
 	if (tmp == nullptr)
 	{
 		freeaddrinfo(list);
-		throw(ServerException({"no available IP host found for", hostname, ":",port}));
+		throw(ServerException({"no available IP host found for", hostname, "port", port}));
 	}
 	memmove(&hostIP, tmp->ai_addr, std::min(sizeof(struct sockaddr), sizeof(struct sockaddr_storage)));
 	freeaddrinfo(list);
@@ -106,7 +108,6 @@ void	WebServer::loop( void )
 {
 	int			nConn;
 	int			exitStatus = 200;
-	std::string bodyResp;
 
 	while (true)
 	{
@@ -123,7 +124,7 @@ void	WebServer::loop( void )
 					_acceptConnection(this->_connfds[i].fd);
 				else
 				{
-					exitStatus = _handleRequest(this->_connfds[i].fd, bodyResp);
+					exitStatus = _handleRequest(this->_connfds[i].fd);
 				}
 			}
 			if (this->_connfds[i].revents & POLLOUT)
@@ -149,24 +150,29 @@ void	WebServer::loop( void )
 	}
 }
 
-int	WebServer::_handleRequest( int connfd, std::string& body )
+int	WebServer::_handleRequest( int connfd )
 {
 	HTTPrequest		request;
 	HTTPresponse	response;
 	int				reqStat = -1;
-	std::string		strHead, strBody;
+	std::string		strHead, strBody, servName;
+	Server			handler;
 	
 	try {
-		reqStat = _readHead(connfd, strHead);
+		reqStat = _readHead(connfd, strHead, strBody);
 		if (reqStat != 200)
 			return (reqStat);
-		(void) body;
+		request.parseHead(strHead);
+		servName = request.getHost();
+		handler = getHandler(servName);
+		// NB: the heandler should read the rest of the request, i.e. the body so the buffer of the body and the socket as well should be given to the handler
+		handler.executeRequest(request);
 	}
 	catch (RequestException const& err) {
 		std::cout << err.what() << '\n';
 		return (400);
 	}
-	catch (WebServerException const& err) {
+	catch (ServerException const& err) {
 		std::cout << err.what() << '\n';
 		return (500);
 	}
@@ -191,6 +197,37 @@ std::string	WebServer::getAddress( const struct sockaddr_storage *addr ) const n
 		ipAddress = std::string(ipv6) + std::string(":") + std::to_string(ntohs(addr_v6->sin6_port));
 	}
 	return (ipAddress);
+}
+
+// NB: the logic to find the handler relies only on the server name?
+Server const&	WebServer::getHandler( std::string const& servName ) const
+{
+	std::string	tmpServName = servName;
+
+	for (auto const& server : this->_servers)
+	{
+		for (auto name : server.getNames())
+		{
+			std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+			std::transform(tmpServName.begin(), tmpServName.end(), tmpServName.begin(), ::tolower);
+			if (tmpServName == name)
+				return (server);
+		}
+	}
+	return (getDefaultServer());
+}
+
+Server const&	WebServer::getDefaultServer( void ) const
+{
+	for (auto const& server : this->_servers)
+	{
+		for (auto const& listen : server.getListens())
+		{
+			if (listen.getDef() == true)
+				return (server);
+		}
+	}
+	return (this->_servers[0]);
 }
 
 void	WebServer::_dropConn(int toDrop) noexcept
@@ -230,7 +267,7 @@ bool	WebServer::_isListener( int socket ) const
 	return (this->_listeners.find(socket) != this->_listeners.end());
 }
 
-int		WebServer::_readHead( int fd, std::string& strHead) const
+int		WebServer::_readHead( int fd, std::string& strHead, std::string& strBody) const
 {
 	char			buffer[HEADER_MAX_SIZE + 1];
 	ssize_t 		readChar = HEADER_MAX_SIZE;
@@ -247,9 +284,8 @@ int		WebServer::_readHead( int fd, std::string& strHead) const
 		if (endHeadPos != std::string::npos)
 		{
 			endHeadPos += HTTP_TERM.size();
-			if (lseek(fd, endHeadPos, SEEK_SET) < 0)
-				throw(ServerException({"error resetting the cursor position"}));
 			strHead += std::string(buffer).substr(0, endHeadPos);
+			strBody = std::string(buffer).substr(endHeadPos);
 			break;
 		}
 		else if (readChar < HEADER_MAX_SIZE)
@@ -286,7 +322,7 @@ void	WebServer::_writeSocket( int fd, std::string const& content) const
 // {
 // 	int 	statProc;
 // 	pid_t	childProc;
-
+//
 // 	// if (this->_currentJobs.empty())
 // 	// 	return ;
 // 	childProc = waitpid(-1, &statProc, WNOHANG);

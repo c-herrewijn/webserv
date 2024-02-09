@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/09 15:04:56 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/09 17:48:00 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,11 +77,20 @@ std::string	HTTPrequest::toString( void ) const
 	switch (this->_method)
 	{
 		case HTTP_GET:
+		{
 			strReq += "GET";
+			break;
+		}
 		case HTTP_POST:
+		{
 			strReq += "POST";
+			break;
+		}
 		case HTTP_DELETE:
+		{
 			strReq += "DELETE";
+			break;
+		}
 		default:
 			throw(RequestException({"Unknown HTTP method"}));
 	}
@@ -110,6 +119,17 @@ std::string	HTTPrequest::toString( void ) const
 	return (strReq);
 }
 
+std::string	HTTPrequest::getHost( void ) const
+{
+	try {
+		return (this->_headers.at("Host"));
+	}
+	catch(const std::out_of_range& e) {
+		throw(RequestException({"no host found in request"}));
+	}
+	
+}
+
 void	HTTPrequest::_setHead( std::string const& header )
 {
 	std::istringstream	stream(header);
@@ -136,7 +156,10 @@ void	HTTPrequest::_setHeaders( std::string const& headers)
 		if (this->_url.host == "")
 			_setHostPort(currentHost);
 		else if (this->_url.host != currentHost)
+		{
+			std::cout << this->_url.host << " - " << currentHost << '\n';
 			throw(RequestException({"invalid request: hosts do not match"}));
+		}
 	}
 	catch(std::out_of_range const& e) {
 		throw(RequestException({"invalid request: no Host header"}));
@@ -152,7 +175,7 @@ void    HTTPrequest::_setMethod( std::string const& strMethod )
 	else if (strMethod == "DELETE")
 		this->_method = HTTP_DELETE;
 	else
-		throw(RequestException({"unknown http method:", strMethod}));
+		throw(RequestException({"unknown HTTP method:", strMethod}));
 }
 
 void	HTTPrequest::_setURL( std::string const& strURL )

@@ -50,7 +50,7 @@ Listen::~Listen(void)
 	i_ip.clear();
 }
 
-void	Listen::fillFull(std::vector<std::string>& block)
+void	Listen::_fillFull(std::vector<std::string>& block)
 {
 	all = 0;
 	if (!std::isdigit(block.front().front()))
@@ -99,7 +99,7 @@ void	Listen::fillFull(std::vector<std::string>& block)
 	s_ip = std::to_string(i_ip[0]) + "." + std::to_string(i_ip[1]) + "." + std::to_string(i_ip[2]) + "." + std::to_string(i_ip[3]);
 }
 
-void	Listen::fillIp(std::vector<std::string>& block)
+void	Listen::_fillIp(std::vector<std::string>& block)
 {
 	if (!std::isdigit(block.front().front()))
 		throw ErrorCatch("First element is not a digit in listen '" + block.front() + "'");
@@ -135,7 +135,7 @@ void	Listen::fillIp(std::vector<std::string>& block)
 	s_ip = std::to_string(i_ip[0]) + "." + std::to_string(i_ip[1]) + "." + std::to_string(i_ip[2]) + "." + std::to_string(i_ip[3]);
 }
 
-void	Listen::fillPort(std::vector<std::string>& block)
+void	Listen::_fillPort(std::vector<std::string>& block)
 {
 	all = true;
 	if (block.front().find_first_of(":") != block.front().find_last_of(":"))
@@ -175,11 +175,11 @@ void	Listen::fillValues(std::vector<std::string>& block)
 	if (block.front().find('*') != std::string::npos && (hasDot || !hasColumn))
 		throw ErrorCatch("Faulty parameter in 'listen': '" + block.front() + "'");
 	if (hasDot && hasColumn)
-		fillFull(block);
+		_fillFull(block);
 	else if (hasDot)
-		fillIp(block);
+		_fillIp(block);
 	else
-		fillPort(block);
+		_fillPort(block);
 }
 
 const std::string&	Listen::getIpString(void) const

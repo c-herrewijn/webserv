@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/09 14:54:44 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/09 18:53:17 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,8 +38,10 @@
 #include "HTTPrequest.hpp"
 #include "HTTPresponse.hpp"
 #include "Exception.hpp"
-#include "define.hpp"
 #include "Server.hpp"
+#define HEADER_MAX_SIZE 	1024						// max size of HTTP header
+#define BACKLOG 			10				        	// max pending connection queued up
+#define MAX_TIMEOUT 		60000               		// maximum timeout with poll()
 
 // NB: non-blocking setup sockets
 // NB: non-blocking waitpid
@@ -53,6 +55,8 @@ class WebServer
 		void			loop( void );
 		void			startListen( void );
 		std::string		getAddress( const struct sockaddr_storage*) const noexcept ;
+		Server const&	getHandler( std::string const& ) const ;
+		Server const&	getDefaultServer( void ) const ;
 
 	private:
 		std::vector<Server>			_servers;
@@ -64,9 +68,9 @@ class WebServer
 		void	_dropConn( int socket = -1 ) noexcept;
 		void	_addConn( int ) noexcept;
 		void	_acceptConnection( int ) ;
-		int		_handleRequest( int, std::string& ) ;		// NB: is the status (i.e. returned value) necessary?
+		int		_handleRequest( int ) ;		// NB: is the status (i.e. returned value) necessary?
 		bool	_isListener( int ) const ;
-		int		_readHead( int , std::string& ) const;
+		int		_readHead( int , std::string&, std::string& ) const;
 		void	_writeSocket( int, std::string const& ) const ;
 		// void			_waitForChildren( void) ;
 };

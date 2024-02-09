@@ -21,27 +21,29 @@
 # include "Parameters.hpp"
 # include "Location.hpp"
 # include "Listen.hpp"
+# include "HTTPrequest.hpp"
 
 # define DEF_CONF "default/default.conf"
 
 class Server
 {
 	public:
-		// Form
 		Server(const Server& copy);
 		Server&	operator=(const Server& assign);
-		Server(void);
+		Server(void) {};
 		virtual ~Server(void);
-		// Subject
-		void	parseBlock(std::vector<std::string>& block);
-		// Getters
-		const std::vector<Listen>& getListens(void) const;
+
+		void							parseBlock(std::vector<std::string>& block);
+		void							executeRequest(HTTPrequest&) const;
+	
+		const std::vector<Listen>&		getListens(void) const;
 		const std::vector<std::string>& getNames(void) const;
-		const Parameters&	getParams(void) const;
+		const Parameters&				getParams(void) const;
 		const std::vector<Location>&	getLocations(void) const;
-		const std::string& getCgiDir(void) const;
-		const std::string& getCgiExtension(void) const;
-		const bool& getCgiAllowed(void) const;
+		const std::string& 				getCgiDir(void) const;
+		const std::string& 				getCgiExtension(void) const;
+		const bool& 					getCgiAllowed(void) const;
+
 		class ErrorCatch : public std::exception {
 			public:
 				ErrorCatch(const std::string& message) : errorMessage(message) {}
@@ -60,15 +62,16 @@ class Server
 		std::string					cgi_directory;	// bin for cgi
 		std::string					cgi_extension;	// extention .py .sh
 		bool						cgi_allowed;	// Check for permissions
-		// Parsers
-		void	parseListen(std::vector<std::string>& block);
-		void	parseServerName(std::vector<std::string>& block);
-		void	parseLocation(std::vector<std::string>& block);
-		void	parseCgiDir(std::vector<std::string>& block);
-		void	parseCgiExtension(std::vector<std::string>& block);
-		void	parseCgiAllowed(std::vector<std::string>& block);
-		// Setup
-		void	fillServer(std::vector<std::string>& block);
+
+		void	_parseListen(std::vector<std::string>& block);
+		void	_parseServerName(std::vector<std::string>& block);
+		void	_parseLocation(std::vector<std::string>& block);
+		void	_parseCgiDir(std::vector<std::string>& block);
+		void	_parseCgiExtension(std::vector<std::string>& block);
+		void	_parseCgiAllowed(std::vector<std::string>& block);
+
+		void	_fillServer(std::vector<std::string>& block);
+
     friend std::ostream& operator<<(std::ostream& os, const Server& server);
 };
 
