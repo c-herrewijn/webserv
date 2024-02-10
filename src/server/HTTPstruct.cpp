@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/09 17:46:54 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/10 17:07:37 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,6 +72,8 @@ std::string	HTTPversion::toString( void ) const
 	return (strVersion);
 }
 
+HTTPstruct::HTTPstruct( void ) : _ready(false) {}
+
 void	HTTPstruct::parseHead( std::string const& strReq )
 {
 	std::string head, headers;
@@ -91,11 +93,15 @@ void	HTTPstruct::parseHead( std::string const& strReq )
 	_setHeaders(headers);
 }
 
+bool	HTTPstruct::isReady( void ) const
+{
+	return(this->_ready);
+}
+
 void	HTTPstruct::_setHeaders( std::string const& headers )
 {
 	size_t 		del1, del2;
 	std::string key, value, tmpHeaders=headers;
-	// bool		hostFound = false;
 
 	if (tmpHeaders.empty())
 		return ;
@@ -106,8 +112,6 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 		if (del2 == std::string::npos)
 			throw(ServerException({"invalid request - invalid header format:", tmpHeaders}));
 		key = tmpHeaders.substr(0, del2);
-		// if ((hostFound == false) and (key == "Host"))
-		// 	hostFound = true;
 		value = tmpHeaders.substr(del2 + 2, del1 - del2 - 2);
 		this->_headers.insert({key, value});
 		tmpHeaders = tmpHeaders.substr(del1 + 2);

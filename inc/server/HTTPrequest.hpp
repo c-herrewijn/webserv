@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/09 17:46:47 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/10 16:42:35 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,9 +36,10 @@ typedef struct HTTPurl_f
 class HTTPrequest : public HTTPstruct
 {
 	public:
-		HTTPrequest( std::string const& strHeads="", std::string const& strBody="" );
+		HTTPrequest( void );
 		virtual ~HTTPrequest( void ) override {};
 
+		void		storeTmpBody( std::string const& );
 		void		parseBody( std::string const& ) override;
 		std::string	toString( void ) const override;
 		std::string	getHost( void ) const ;
@@ -46,6 +47,7 @@ class HTTPrequest : public HTTPstruct
 	protected:
 		HTTPmethod	_method;
 		HTTPurl		_url;
+		std::string	_tmpBody;
 
 		void	_setHead( std::string const& ) override;
 		void	_setHeaders( std::string const& ) override;
@@ -57,6 +59,6 @@ class HTTPrequest : public HTTPstruct
 		void	_setPath( std::string const& );
 		void	_setQuery( std::string const& );
 		void	_setFragment( std::string const& );
-
+		
 		void	_setChunkedBody( std::string const& );
 };

@@ -42,16 +42,19 @@ typedef struct HTTPversion_f
 class HTTPstruct
 {
 	public:
+		HTTPstruct( void );
 		virtual	~HTTPstruct( void ) {};
 
 		void				parseHead( std::string const& );
 		virtual void		parseBody( std::string const& )=0;
 		virtual std::string	toString( void ) const =0;
+		bool				isReady( void ) const ;
 
 	protected:
 		dict 		_headers;
 		std::string	_body;
     	HTTPversion	_version;
+		bool		_ready;
 
 		virtual void	_setHead( std::string const& )=0;
 		virtual void	_setHeaders( std::string const& );

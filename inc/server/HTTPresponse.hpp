@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/09 15:12:41 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/10 16:57:25 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,11 +17,11 @@
 class HTTPresponse : public HTTPstruct
 {
 	public:
-		HTTPresponse( std::string const& strHeads="", std::string const& strBody="" );
+		HTTPresponse( void );
 		virtual ~HTTPresponse( void ) override {};
 
 		void		parseBody( std::string const& ) override;
-		// void	buildResponse( int code, std::string const& body );
+		void		buildResponse( int, std::string const&, std::string const& );
 		std::string	toString( void ) const override;
 
 	protected:
@@ -29,7 +29,6 @@ class HTTPresponse : public HTTPstruct
 		std::string _statusStr;
 
 		void		_setHead( std::string const& ) override;
-		void		_setHead( int, std::string const& );
 		void		_addHeader(std::string const&, std::string const& );
 		std::string	_mapStatus( int ) const;
 		std::string	_getDateTime( void ) const;

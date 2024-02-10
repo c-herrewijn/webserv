@@ -22,6 +22,7 @@
 # include "Location.hpp"
 # include "Listen.hpp"
 # include "HTTPrequest.hpp"
+# include "HTTPresponse.hpp"
 
 # define DEF_CONF "default/default.conf"
 
@@ -33,8 +34,9 @@ class Server
 		Server(void) {};
 		virtual ~Server(void);
 
-		void							parseBlock(std::vector<std::string>& block);
-		void							executeRequest(HTTPrequest&) const;
+		void			parseBlock(std::vector<std::string>& block);
+		void			executeRequest(HTTPrequest&) const;
+		HTTPresponse	sendResponse(int, std::string&) const ;
 	
 		const std::vector<Listen>&		getListens(void) const;
 		const std::vector<std::string>& getNames(void) const;

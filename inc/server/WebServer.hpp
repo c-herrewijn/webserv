@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/09 18:53:17 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/10 16:27:45 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,6 +32,7 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <stack>
 #include <algorithm>
 #include <filesystem>
 #include <fcntl.h>
@@ -59,6 +60,7 @@ class WebServer
 		Server const&	getDefaultServer( void ) const ;
 
 	private:
+		Server						_defaultServer;
 		std::vector<Server>			_servers;
 		std::vector<Listen>			_listenAddress;
 		std::vector<struct pollfd>	_connfds;
@@ -68,9 +70,9 @@ class WebServer
 		void	_dropConn( int socket = -1 ) noexcept;
 		void	_addConn( int ) noexcept;
 		void	_acceptConnection( int ) ;
-		int		_handleRequest( int ) ;		// NB: is the status (i.e. returned value) necessary?
+		int		_handleRequest( int, HTTPrequest& ) const ;
 		bool	_isListener( int ) const ;
-		int		_readHead( int , std::string&, std::string& ) const;
+		int		_readHead( int , std::string&, std::string& ) const noexcept;
 		void	_writeSocket( int, std::string const& ) const ;
 		// void			_waitForChildren( void) ;
 };

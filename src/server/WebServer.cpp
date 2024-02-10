@@ -14,15 +14,24 @@
 
 WebServer::WebServer ( std::vector<Server> const& servers ) : _servers(servers)
 {
+	bool defServerFound = false;
+
 	for (auto const& server : this->_servers)
 	{
 		for (auto const& listAddress : server.getListens())
 		{
+			if (listAddress.getDef() == true)
+			{
+				this->_defaultServer = server;
+				defServerFound = true;
+			}
 			auto isPresent = std::find(this->_listenAddress.begin(),this->_listenAddress.end(), listAddress);
 			if ( isPresent == this->_listenAddress.end() )
 				this->_listenAddress.push_back(listAddress);
 		}
 	}
+	if (defServerFound == false)
+		this->_defaultServer = servers[0];
 }
 
 WebServer::~WebServer ( void ) noexcept
@@ -101,13 +110,14 @@ void		WebServer::_acceptConnection( int listener )
 }
 
 // NB: refine POLLOUT
-// NB: fix when closing the connection, maybe the for loop has to be different?
-// NB: the connection ready for POLLIN needs to assigned to the proper server
 // NB: re-add errno checking after poll() you silly goose!
 void	WebServer::loop( void )
 {
-	int			nConn;
-	int			exitStatus = 200;
+	int					nConn;
+	int					exitStatus = 200;
+	HTTPrequest 		request;
+	Server				handler;
+	std::stack<int>		toDrop;
 
 	while (true)
 	{
@@ -124,59 +134,48 @@ void	WebServer::loop( void )
 					_acceptConnection(this->_connfds[i].fd);
 				else
 				{
-					exitStatus = _handleRequest(this->_connfds[i].fd);
+					exitStatus = _handleRequest(this->_connfds[i].fd, request);
+					if (exitStatus == 200)
+					{
+						handler = getHandler(request.getHost());
+						// ... parse rest of the request, exec request
+					}
+					else
+					{
+						handler = getDefaultServer();
+						toDrop.push(this->_connfds[i].fd);
+					}
 				}
 			}
 			if (this->_connfds[i].revents & POLLOUT)
 			{
-				try
-				{
-					// _writeSocket(this->_connfds[i].fd, HTTPresponse().exitStatus, bodyResp).toString());
-				}
-				catch(const std::exception& e) {
-					std::cerr << e.what() << '\n';
-					_dropConn(this->_connfds[i].fd);
-				}
-				if (exitStatus >= 400)
-					_dropConn(this->_connfds[i].fd);
-				// try
-				// {
-				// 	if (request.headers.at("Connection") == "close")
-				// 		_dropConn(this->_connfds[i].fd);
-				// }
-				// catch(...) {}
+				// ... do the write
 			}
+			if ((this->_connfds[i].revents & POLLHUP) or (this->_connfds[i].revents & POLLERR))	// client-end side was closed
+				toDrop.push(this->_connfds[i].fd);
 		}
+		while (toDrop.empty() == false)
+		{
+			_dropConn(toDrop.top());
+			toDrop.pop();
+		}
+
 	}
 }
 
-int	WebServer::_handleRequest( int connfd )
+int	WebServer::_handleRequest( int connfd, HTTPrequest& request ) const
 {
-	HTTPrequest		request;
-	HTTPresponse	response;
-	int				reqStat = -1;
-	std::string		strHead, strBody, servName;
-	Server			handler;
+	std::string		strHead, strBody;
+	int				statusReq = 200;
 	
-	try {
-		reqStat = _readHead(connfd, strHead, strBody);
-		if (reqStat != 200)
-			return (reqStat);
+	statusReq = _readHead(connfd, strHead, strBody);
+	if (statusReq == 200)
+	{
 		request.parseHead(strHead);
-		servName = request.getHost();
-		handler = getHandler(servName);
-		// NB: the heandler should read the rest of the request, i.e. the body so the buffer of the body and the socket as well should be given to the handler
-		handler.executeRequest(request);
+		if (strBody.empty() == false)
+			request.storeTmpBody(strBody);
 	}
-	catch (RequestException const& err) {
-		std::cout << err.what() << '\n';
-		return (400);
-	}
-	catch (ServerException const& err) {
-		std::cout << err.what() << '\n';
-		return (500);
-	}
-	return (reqStat);
+	return (statusReq);
 }
 
 std::string	WebServer::getAddress( const struct sockaddr_storage *addr ) const noexcept
@@ -219,15 +218,7 @@ Server const&	WebServer::getHandler( std::string const& servName ) const
 
 Server const&	WebServer::getDefaultServer( void ) const
 {
-	for (auto const& server : this->_servers)
-	{
-		for (auto const& listen : server.getListens())
-		{
-			if (listen.getDef() == true)
-				return (server);
-		}
-	}
-	return (this->_servers[0]);
+	return (this->_defaultServer);
 }
 
 void	WebServer::_dropConn(int toDrop) noexcept
@@ -267,19 +258,22 @@ bool	WebServer::_isListener( int socket ) const
 	return (this->_listeners.find(socket) != this->_listeners.end());
 }
 
-int		WebServer::_readHead( int fd, std::string& strHead, std::string& strBody) const
+int	WebServer::_readHead( int fd, std::string& strHead, std::string& strBody) const noexcept
 {
-	char			buffer[HEADER_MAX_SIZE + 1];
-	ssize_t 		readChar = HEADER_MAX_SIZE;
-	size_t			endHeadPos;
-	int				statusRead = 200;
-	
+	char	buffer[HEADER_MAX_SIZE + 1];
+	ssize_t readChar = HEADER_MAX_SIZE;
+	size_t	endHeadPos;
+	int		exitStatus = 200;
+
 	while (true)
 	{
 		bzero(buffer, HEADER_MAX_SIZE + 1);
 		readChar = recv(fd, buffer, HEADER_MAX_SIZE, 0);
 		if (readChar < 0)
-			throw(ServerException({"socket not available or empty"}));
+		{
+			exitStatus = 500;
+			break ;
+		}
 		endHeadPos = std::string(buffer).find(HTTP_TERM);
 		if (endHeadPos != std::string::npos)
 		{
@@ -290,13 +284,13 @@ int		WebServer::_readHead( int fd, std::string& strHead, std::string& strBody) c
 		}
 		else if (readChar < HEADER_MAX_SIZE)
 		{
-			statusRead = 400;
-			break;
+			exitStatus = 400;
+			break ;
 		}
 		else
 			strHead += std::string(buffer);
 	}
-	return (statusRead);
+	return (exitStatus);
 }
 
 void	WebServer::_writeSocket( int fd, std::string const& content) const

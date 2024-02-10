@@ -6,18 +6,14 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/09 15:13:29 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/10 16:58:28 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPresponse.hpp"
 
-HTTPresponse::HTTPresponse( std::string const& strHeads, std::string const& strBody ) : HTTPstruct()
+HTTPresponse::HTTPresponse( void ) : HTTPstruct()
 {
-	if (strHeads.empty() == false)
-		_setHead(strHeads);
-	if (strBody.empty() == false)
-		_setBody(strBody); 
 }
 
 void	HTTPresponse::parseBody( std::string const& strBody)
@@ -27,6 +23,27 @@ void	HTTPresponse::parseBody( std::string const& strBody)
 	_addHeader("Content-Length", std::to_string(strBody.size()));
 	_addHeader("Content-Type", std::string("text/html; charset=utf-8"));	// NB: do I need other formats?
 	_setBody(strBody + HTTP_TERM);
+}
+
+void	HTTPresponse::buildResponse( int code, std::string const& servName, std::string const& body )
+{
+	this->_version.scheme = HTTP_SCHEME;
+	this->_version.major = 1;
+	this->_version.minor = 1;
+	this->_statusCode = code;
+	try
+	{
+		this->_statusStr = _mapStatus(code);
+	}
+	catch(const ResponseException& e) {
+		std::cout << e.what() << '\n';
+		this->_statusCode = 500;
+		this->_statusStr = _mapStatus(500);
+	}
+	_addHeader("Date", _getDateTime());
+	_addHeader("Server", servName);
+	parseBody(body);
+	this->_ready = true;
 }
 
 std::string	HTTPresponse::toString( void ) const
@@ -59,31 +76,10 @@ std::string	HTTPresponse::toString( void ) const
 	return (strResp);
 }
 
-// NB: todo
+// NB: todo: parses the response normally form a string (for cgi probably)
 void	HTTPresponse::_setHead( std::string const& strHead)
 {
 	(void) strHead;
-}
-
-void	HTTPresponse::_setHead( int statusCode, std::string const& servName )
-{
-	HTTPresponse resp;
-
-	this->_version.scheme = HTTP_SCHEME;
-	this->_version.major = 1;
-	this->_version.minor = 1;
-	this->_statusCode = statusCode;
-	try
-	{
-		this->_statusStr = _mapStatus(statusCode);
-	}
-	catch(const ResponseException& e) {
-		std::cout << e.what() << '\n';
-		this->_statusCode = 500;
-		this->_statusStr = _mapStatus(500);
-	}
-	_addHeader("Date", _getDateTime());
-	_addHeader("Server", servName);
 }
 
 void	HTTPresponse::_addHeader(std::string const& name, std::string const& content)

@@ -12,14 +12,6 @@
 
 #include "Server.hpp"
 
-Server::~Server(void)
-{
-	listens.clear();
-	names.clear();
-	names.clear();
-	locations.clear();
-}
-
 Server::Server(const Server& copy) :
 	listens(copy.listens),
 	names(copy.names),
@@ -33,59 +25,102 @@ Server::Server(const Server& copy) :
 
 Server&	Server::operator=(const Server& assign)
 {
-	listens.clear();
-	names.clear();
-	locations.clear();
-	listens = assign.listens;
-	names = assign.names;
-	locations = assign.locations;
-	params = assign.params;
+	if (this != &assign)
+	{
+		listens.clear();
+		names.clear();
+		locations.clear();
+		listens = assign.listens;
+		names = assign.names;
+		locations = assign.locations;
+		params = assign.params;
 
-	cgi_directory = assign.cgi_directory;
-	cgi_extension = assign.cgi_extension;
-	cgi_allowed = assign.cgi_allowed;
+		cgi_directory = assign.cgi_directory;
+		cgi_extension = assign.cgi_extension;
+		cgi_allowed = assign.cgi_allowed;
+	}
 	return (*this);
 }
 
-void	Server::_parseCgiDir(std::vector<std::string>& block)
+Server::~Server(void)
 {
-	block.erase(block.begin());
-	if (block.front().find(' ') != std::string::npos)
-		throw ErrorCatch("Unexpected element in cgi_directory: '" + block.front() + "'");
-	if (block.front().front() != '/')
-		throw ErrorCatch("Directories must begin with a '/''" + block.front() + "'");
-	cgi_directory = block.front();
-	block.erase(block.begin());
-	if (block.front() != ";")
-		throw ErrorCatch("Unexpected element in cgi_directory: '" + block.front() + "', a ';' is expected");
-	block.erase(block.begin());
+	listens.clear();
+	names.clear();
+	names.clear();
+	locations.clear();
 }
 
-void	Server::_parseCgiExtension(std::vector<std::string>& block)
+void	Server::parseBlock(std::vector<std::string>& block)
 {
-	block.erase(block.begin());
-	if (block.front().find(' ') != std::string::npos)
-		throw ErrorCatch("Unexpected element in cgi_extension: '" + block.front() + "'");
-	cgi_extension = block.front();
-	block.erase(block.begin());
-	if (block.front() != ";")
-		throw ErrorCatch("Unexpected element in cgi_extension: '" + block.front() + "', a ';' is expected");
-	block.erase(block.begin());
+	if (block.front() != "server")
+		throw ErrorCatch("First arg is not 'server'");
+    block.erase(block.begin());
+	if (block.front() != "{")
+		throw ErrorCatch("After 'server' a '{' expected");
+    block.erase(block.begin());
+	if (block[block.size() - 1] != "}")
+		throw ErrorCatch("Last element is not a '}");
+	block.pop_back();
+	_fillServer(block);
 }
 
-void	Server::_parseCgiAllowed(std::vector<std::string>& block)
+void	Server::executeRequest(HTTPrequest& req ) const
 {
-	block.erase(block.begin());
-	if (block.front() == "true")
-		cgi_allowed = true;
-	else if (block.front() == "false")
-		cgi_allowed = false;
-	else
-		throw ErrorCatch("Unexpected element in cgi_allowed: '" + block.front() + "'");
-	block.erase(block.begin());
-	if (block.front() != ";")
-		throw ErrorCatch("Unexpected element in cgi_allowed: '" + block.front() + "', a ';' is expected");
-	block.erase(block.begin());
+	if (req.isReady() == false)
+		throw(...);
+	
+}
+
+HTTPresponse	Server::sendResponse(int status, std::string &body) const
+{
+	HTTPresponse response;
+
+	try
+	{
+		response.buildResponse(status, , body);
+	}
+	catch(const ResponseException& e)
+	{
+		std::cerr << e.what() << '\n';
+		
+	}
+	
+	return (response);
+}
+
+const std::vector<Listen>& Server::getListens(void) const
+{
+	return (listens);
+}
+
+const std::vector<std::string>& Server::getNames(void) const
+{
+	return (names);
+}
+
+const Parameters&	Server::getParams(void) const
+{
+	return (params);
+}
+
+const std::vector<Location>&	Server::getLocations() const
+{
+	return (locations);
+}
+
+const std::string& Server::getCgiDir(void) const
+{
+	return (cgi_directory);
+}
+
+const std::string& Server::getCgiExtension(void) const
+{
+	return (cgi_extension);
+}
+
+const bool& Server::getCgiAllowed(void) const
+{
+	return (cgi_allowed);
 }
 
 void	Server::_parseListen(std::vector<std::string>& block)
@@ -132,6 +167,47 @@ void	Server::_parseLocation(std::vector<std::string>& block)
 	locations.push_back(local);
 }
 
+void	Server::_parseCgiDir(std::vector<std::string>& block)
+{
+	block.erase(block.begin());
+	if (block.front().find(' ') != std::string::npos)
+		throw ErrorCatch("Unexpected element in cgi_directory: '" + block.front() + "'");
+	if (block.front().front() != '/')
+		throw ErrorCatch("Directories must begin with a '/''" + block.front() + "'");
+	cgi_directory = block.front();
+	block.erase(block.begin());
+	if (block.front() != ";")
+		throw ErrorCatch("Unexpected element in cgi_directory: '" + block.front() + "', a ';' is expected");
+	block.erase(block.begin());
+}
+
+void	Server::_parseCgiExtension(std::vector<std::string>& block)
+{
+	block.erase(block.begin());
+	if (block.front().find(' ') != std::string::npos)
+		throw ErrorCatch("Unexpected element in cgi_extension: '" + block.front() + "'");
+	cgi_extension = block.front();
+	block.erase(block.begin());
+	if (block.front() != ";")
+		throw ErrorCatch("Unexpected element in cgi_extension: '" + block.front() + "', a ';' is expected");
+	block.erase(block.begin());
+}
+
+void	Server::_parseCgiAllowed(std::vector<std::string>& block)
+{
+	block.erase(block.begin());
+	if (block.front() == "true")
+		cgi_allowed = true;
+	else if (block.front() == "false")
+		cgi_allowed = false;
+	else
+		throw ErrorCatch("Unexpected element in cgi_allowed: '" + block.front() + "'");
+	block.erase(block.begin());
+	if (block.front() != ";")
+		throw ErrorCatch("Unexpected element in cgi_allowed: '" + block.front() + "', a ';' is expected");
+	block.erase(block.begin());
+}
+
 void	Server::_fillServer(std::vector<std::string>& block)
 {
 	params.setBlockIndex(0);
@@ -153,60 +229,6 @@ void	Server::_fillServer(std::vector<std::string>& block)
 		else
 			params.fill(block);
 	}
-}
-
-void	Server::parseBlock(std::vector<std::string>& block)
-{
-	if (block.front() != "server")
-		throw ErrorCatch("First arg is not 'server'");
-    block.erase(block.begin());
-	if (block.front() != "{")
-		throw ErrorCatch("After 'server' a '{' expected");
-    block.erase(block.begin());
-	if (block[block.size() - 1] != "}")
-		throw ErrorCatch("Last element is not a '}");
-	block.pop_back();
-	_fillServer(block);
-}
-
-const std::string& Server::getCgiDir(void) const
-{
-	return (cgi_directory);
-}
-
-const std::string& Server::getCgiExtension(void) const
-{
-	return (cgi_extension);
-}
-
-const bool& Server::getCgiAllowed(void) const
-{
-	return (cgi_allowed);
-}
-
-const std::vector<Listen>& Server::getListens(void) const
-{
-	return (listens);
-}
-
-const std::vector<std::string>& Server::getNames(void) const
-{
-	return (names);
-}
-
-const Parameters&	Server::getParams(void) const
-{
-	return (params);
-}
-
-const std::vector<Location>&	Server::getLocations() const
-{
-	return (locations);
-}
-
-void	Server::executeRequest(HTTPrequest& req) const
-{
-	(void) req;
 }
 
 std::ostream& operator<<(std::ostream& os, const Server& server) {
