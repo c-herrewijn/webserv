@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/10 17:01:05 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/11 03:22:52 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,13 +35,16 @@ std::string	HTTPurl::toString( void ) const
 	return (strURL);
 }
 
-HTTPrequest::HTTPrequest( void ) : HTTPstruct()
-{
-}
+HTTPrequest::HTTPrequest( void ) : HTTPstruct() {}
 
-void	HTTPrequest::storeTmpBody( std::string const& tmpBody)
+void	HTTPrequest::setTmpBody( std::string const& tmpBody)
 {
 	this->_tmpBody = tmpBody;
+}
+
+std::string const&		HTTPrequest::getTmpBody( void ) const
+{
+	return (this->_tmpBody);
 }
 
 void	HTTPrequest::parseBody( std::string const& strBody)
@@ -56,7 +59,7 @@ void	HTTPrequest::parseBody( std::string const& strBody)
 			try {
 				this->_headers.at("Content-Length");
 			}
-			catch(const std::out_of_range& e) {
+			catch (const std::out_of_range& e) {
 				if (this->_headers["Transfer-Encoding"] == "chunked")
 					isChunked = true;
 				else
@@ -175,6 +178,27 @@ void	HTTPrequest::_setHeaders( std::string const& headers)
 	}	
 }
 
+void	HTTPrequest::_setBody( std::string const& strBody )
+{
+    std::string tmpBody;
+    size_t      delimiter = strBody.find(HTTP_TERM);
+
+    if (delimiter == std::string::npos)
+		throw(RequestException({"no body terminator"}));
+	tmpBody = strBody.substr(0, delimiter);
+	try {
+		if (tmpBody.size() != std::stoul(this->_headers["Content-Length"]))
+			throw(RequestException({"body lengths do not match"}));
+	}
+	catch(const std::invalid_argument& e ) {
+		throw(RequestException({"invalid Content-Length:", this->_headers["Content-Length"]}));
+	}
+	catch(const std::out_of_range& e ) {
+		throw(RequestException({"missing or overflow Content-Length header"}));
+	}
+	HTTPstruct::_setBody(tmpBody);
+}
+
 void    HTTPrequest::_setMethod( std::string const& strMethod )
 {
 	if (strMethod == "GET")
@@ -214,6 +238,32 @@ void	HTTPrequest::_setURL( std::string const& strURL )
 		tmpURL = tmpURL.substr(delimiter);
 	}
 	_setPath(tmpURL);
+}
+
+void	HTTPrequest::_setVersion( std::string const& strVersion )
+{
+	size_t	del1, del2;
+
+	del1 = strVersion.find('/');
+	if (del1 == std::string::npos)
+		throw(RequestException({"invalid version:", strVersion}));
+	this->_version.scheme = strVersion.substr(0, del1);
+	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::tolower);
+	if (this->_version.scheme != HTTP_SCHEME)
+		throw(RequestException({"invalid scheme:", strVersion}));
+	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::toupper);
+	del2 = strVersion.find('.');
+	if (del2 == std::string::npos)
+		throw(RequestException({"invalid version:", strVersion}));
+	try {
+		this->_version.major = std::stoi(strVersion.substr(del1 + 1, del2 - del1 - 1));
+		this->_version.minor = std::stoi(strVersion.substr(del2 + 1));
+	}
+	catch (std::exception const& e) {
+		throw(RequestException({"invalid version numbers:", strVersion}));
+	}
+	if (this->_version.major + this->_version.minor != 2)
+		throw(RequestException({"unsupported HTTP version:", strVersion}));
 }
 
 void	HTTPrequest::_setScheme( std::string const& strScheme )

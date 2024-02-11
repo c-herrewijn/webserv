@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/10 16:57:25 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/11 02:11:34 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,8 +21,11 @@ class HTTPresponse : public HTTPstruct
 		virtual ~HTTPresponse( void ) override {};
 
 		void		parseBody( std::string const& ) override;
-		void		buildResponse( int, std::string const&, std::string const& );
+		void		buildResponse( int, std::string const&, std::string const& ) noexcept;
 		std::string	toString( void ) const override;
+
+		int					getStatusCode( void ) const;
+		std::string const&	getStatusStr( void ) const;
 
 	protected:
 		int         _statusCode;

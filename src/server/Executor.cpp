@@ -1,16 +1,16 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        ::::::::            */
-/*   HTTPexecutor.cpp                                   :+:    :+:            */
+/*   Executor.cpp                                       :+:    :+:            */
 /*                                                     +:+                    */
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/09 14:53:56 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/11 03:51:58 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "HTTPexecutor.hpp"
+#include "Executor.hpp"
 
 // const std::map<HTTPmethod, std::function<std::string(HTTPrequest&, int&)> > HTTPexecutor::_methods = 
 // {
@@ -18,6 +18,66 @@
 // 	{HTTP_POST, _execPOST},
 // 	{HTTP_DELETE, _execDELETE},
 // };
+
+Executor::Executor( void ) noexcept : _maxLenBody(-1) {}
+
+Executor::Executor( Server const& server ) noexcept : _handler(server)
+{
+    this->_servName = server.getPrimaryName();
+    this->_maxLenBody = this->_handler.getParams().getMaxSize().first + HTTP_TERM.size();
+}
+
+int		Executor::storeRemainingBody( HTTPrequest& request, int socket) const
+{
+    ssize_t     lenToRead = this->_maxLenBody - request.getTmpBody().size();
+    ssize_t     readChar = -1;
+    int         status = 200;
+    char        *buffer = nullptr;
+    std::string body;
+
+    if (lenToRead < 0)
+        throw(RequestException({"body length is longer than maximum allowed"}));
+    buffer = new char[lenToRead + 1];
+    bzero(buffer, lenToRead + 1);
+    readChar = recv(socket, buffer, lenToRead, 0);
+    body = buffer;
+    delete [] buffer;
+    if (readChar == -1)
+        throw(ServerException({"socket not available"}));
+    request.parseBody(body);
+    return (status);
+}
+
+HTTPresponse	Executor::execRequest(HTTPrequest& req ) const
+{
+    HTTPresponse response;
+    int exitStatus = 200;
+    std::string body;
+	if (req.isReady() == false)
+		throw(ExecException({"request is not ready to be executed"}));
+	// do the checks
+    // exec HTTP method
+    response = createResponse(exitStatus, body);
+    return (response);
+}
+
+HTTPresponse	Executor::createResponse( int status, std::string bodyResp ) const
+{
+	HTTPresponse response;
+
+    response.buildResponse(status, this->_servName, bodyResp);
+	return (response);
+}
+
+void				Executor::setHandler( Server const& handler)
+{
+    this->_handler = handler;
+}
+
+Server const&		Executor::getHandler( void ) const 
+{
+    return (this->_handler);
+}
 
 // int	HTTPexecutor::execRequest(HTTPrequest& req, std::string& body)
 // {

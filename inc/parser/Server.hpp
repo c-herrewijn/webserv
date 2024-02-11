@@ -21,8 +21,6 @@
 # include "Parameters.hpp"
 # include "Location.hpp"
 # include "Listen.hpp"
-# include "HTTPrequest.hpp"
-# include "HTTPresponse.hpp"
 
 # define DEF_CONF "default/default.conf"
 
@@ -35,11 +33,10 @@ class Server
 		virtual ~Server(void);
 
 		void			parseBlock(std::vector<std::string>& block);
-		void			executeRequest(HTTPrequest&) const;
-		HTTPresponse	sendResponse(int, std::string&) const ;
 	
 		const std::vector<Listen>&		getListens(void) const;
 		const std::vector<std::string>& getNames(void) const;
+		const std::string&				getPrimaryName(void) const;
 		const Parameters&				getParams(void) const;
 		const std::vector<Location>&	getLocations(void) const;
 		const std::string& 				getCgiDir(void) const;
@@ -71,8 +68,8 @@ class Server
 		void	_parseCgiDir(std::vector<std::string>& block);
 		void	_parseCgiExtension(std::vector<std::string>& block);
 		void	_parseCgiAllowed(std::vector<std::string>& block);
-
 		void	_fillServer(std::vector<std::string>& block);
+
 
     friend std::ostream& operator<<(std::ostream& os, const Server& server);
 };

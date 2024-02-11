@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/10 16:42:35 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/11 02:37:59 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,9 @@ class HTTPrequest : public HTTPstruct
 		HTTPrequest( void );
 		virtual ~HTTPrequest( void ) override {};
 
-		void		storeTmpBody( std::string const& );
+		void					setTmpBody( std::string const& );
+		std::string const&		getTmpBody( void ) const;
+
 		void		parseBody( std::string const& ) override;
 		std::string	toString( void ) const override;
 		std::string	getHost( void ) const ;
@@ -51,9 +53,12 @@ class HTTPrequest : public HTTPstruct
 
 		void	_setHead( std::string const& ) override;
 		void	_setHeaders( std::string const& ) override;
+		void	_setBody( std::string const& ) override;
 
 		void	_setMethod( std::string const& );
 		void	_setURL( std::string const& );
+		void	_setVersion( std::string const& );
+
 		void	_setScheme( std::string const& );
 		void	_setHostPort( std::string const& );
 		void	_setPath( std::string const& );

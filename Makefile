@@ -6,7 +6,7 @@
 #    By: itopchu <itopchu@student.42.fr>              +#+                      #
 #                                                    +#+                       #
 #    Created: 2023/11/25 18:04:49 by fra           #+#    #+#                  #
-#    Updated: 2024/02/09 16:36:59 by faru          ########   odam.nl          #
+#    Updated: 2024/02/11 03:11:48 by fra           ########   odam.nl          #
 #                                                                              #
 # **************************************************************************** #
 
@@ -25,7 +25,7 @@ CLIENT := $(CLI_DIR)/webclient
 CLIENT_SRCS := $(shell find $(CLI_DIR) -type f -name '*.cpp')
 
 CC  := c++
-IFLAGS := -I$(INCLUDE) -I$(INCLUDE)/parser -I$(INCLUDE)/server
+IFLAGS := -I$(INCLUDE) -I$(INCLUDE)/http -I$(INCLUDE)/parser -I$(INCLUDE)/server
 CPPFLAGS = -Wall -Wextra -Werror -Wshadow -Wpedantic -g3 -fsanitize=address -std=c++17 
 
 GREEN = \x1b[32;01m

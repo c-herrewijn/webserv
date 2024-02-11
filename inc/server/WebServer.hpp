@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/10 16:27:45 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/11 03:16:16 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,9 +38,10 @@
 #include <fcntl.h>
 #include "HTTPrequest.hpp"
 #include "HTTPresponse.hpp"
-#include "Exception.hpp"
+#include "Executor.hpp"
+#include "Exceptions.hpp"
 #include "Server.hpp"
-#define HEADER_MAX_SIZE 	1024						// max size of HTTP header
+#define HEADER_BUF_SIZE 	1024						// max size of HTTP header
 #define BACKLOG 			10				        	// max pending connection queued up
 #define MAX_TIMEOUT 		60000               		// maximum timeout with poll()
 
@@ -53,8 +54,9 @@ class WebServer
 		WebServer ( std::vector<Server> const& );
 		~WebServer ( void ) noexcept;
 
-		void			loop( void );
 		void			startListen( void );
+		void			loop( void );
+
 		std::string		getAddress( const struct sockaddr_storage*) const noexcept ;
 		Server const&	getHandler( std::string const& ) const ;
 		Server const&	getDefaultServer( void ) const ;
@@ -66,13 +68,12 @@ class WebServer
 		std::vector<struct pollfd>	_connfds;
 		std::set<int>				_listeners;
 
-		void	_listenTo( std::string const&, std::string const& );
-		void	_dropConn( int socket = -1 ) noexcept;
-		void	_addConn( int ) noexcept;
-		void	_acceptConnection( int ) ;
-		int		_handleRequest( int, HTTPrequest& ) const ;
-		bool	_isListener( int ) const ;
-		int		_readHead( int , std::string&, std::string& ) const noexcept;
-		void	_writeSocket( int, std::string const& ) const ;
-		// void			_waitForChildren( void) ;
+		void			_listenTo( std::string const&, std::string const& );
+		void			_acceptConnection( int ) ;
+		HTTPresponse	_handleRequest( int ) const ;
+		void			_readHead( int , std::string&, std::string& ) const ;
+		void			_writeResponse( int, std::string const& ) const ;
+		bool			_isListener( int ) const ;
+		void			_addConn( int ) noexcept;
+		void			_dropConn( int socket = -1 ) noexcept;
 };

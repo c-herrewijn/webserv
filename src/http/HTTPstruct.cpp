@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/10 17:07:37 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/11 03:22:15 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,7 +81,7 @@ void	HTTPstruct::parseHead( std::string const& strReq )
 
 	delimiter = strReq.find(HTTP_TERM);
 	if (delimiter == std::string::npos)
-		throw(ServerException({"invalid request: no terminator"}));
+		throw(HTTPexception({"no header terminator"}));
 	head = strReq.substr(0, delimiter + 2);
 	delimiter = head.find(HTTP_NL);
 	if (delimiter + 2 != head.size())		// we have the headers
@@ -110,7 +110,7 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 	{
 		del2 = tmpHeaders.find(": ");
 		if (del2 == std::string::npos)
-			throw(ServerException({"invalid request - invalid header format:", tmpHeaders}));
+			throw(HTTPexception({"invalid header format:", tmpHeaders}));
 		key = tmpHeaders.substr(0, del2);
 		value = tmpHeaders.substr(del2 + 2, del1 - del2 - 2);
 		this->_headers.insert({key, value});
@@ -120,49 +120,7 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 
 }
 
-void	HTTPstruct::_setVersion( std::string const& strVersion )
-{
-	size_t	del1, del2;
-
-	del1 = strVersion.find('/');
-	if (del1 == std::string::npos)
-		throw(ServerException({"invalid request - invalid version:", strVersion}));
-	this->_version.scheme = strVersion.substr(0, del1);
-	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::tolower);
-	if (this->_version.scheme != HTTP_SCHEME)
-		throw(ServerException({"invalid request - invalid scheme:", strVersion}));
-	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::toupper);
-	del2 = strVersion.find('.');
-	if (del2 == std::string::npos)
-		throw(ServerException({"invalid request - invalid version:", strVersion}));
-	try {
-		this->_version.major = std::stoi(strVersion.substr(del1 + 1, del2 - del1 - 1));
-		this->_version.minor = std::stoi(strVersion.substr(del2 + 1));
-	}
-	catch (std::exception const& e) {
-		throw(ServerException({"invalid request - invalid version numbers:", strVersion}));
-	}
-	if (this->_version.major + this->_version.minor != 2)
-		throw(ServerException({"invalid request - unsupported HTTP version:", strVersion}));
-}
-
 void	HTTPstruct::_setBody( std::string const& strBody )
 {
-    std::string tmpBody;
-    size_t      delimiter = strBody.find(HTTP_TERM);
-
-    if (delimiter == std::string::npos)
-		throw(ServerException({"invalid request: no body terminator"}));
-	tmpBody = strBody.substr(0, delimiter);
-	try {
-		if (tmpBody.size() != std::stoul(this->_headers["Content-Length"]))
-			throw(ServerException({"invalid request: body lengths do not match"}));
-	}
-	catch(const std::invalid_argument& e ) {
-		throw(ServerException({"invalid Content-Length:", this->_headers["Content-Length"]}));
-	}
-	catch(const std::out_of_range& e ) {
-		throw(ServerException({"missing or overflow Content-Length header"}));
-	}
-    this->_body = tmpBody;
+    this->_body = strBody;
 }

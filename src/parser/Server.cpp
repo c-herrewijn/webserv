@@ -64,30 +64,6 @@ void	Server::parseBlock(std::vector<std::string>& block)
 	_fillServer(block);
 }
 
-void	Server::executeRequest(HTTPrequest& req ) const
-{
-	if (req.isReady() == false)
-		throw(...);
-	
-}
-
-HTTPresponse	Server::sendResponse(int status, std::string &body) const
-{
-	HTTPresponse response;
-
-	try
-	{
-		response.buildResponse(status, , body);
-	}
-	catch(const ResponseException& e)
-	{
-		std::cerr << e.what() << '\n';
-		
-	}
-	
-	return (response);
-}
-
 const std::vector<Listen>& Server::getListens(void) const
 {
 	return (listens);
@@ -96,6 +72,11 @@ const std::vector<Listen>& Server::getListens(void) const
 const std::vector<std::string>& Server::getNames(void) const
 {
 	return (names);
+}
+
+const std::string&		Server::getPrimaryName(void) const
+{
+	return (names[0]);
 }
 
 const Parameters&	Server::getParams(void) const

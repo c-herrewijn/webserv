@@ -6,15 +6,14 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/10 16:58:28 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/11 03:21:09 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPresponse.hpp"
 
-HTTPresponse::HTTPresponse( void ) : HTTPstruct()
-{
-}
+// NB CRLF x2 must not be counted in Content-Length header!
+HTTPresponse::HTTPresponse( void ) : HTTPstruct() {}
 
 void	HTTPresponse::parseBody( std::string const& strBody)
 {
@@ -25,7 +24,7 @@ void	HTTPresponse::parseBody( std::string const& strBody)
 	_setBody(strBody + HTTP_TERM);
 }
 
-void	HTTPresponse::buildResponse( int code, std::string const& servName, std::string const& body )
+void	HTTPresponse::buildResponse( int code, std::string const& servName, std::string const& body ) noexcept
 {
 	this->_version.scheme = HTTP_SCHEME;
 	this->_version.major = 1;
@@ -76,7 +75,17 @@ std::string	HTTPresponse::toString( void ) const
 	return (strResp);
 }
 
-// NB: todo: parses the response normally form a string (for cgi probably)
+int		HTTPresponse::getStatusCode( void ) const
+{
+	return (this->_statusCode);
+}
+
+std::string const&	HTTPresponse::getStatusStr( void ) const
+{
+	return (this->_statusStr);
+}
+
+// NB: todo: parses the response normally form a string (or a fd/pipe) (for cgi probably)
 void	HTTPresponse::_setHead( std::string const& strHead)
 {
 	(void) strHead;

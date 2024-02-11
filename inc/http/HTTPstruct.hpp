@@ -18,7 +18,7 @@
 #include <algorithm>
 #include <vector>
 
-#include "Exception.hpp"
+#include "Exceptions.hpp"
 #define HTTP_DEF_PORT		80							// default port
 #define HTTP_SCHEME			std::string("http")			// http scheme	
 #define HTTPS_SCHEME		std::string("https")		// https scheme (maybe useless)
@@ -58,6 +58,5 @@ class HTTPstruct
 
 		virtual void	_setHead( std::string const& )=0;
 		virtual void	_setHeaders( std::string const& );
-		void			_setVersion( std::string const& );
-		void			_setBody( std::string const& );
-};
+		virtual void	_setBody( std::string const& );
+	};
