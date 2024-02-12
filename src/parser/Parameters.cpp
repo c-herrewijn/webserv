@@ -73,14 +73,12 @@ void	Parameters::_parseBodySize(std::vector<std::string>& block)
 		throw ParserException({"'" + block.front() + "' resulted in overflow or underflow\n'client_max_body_size' must be formated as '(unsigned int)/(type=K|M|G)'"});
 	else if (endPtr == block.front())
 		throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)|(type=K||M||G)'"});
-	if (endPtr)
+	if (endPtr and *endPtr and *endPtr != 'K' and *endPtr != 'M' and *endPtr != 'G')
 	{
-		if (*endPtr != 'K' && *endPtr != 'M' && *endPtr != 'G')
-			throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)|(type=K||M||G)'"});
-		setSize(convertedValue, *endPtr);
+		std::cout << "|" << (int) *endPtr << "|\n";
+		throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)|(type=K||M||G)'"});
 	}
-	else
-		setSize(convertedValue, (int)DEF_SIZE_TYPE);
+	setSize(convertedValue, endPtr);
 	block.erase(block.begin());
 	if (block.front() != ";")
 		throw ParserException({"'client_max_body_size' can't have multiple parameters"});
@@ -186,7 +184,7 @@ const std::unordered_set<std::string>& Parameters::getIndexes(void) const
 	return (indexes);
 }
 
-const std::pair<size_t, char>& Parameters::getMaxSize(void) const
+size_t Parameters::getMaxSize(void) const
 {
 	return (max_size);
 }
@@ -216,10 +214,23 @@ void	Parameters::setAutoindex(bool status)
 	autoindex = status;
 }
 
-void	Parameters::setSize(long val, int c)
+void	Parameters::setSize(long val, char *order)
 {
-	max_size.first = (size_t)val;
-	max_size.second = (char)c;
+	this->max_size = val;
+
+	if (order == nullptr)
+		return ;
+	switch (*order)
+	{
+		case 'G':
+			this->max_size *= 1024;
+			[[fallthrough]];
+		case 'M':
+			this->max_size *= 1024;
+			[[fallthrough]];
+		case 'K':
+			this->max_size *= 1024;
+	}
 }
 
 void	Parameters::setRoot(std::string& val)
@@ -259,7 +270,7 @@ std::ostream& operator<<(std::ostream& os, const Parameters& params)
 {
     size_t indentation = params.getBlockIndex();
 	os << std::string(indentation, '\t') << "root " << params.getRoot() << ";\n";
-	os << std::string(indentation, '\t') << "client_max_body_size " << params.getMaxSize().first << params.getMaxSize().second << ";\n";
+	os << std::string(indentation, '\t') << "client_max_body_size " << params.getMaxSize() << ";\n";
 	os << std::string(indentation, '\t') << "autoindex " << (params.getAutoindex() ? "true" : "false") << ";\n";
 	os << std::string(indentation, '\t') << "index";
 	const auto& indexes = params.getIndexes();

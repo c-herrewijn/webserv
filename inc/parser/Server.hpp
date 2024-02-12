@@ -45,7 +45,7 @@ class Server
 		const std::string& 				getCgiDir(void) const;
 		const std::string& 				getCgiExtension(void) const;
 		const bool& 					getCgiAllowed(void) const;
-		const ssize_t&					getMaxBodySize(void) const;
+		size_t							getMaxBodySize(void) const;
 
 	private:
 		std::vector<Listen> 		listens; // Listens

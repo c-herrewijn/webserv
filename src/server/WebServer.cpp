@@ -16,6 +16,8 @@ WebServer::WebServer ( std::vector<Server> const& servers ) : _servers(servers)
 {
 	bool defServerFound = false;
 
+	if (servers.empty() == true)
+		throw(ServerException({"No Servers provided for configuration"}));
 	for (auto const& server : this->_servers)
 	{
 		for (auto const& listAddress : server.getListens())
@@ -252,32 +254,35 @@ int			WebServer::_readHead( int fd, std::string& strHead, std::string& strBody) 
 			break;
 		}
 		else if (readChar < HEADER_BUF_SIZE)
-			throw(HTTPexception({"no header terminator"}));
+			throw(RequestException({"no header terminator"}, 400));
 		else
 			strHead += std::string(buffer);
 	}
 	return ((int) readChar);
 }
 
-int		WebServer::_readRemainingBody( int socket, ssize_t maxBodylength, std::string& body) const
+ssize_t		WebServer::_readRemainingBody( int socket, size_t maxBodylength, std::string& body) const
 {
-    ssize_t     lenToRead = maxBodylength - (ssize_t) body.size();
+    size_t     lenToRead = std::numeric_limits<size_t>::max();
     ssize_t     readChar = -1;
     char        *buffer = nullptr;
 
-    if (maxBodylength < 0)
-        throw(RequestException({"body length is longer than maximum allowed"}, 400));
+    if (maxBodylength == 0)
+		lenToRead = std::numeric_limits<size_t>::max();
+    else if (maxBodylength < body.size())
+        throw(RequestException({"body length is longer than maximum allowed"}, 413));
+    else if (maxBodylength == body.size())
+		return (0);
+	else
+		lenToRead = maxBodylength - body.size();
     buffer = new char[lenToRead + 2];
     bzero(buffer, lenToRead + 2);
     readChar = recv(socket, buffer, lenToRead + 1, 0);
 	body += buffer;
     delete [] buffer;
-    if (readChar > -1)
-    {
-		if (readChar > lenToRead)
-			throw(RequestException({"body length is longer than maximum allowed"}, 400));
-	}
-	return ((int) readChar);
+	if ((maxBodylength != 0) and (readChar > (ssize_t) lenToRead))
+		throw(RequestException({"body length is longer than maximum allowed"}, 413));
+	return (readChar);
 }
 
 void			WebServer::_writeResponse( int fd, std::string const& content) const

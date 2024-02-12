@@ -6,7 +6,7 @@
 #    By: itopchu <itopchu@student.42.fr>              +#+                      #
 #                                                    +#+                       #
 #    Created: 2023/11/25 18:04:49 by fra           #+#    #+#                  #
-#    Updated: 2024/02/12 12:20:45 by faru          ########   odam.nl          #
+#    Updated: 2024/02/13 00:15:19 by fra           ########   odam.nl          #
 #                                                                              #
 # **************************************************************************** #
 
@@ -69,10 +69,8 @@ clean:
 		rm -f $$file; \
 		printf "(WebServ) $(RED)Removed object $$(basename $$file)$(RESET)\n"; \
 	done
-	@for file in $(DEPS); do \
-		rm -f $$file; \
-		printf "(WebServ) $(RED)Removed dependency $$(basename $$file)$(RESET)\n"; \
-	done
+	@-rm -rf $(DEPS)
+	@printf "(WebServ) $(RED)Removed dependencies$(RESET)\n";
 
 fclean: clean
 	@-rm -f $(NAME)

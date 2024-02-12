@@ -35,14 +35,14 @@ class Parameters
 
 		void	fill(std::vector<std::string>& block);
 		void	setRoot(std::string& val);
-		void	setSize(long val, int c);
+		void	setSize(long val, char *c);
 		void	setAutoindex(bool status);
 		void	addIndex(const std::string& val);
 
 		void 											setBlockIndex(size_t ref);
 		const size_t& 									getBlockIndex(void) const;
 		const std::unordered_set<std::string>& 			getIndexes(void) const;
-		const std::pair<size_t, char>& 					getMaxSize(void) const;
+		size_t						 					getMaxSize(void) const;
 		const std::unordered_map<size_t, std::string>& 	getErrorPages(void) const;
 		const std::unordered_map<size_t, std::string>& 	getReturns(void) const;
 		const bool& 									getAutoindex(void) const;
@@ -55,7 +55,7 @@ class Parameters
 
 	private:
 		size_t 									block_index;
-		std::pair<size_t, char> 				max_size;	// Will be overwriten by last found
+		size_t					 				max_size;	// Will be overwriten by last found
 		bool									autoindex;	// FALSE in default, will be overwriten.
 		std::unordered_set<std::string>			indexes;	// Will be searched in given order
 		std::string								root;		// Last found will be used.

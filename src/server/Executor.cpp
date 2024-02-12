@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/12 17:02:00 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/12 23:34:30 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,9 +24,8 @@ Executor::Executor( void ) noexcept : _maxLenBody(-1) {}
 Executor::Executor( Server const& server ) noexcept : _handler(server)
 {
     this->_servName = server.getPrimaryName();
-    this->_maxLenBody = this->_handler.getParams().getMaxSize().first + HTTP_TERM.size();
+    this->_maxLenBody = this->_handler.getParams().getMaxSize() + HTTP_TERM.size();
 }
-
 
 HTTPresponse	Executor::execRequest(HTTPrequest& req ) const noexcept
 {
@@ -36,7 +35,8 @@ HTTPresponse	Executor::execRequest(HTTPrequest& req ) const noexcept
 
     try
     {
-        /* code */
+        if (req.isReady() == false)
+		    throw(ExecException({"request is not ready to be executed"}, 500));
     }
     catch(const std::exception& e)
     {
@@ -45,8 +45,7 @@ HTTPresponse	Executor::execRequest(HTTPrequest& req ) const noexcept
     
     // if (this->_handler.validateRequest(req) == false)
 	// 	throw(ExecException({"validation failed"}));
-	// else if (req.isReady() == false)
-	// 	throw(ExecException({"request is not ready to be executed"}));
+	// else 
 	// do the checks
     // exec HTTP method
     response = createResponse(exitStatus, body);

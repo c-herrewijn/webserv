@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/12 16:50:19 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/12 22:38:32 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ typedef struct HTTPurl_f
 class HTTPrequest : public HTTPstruct
 {
 	public:
-		HTTPrequest( void );
+		HTTPrequest( void ) : HTTPstruct() {};
 		virtual ~HTTPrequest( void ) override {};
 
 		void		parseBody( std::string const& ) override;

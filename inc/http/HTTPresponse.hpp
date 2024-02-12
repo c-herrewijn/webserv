@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/12 17:00:39 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/12 22:38:26 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 class HTTPresponse : public HTTPstruct
 {
 	public:
-		HTTPresponse( void );
+		HTTPresponse( void ) : HTTPstruct() {};
 		virtual ~HTTPresponse( void ) override {};
 
 		void		parseBody( std::string const& ) noexcept override;

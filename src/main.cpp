@@ -48,7 +48,6 @@ std::vector<Server>	parseServers(char **av)
 			std::cerr << C_RED << e.what() << C_RESET "\n";
 			std::cerr << C_YELLOW "Continuing with parsing other servers...\n" C_RESET;
 		}
-
 	}
 	std::cout << "Parsing Done with size " C_AZURE << servers.size() << C_RESET "\n";
 	// "servers" must contain valid servers
@@ -62,7 +61,7 @@ int main(int ac, char **av)
 	std::vector<Server> servers = parseServers(av);
 	WebServer 			webserv(servers);
 
-	webserv.startListen();
-	webserv.loop();
+	// webserv.startListen();
+	// webserv.loop();
 	return (0);
 }

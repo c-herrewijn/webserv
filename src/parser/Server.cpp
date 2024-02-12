@@ -66,7 +66,7 @@ void	Server::parseBlock(std::vector<std::string>& block)
 
 bool	Server::validateRequest(HTTPrequest const& req) const
 {
-
+	(void) req;
 	return (true);
 }
 
@@ -110,9 +110,9 @@ const bool& Server::getCgiAllowed(void) const
 	return (cgi_allowed);
 }
 
-const ssize_t&	Server::getMaxBodySize(void) const
+size_t	Server::getMaxBodySize(void) const
 {
-	return (this->getParams().getMaxSize().first);
+	return (this->getParams().getMaxSize());
 }
 
 void	Server::_parseListen(std::vector<std::string>& block)
@@ -244,7 +244,7 @@ std::ostream& operator<<(std::ostream& os, const Server& server) {
     os << "\tcgi_allowed " << (server.getCgiAllowed() ? "true" : "false") << ";\n";
 
     os << "\troot " << server.getParams().getRoot() << ";\n";
-    os << "\tclient_max_body_size " << server.getParams().getMaxSize().first << server.getParams().getMaxSize().second << ";\n";
+    os << "\tclient_max_body_size " << server.getParams().getMaxSize() << ";\n";
     os << "\tautoindex " << (server.getParams().getAutoindex() ? "on" : "off") << ";\n";
 
     const auto& indexes = server.getParams().getIndexes();

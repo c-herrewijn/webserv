@@ -6,16 +6,13 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/12 16:59:53 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/12 22:38:40 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPresponse.hpp"
 
-// NB CRLF x2 must not be counted in Content-Length header!
-HTTPresponse::HTTPresponse( void ) : HTTPstruct() {}
-
-void	HTTPresponse::parseBody( std::string const& strBody) 
+void	HTTPresponse::parseBody( std::string const& strBody) noexcept
 {
     if (strBody.empty())
 		return ;
@@ -91,7 +88,7 @@ void	HTTPresponse::_setHead( std::string const& strHead)
 	(void) strHead;
 }
 
-void	HTTPresponse::_addHeader(std::string const& name, std::string const& content)
+void	HTTPresponse::_addHeader(std::string const& name, std::string const& content) noexcept
 {
 	this->_headers[name] = content;
 }
@@ -179,7 +176,7 @@ std::string	HTTPresponse::_mapStatus( int status) const
 	}
 }
 
-std::string	HTTPresponse::_getDateTime( void ) const
+std::string	HTTPresponse::_getDateTime( void ) const noexcept
 {
 	std::time_t rawtime;
     std::tm* timeinfo;

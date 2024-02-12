@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/12 13:31:12 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/13 00:11:40 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@
 // #include <sys/stat.h>         // stat
 // #include <dirent.h>           // opendir, readdir, closedir
 #include <signal.h>           // kill, signal
+#include <limits>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -73,7 +74,7 @@ class WebServer
 		void			_acceptConnection( int ) ;
 		HTTPresponse	_handleRequest( int ) const ;
 		int				_readHead( int , std::string&, std::string& ) const ;
-		int				_readRemainingBody( int, ssize_t, std::string& ) const ;
+		ssize_t			_readRemainingBody( int, size_t, std::string& ) const ;
 		void			_writeResponse( int, std::string const& ) const ;
 		bool			_isListener( int ) const ;
 		void			_addConn( int ) noexcept;

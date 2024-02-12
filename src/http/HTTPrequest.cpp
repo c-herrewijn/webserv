@@ -6,13 +6,13 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/12 16:57:59 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/12 22:36:01 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPrequest.hpp"
 
-std::string	HTTPurl::toString( void ) const
+std::string	HTTPurl::toString( void ) const noexcept
 {
 	std::string	strURL;
 
