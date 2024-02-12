@@ -12,10 +12,12 @@
 
 #ifndef LOCATION_HPP
 # define LOCATION_HPP
-# include "Parameters.hpp"
 # include <bitset>
 # include <string>
 # include <vector>
+
+# include "Parameters.hpp"
+# include "Exceptions.hpp"
 
 # define M_GET 0
 # define M_POST 1
@@ -38,16 +40,6 @@ class Location
 		const std::bitset<M_SIZE>&		getAllowedMethods(void) const;
 		const std::string& 				getAlias(void) const;
 		const std::string& 				getURL(void) const;
-
-		class ErrorCatch : public std::exception {
-			public:
-				ErrorCatch(const std::string& message) : errorMessage(message) {}
-				const char* what() const throw() override {
-					return errorMessage.c_str();
-				}
-			private:
-				std::string errorMessage;
-		};
 
 	private:
 		size_t 					block_index;

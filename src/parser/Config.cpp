@@ -22,7 +22,7 @@ void	Config::fillConfig(const std::string& file)
 	_readFile(file);
 	_tokenizeFile();
 	if (clearEmpty())
-		throw ErrorCatch("Config file is empty.");
+		throw ParserException({"config file is empty"});
 	_checkBrackets();
 }
 
@@ -73,17 +73,17 @@ void	Config::_readFile(const std::string& file_path)
 {
 	std::ifstream inputFile(file_path);
 	if (!inputFile.is_open())
-		throw ErrorCatch("Error opening the file: " + file_path);
+		throw ParserException({"error opening file:", file_path});
 
 	std::ostringstream	fileContentStream;
 	fileContentStream << inputFile.rdbuf();
 	if (inputFile.bad())
-		throw ErrorCatch("Error reading the file: " + file_path);
+		throw ParserException({"error reading file:", file_path});
 
 	raw_input = fileContentStream.str();
 	inputFile.close();
 	if (raw_input.empty())
-		throw ErrorCatch("The file is empty: " + file_path);
+		throw ParserException({"empty file", file_path,});
 }
 
 size_t	Config::_doComment(size_t &i)
@@ -109,7 +109,7 @@ void	Config::_doQuote(size_t& i, size_t& j)
 		file_content.push_back(raw_input.substr(i, j - i));
 	}
 	else
-		throw ErrorCatch("Non-matching quote.");
+		throw ParserException({"non-matching quote"});
 	i = j;
 }
 
@@ -127,7 +127,7 @@ size_t	Config::_doSpace(size_t& i)
 void	Config::_doExceptions(size_t& i)
 {
 	if ((raw_input[i] >= 1 && 8 <= raw_input[i]) || (raw_input[i] >= 14 && raw_input[i] <= 31))
-		throw ErrorCatch("Invalid character in the file.");
+		throw ParserException({"invalid character in file"});
 }
 
 void	Config::_doToken(size_t& i, size_t& j)
@@ -192,7 +192,7 @@ void	Config::_tokenizeFile(void)
 		_doToken(i, j);
 	}
 	if (file_content.size() == 0)
-		throw ErrorCatch("No valuable input found in given config file.");
+		throw ParserException({"no valuable input found in given config file"});
 	_doClean();
 }
 
@@ -207,11 +207,11 @@ void	Config::_checkBrackets(void)
 		else if (*it == "}")
 		{
 			if (--bracks < 0)
-				throw ErrorCatch("Mismatched brackets");
+				throw ParserException({"mismatched brackets"});
 		}
 	}
 	if (bracks)
-		throw ErrorCatch("Missing brackets");
+		throw ParserException({"missing brackets"});
 }
 
 void	Config::_printContent(void)

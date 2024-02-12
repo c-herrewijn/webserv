@@ -21,6 +21,7 @@
 # include "Parameters.hpp"
 # include "Location.hpp"
 # include "Listen.hpp"
+# include "Exceptions.hpp"
 
 # define DEF_CONF "default/default.conf"
 
@@ -42,16 +43,6 @@ class Server
 		const std::string& 				getCgiDir(void) const;
 		const std::string& 				getCgiExtension(void) const;
 		const bool& 					getCgiAllowed(void) const;
-
-		class ErrorCatch : public std::exception {
-			public:
-				ErrorCatch(const std::string& message) : errorMessage(message) {}
-				const char* what() const throw() override {
-					return errorMessage.c_str();
-				}
-			private:
-				std::string errorMessage;
-		};
 
 	private:
 		std::vector<Listen> 		listens; // Listens

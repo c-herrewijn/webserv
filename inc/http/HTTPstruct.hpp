@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "Exceptions.hpp"
+
 #define HTTP_DEF_PORT		80							// default port
 #define HTTP_SCHEME			std::string("http")			// http scheme	
 #define HTTPS_SCHEME		std::string("https")		// https scheme (maybe useless)

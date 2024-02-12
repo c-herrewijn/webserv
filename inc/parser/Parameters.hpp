@@ -19,6 +19,9 @@
 # include <climits>
 # include <stdexcept>
 # include <iostream>
+
+# include "Exceptions.hpp"
+
 # define DEF_SIZE 32
 # define DEF_SIZE_TYPE 'M'
 
@@ -49,17 +52,6 @@ class Parameters
 			setErrorPages
 			setReturns
 		*/
-		
-		class ErrorCatch : public std::exception
-		{
-			public:
-				ErrorCatch(const std::string& message) : errorMessage(message) {}
-				const char* what() const throw() override {
-					return errorMessage.c_str();
-				}
-			private:
-				std::string errorMessage;
-		};
 
 	private:
 		size_t 									block_index;

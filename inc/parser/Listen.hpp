@@ -14,10 +14,14 @@
 # define LISTEN_HPP
 # include <string>
 # include <vector>
-#include <cstdint>
+# include <cstdint>
+
+# include "Exceptions.hpp"
+
 # define DEF_PORT "80"
 # define DEF_HOST "127.0.0.1"
 # define MAX_PORT 65535
+
 class Listen
 {
 	public:
@@ -37,16 +41,6 @@ class Listen
 		const bool&					getAll(void) const;
 		bool						operator==(const Listen&) const;
 		bool						operator!=(const Listen&) const;
-
-		class ErrorCatch : public std::exception {
-			public:
-				ErrorCatch(const std::string& message) : errorMessage(message) {}
-				const char* what() const throw() override {
-					return errorMessage.c_str();
-				}
-			private:
-				std::string errorMessage;
-		};
 
 	private:
 		uint16_t				i_port;	// Port val;

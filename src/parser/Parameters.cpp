@@ -50,11 +50,11 @@ void	Parameters::_parseRoot(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == ";")
-		throw ErrorCatch("'root' can't have an empty parameter");
+		throw ParserException({"'root' can't have an empty parameter"});
 	setRoot(block.front());
 	block.erase(block.begin());
 	if (block.front() != ";")
-		throw ErrorCatch("'root' can't have multiple parameters '" + block.front() + "'");
+		throw ParserException({"'root' can't have multiple parameters '" + block.front() + "'"});
 	block.erase(block.begin());
 }
 
@@ -62,28 +62,28 @@ void	Parameters::_parseBodySize(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == ";")
-		throw ErrorCatch("'client_max_body_size' can't have an empty parameter");
+		throw ParserException({"'client_max_body_size' can't have an empty parameter"});
 	if (std::isdigit(block.front().front()) == 0)
-		throw ErrorCatch("'client_max_body_size' must have a digit as firt value in parameter");
+		throw ParserException({"'client_max_body_size' must have a digit as first value in parameter"});
 	errno = 0;
 	char*	endPtr = NULL;
 	long convertedValue = std::strtol(block.front().c_str(), &endPtr, 10);
 	if ((errno == ERANGE && (convertedValue == LONG_MAX || convertedValue == LONG_MIN)) ||
 		(errno != 0 && convertedValue == 0))
-		throw ErrorCatch("\"" + block.front() + "\" resulted in overflow or underflow\n'client_max_body_size' must be formated as '(unsigned int)/(type=K|M|G)'");
+		throw ParserException({"'" + block.front() + "' resulted in overflow or underflow\n'client_max_body_size' must be formated as '(unsigned int)/(type=K|M|G)'"});
 	else if (endPtr == block.front())
-		throw ErrorCatch("'client_max_body_size' must be formated as '(unsigned int)|(type=K||M||G)'");
+		throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)|(type=K||M||G)'"});
 	if (endPtr)
 	{
 		if (*endPtr != 'K' && *endPtr != 'M' && *endPtr != 'G')
-			throw ErrorCatch("'client_max_body_size' must be formated as '(unsigned int)|(type=K||M||G)'");
+			throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)|(type=K||M||G)'"});
 		setSize(convertedValue, *endPtr);
 	}
 	else
 		setSize(convertedValue, (int)DEF_SIZE_TYPE);
 	block.erase(block.begin());
 	if (block.front() != ";")
-		throw ErrorCatch("'client_max_body_size' can't have multiple parameters");
+		throw ParserException({"'client_max_body_size' can't have multiple parameters"});
 	block.erase(block.begin());
 }
 
@@ -91,16 +91,16 @@ void	Parameters::_parseAutoindex(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == ";")
-		throw ErrorCatch("'autoindex' can't have an empty parameter");
+		throw ParserException({"'autoindex' can't have an empty parameter"});
 	if (block.front() == "on")
 		setAutoindex(true);
 	else if (block.front() == "off")
 		setAutoindex(false);
 	else
-		throw ErrorCatch("'autoindex' can only have 'on' or 'off' as parameter");
+		throw ParserException({"'autoindex' can only have 'on' or 'off' as parameter"});
 	block.erase(block.begin());
 	if (block.front() != ";")
-		throw ErrorCatch("'autoindex' can't have multiple parameters");
+		throw ParserException({"'autoindex' can't have multiple parameters"});
 	block.erase(block.begin());
 }
 
@@ -108,11 +108,11 @@ void	Parameters::_parseIndex(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == ";")
-		throw ErrorCatch("'index' can't have an empty parameter");
+		throw ParserException({"'index' can't have an empty parameter"});
 	while (1)
 	{
 		if (block.front().find_first_of(" ") != std::string::npos)
-			throw ErrorCatch("'index' parameter \"" + block.front() + "\" has a space in it");
+			throw ParserException({"'index' parameter '" + block.front() + "' has a space in it"});
 		addIndex(block.front());
 		block.erase(block.begin());
 		if (block.front() == ";")
@@ -127,26 +127,26 @@ void	Parameters::_parseErrorPage(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == ";")
-		throw ErrorCatch("'error_page' can't have an empty parameter");
+		throw ParserException({"'error_page' can't have an empty parameter"});
 	int code;
 	try {
 		code = std::stoi(block.front());
 		if (code < 100 || code > 599)
-			throw std::out_of_range("Value is not in the range of 100-599");
+			throw std::out_of_range("value is not in the range of 100-599");
 		block.erase(block.begin());
 	} catch (const std::invalid_argument& e) {
-		throw ErrorCatch("Error code is not a valid integer");
+		throw ParserException({"error code is not a valid integer"});
 	} catch (const std::out_of_range& e) {
-		throw ErrorCatch("Given value is out of range: " + block.front());
+		throw ParserException({"given value is out of range: " + block.front()});
 	}
 	if (block.front() == ";")
-		throw ErrorCatch("After error code expected a file");
+		throw ParserException({"after error code expected a file"});
 	if (block.front().front() != '/')
-		throw ErrorCatch("Error code file must start with a '/':" + block.front());
+		throw ParserException({"error code file must start with a '/':" + block.front()});
 	error_pages[code] = block.front();
 	block.erase(block.begin());
 	if (block.front() != ";")
-		throw ErrorCatch("Error page can only contain 2 arguments");
+		throw ParserException({"error page can only contain 2 arguments"});
 	block.erase(block.begin());
 }
 
@@ -158,12 +158,12 @@ void	Parameters::_parseReturn(std::vector<std::string>& block)
 	try {
 		code = std::stoi(block.front());
 		if (code < 100 || code > 599)
-			throw std::out_of_range("Value is not in the range of 100-599");
+			throw std::out_of_range("value is not in the range of 100-599");
 		block.erase(block.begin());
 	} catch (const std::invalid_argument& e) {
-		throw ErrorCatch("Input is not a valid integer: '" + block.front() + "'");
+		throw ParserException({"input is not a valid integer: '" + block.front() + "'"});
 	} catch (const std::out_of_range& e) {
-		throw ErrorCatch("Given value is out of range: " + block.front());
+		throw ParserException({"given value is out of range: " + block.front()});
 	}
 	if (block.front() != ";")
 	    returns[(size_t)code] = block.front();
@@ -171,7 +171,7 @@ void	Parameters::_parseReturn(std::vector<std::string>& block)
 		returns[(size_t)code] = "";
 	block.erase(block.begin());
 	if (block.front() != ";")
-		throw ErrorCatch("'return' keyword can have maximum 2 parameters");
+		throw ParserException({"'return' keyword can have maximum 2 parameters"});
 	block.erase(block.begin());
 }
 
@@ -242,7 +242,7 @@ void	Parameters::fill(std::vector<std::string>& block)
 	else if (block.front() == "return")
 		_parseReturn(block);
 	else
-		throw ErrorCatch("\"" + block.front() + "\" is not a valid parameter");
+		throw ParserException({"'" + block.front() + "' is not a valid parameter"});
 }
 
 void Parameters::setBlockIndex(size_t ref)

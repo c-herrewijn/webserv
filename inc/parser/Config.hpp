@@ -19,7 +19,9 @@
 # include <exception>
 # include <cctype>
 # include <stack>
+
 # include "Server.hpp"
+# include "Exceptions.hpp"
 
 class Config
 {
@@ -33,16 +35,6 @@ class Config
 		bool									clearEmpty(void);
 		std::vector<std::string>				getFileContent(void);
 		std::vector<std::vector<std::string>>	divideContent(void);
-
-		class ErrorCatch : public std::exception {
-			public:
-				ErrorCatch(const std::string& message) : errorMessage(message) {}
-				const char* what() const throw() override {
-					return errorMessage.c_str();
-				}
-			private:
-				std::string errorMessage;
-		};
 
 	private:
 		size_t	_doComment(size_t &i);

@@ -6,11 +6,12 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/11 02:37:59 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/12 08:34:56 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
+
 #include "HTTPstruct.hpp"
 
 typedef enum HTTPmethod_s

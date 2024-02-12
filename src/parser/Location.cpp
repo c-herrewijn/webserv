@@ -54,11 +54,11 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 	params.setBlockIndex(param.getBlockIndex());
 	block.erase(block.begin());
 	if (block.front()[0] != '/')
-		throw ErrorCatch("After 'location' expected a /URL");
+		throw ParserException({"after 'location' expected a /URL"});
 	URL = block.front();
 	block.erase(block.begin());
 	if (block.front() != "{")
-		throw ErrorCatch("After '/URL' expected a '{'");
+		throw ParserException({"after '/URL' expected a '{'"});
 	block.erase(block.begin());
 	while (block.front() != "}")
 	{
@@ -77,7 +77,7 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 				block.front() == "error_page" || block.front() == "return")
 			params.fill(block);
 		else
-			throw ErrorCatch("\'" + block.front() + "\' is not a valid parameter in 'location' context");
+			throw ParserException({"'" + block.front() + "' is not a valid parameter in 'location' context"});
 	}
 	block.erase(block.begin());
 }
@@ -105,7 +105,7 @@ void	Location::_parseAllowedMethod(std::vector<std::string>& block)
 		else if (block.front() == ";")
 			break ;
 		else
-			throw ErrorCatch("'" + block.front() + "' is not a valid element in allowMethods parameters");
+			throw ParserException({"'" + block.front() + "' is not a valid element in allowMethods parameters"});
 	}
 	block.erase(block.begin());
 }
@@ -114,13 +114,13 @@ void	Location::_parseAlias(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front().find_first_of(" ") != std::string::npos)
-		throw ErrorCatch("Unwanted space found in '" + block.front() + "' while parsing alias");
+		throw ParserException({"unwanted space found in '" + block.front() + "' while parsing alias"});
 	if (block.front()[0] != '/')
-		throw ErrorCatch("Improper alias without '/' found on '" + block.front() + "'");
+		throw ParserException({"improper alias without '/' found on '" + block.front() + "'"});
 	alias = block.front();
 	block.erase(block.begin());
 	if (block.front() != ";")
-		throw ErrorCatch("After first element expected a ';' with alias elements. Error on '" + block.front() + "'");
+		throw ParserException({"after first element expected a ';' with alias elements. Error on '" + block.front() + "'"});
 	block.erase(block.begin());
 }
 

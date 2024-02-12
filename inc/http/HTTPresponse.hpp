@@ -6,12 +6,13 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/11 02:11:34 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/12 08:34:58 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 #include <ctime>
+
 #include "HTTPstruct.hpp"
 
 class HTTPresponse : public HTTPstruct

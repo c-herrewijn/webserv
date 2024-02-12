@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        ::::::::            */
-/*   Exception.hpp                                      :+:    :+:            */
+/*   Exceptions.hpp                                     :+:    :+:            */
 /*                                                     +:+                    */
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/18 14:04:44 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/11 03:09:31 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/12 08:35:17 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,6 @@ class WebServerException : public std::exception
 		std::string 	_msg;
 };
 
-// NB: for Choko stuff
 class ParserException : public WebServerException
 {
 	public:

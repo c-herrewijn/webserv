@@ -53,13 +53,13 @@ Server::~Server(void)
 void	Server::parseBlock(std::vector<std::string>& block)
 {
 	if (block.front() != "server")
-		throw ErrorCatch("First arg is not 'server'");
+		throw ParserException({"first arg is not 'server'"});
     block.erase(block.begin());
 	if (block.front() != "{")
-		throw ErrorCatch("After 'server' a '{' expected");
+		throw ParserException({"after a 'server' directive a '{' is expected"});
     block.erase(block.begin());
 	if (block[block.size() - 1] != "}")
-		throw ErrorCatch("Last element is not a '}");
+		throw ParserException({"last element is not a '}"});
 	block.pop_back();
 	_fillServer(block);
 }
@@ -108,9 +108,9 @@ void	Server::_parseListen(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == ";")
-		throw ErrorCatch("Can't use ';' after keyword 'listen'");
+		throw ParserException({"can't use ';' after keyword 'listen'"});
 	if (block.front() == "default_server")
-		throw ErrorCatch("Before 'default_server' an ip/port expected");
+		throw ParserException({"before 'default_server' an ip/port expected"});
 	Listen tmp;
 	tmp.fillValues(block);
 	if (block.front() == "default_server")
@@ -120,7 +120,7 @@ void	Server::_parseListen(std::vector<std::string>& block)
 	}
 	listens.push_back(tmp);
 	if (block.front() != ";")
-		throw ErrorCatch("Missing semicolumn on Listen, before: '" + block.front() + "'");
+		throw ParserException({"missing semicolumn on Listen, before: '" + block.front() + "'"});
 	block.erase(block.begin());
 }
 
@@ -136,7 +136,7 @@ void	Server::_parseServerName(std::vector<std::string>& block)
 			break ;
 		}
 		if (block.front().find_first_not_of("abcdefghijklmnoprstuvyzwxqABCDEFGHIJKLMNOPRSTUVYZWXQ0123456789-.") != std::string::npos)
-			throw ErrorCatch("Only 'alpha' 'digit' '-' and '.' characters are accepted in 'server_name'");
+			throw ParserException({"only 'alpha' 'digit' '-' and '.' characters are accepted in 'server_name' directive"});
 		names.push_back(block.front());
 		block.erase(block.begin());
 	}
@@ -152,13 +152,13 @@ void	Server::_parseCgiDir(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front().find(' ') != std::string::npos)
-		throw ErrorCatch("Unexpected element in cgi_directory: '" + block.front() + "'");
+		throw ParserException({"unexpected element in cgi_directory: '" + block.front() + "'"});
 	if (block.front().front() != '/')
-		throw ErrorCatch("Directories must begin with a '/''" + block.front() + "'");
+		throw ParserException({"directories must begin with a '/''" + block.front() + "'"});
 	cgi_directory = block.front();
 	block.erase(block.begin());
 	if (block.front() != ";")
-		throw ErrorCatch("Unexpected element in cgi_directory: '" + block.front() + "', a ';' is expected");
+		throw ParserException({"unexpected element in cgi_directory: '" + block.front() + "', a ';' is expected"});
 	block.erase(block.begin());
 }
 
@@ -166,11 +166,11 @@ void	Server::_parseCgiExtension(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front().find(' ') != std::string::npos)
-		throw ErrorCatch("Unexpected element in cgi_extension: '" + block.front() + "'");
+		throw ParserException({"unexpected element in cgi_extension: '" + block.front() + "'"});
 	cgi_extension = block.front();
 	block.erase(block.begin());
 	if (block.front() != ";")
-		throw ErrorCatch("Unexpected element in cgi_extension: '" + block.front() + "', a ';' is expected");
+		throw ParserException({"unexpected element in cgi_extension: '" + block.front() + "', a ';' is expected"});
 	block.erase(block.begin());
 }
 
@@ -182,10 +182,10 @@ void	Server::_parseCgiAllowed(std::vector<std::string>& block)
 	else if (block.front() == "false")
 		cgi_allowed = false;
 	else
-		throw ErrorCatch("Unexpected element in cgi_allowed: '" + block.front() + "'");
+		throw ParserException({"unexpected element in cgi_allowed: '" + block.front() + "'"});
 	block.erase(block.begin());
 	if (block.front() != ";")
-		throw ErrorCatch("Unexpected element in cgi_allowed: '" + block.front() + "', a ';' is expected");
+		throw ParserException({"unexpected element in cgi_allowed: '" + block.front() + "', a ';' is expected"});
 	block.erase(block.begin());
 }
 
