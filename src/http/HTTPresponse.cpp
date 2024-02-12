@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/11 03:21:09 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/12 16:59:53 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 // NB CRLF x2 must not be counted in Content-Length header!
 HTTPresponse::HTTPresponse( void ) : HTTPstruct() {}
 
-void	HTTPresponse::parseBody( std::string const& strBody)
+void	HTTPresponse::parseBody( std::string const& strBody) 
 {
     if (strBody.empty())
 		return ;
@@ -45,7 +45,7 @@ void	HTTPresponse::buildResponse( int code, std::string const& servName, std::st
 	this->_ready = true;
 }
 
-std::string	HTTPresponse::toString( void ) const
+std::string	HTTPresponse::toString( void ) const noexcept
 {
 	std::string	strResp;
 
@@ -75,12 +75,12 @@ std::string	HTTPresponse::toString( void ) const
 	return (strResp);
 }
 
-int		HTTPresponse::getStatusCode( void ) const
+int		HTTPresponse::getStatusCode( void ) const noexcept
 {
 	return (this->_statusCode);
 }
 
-std::string const&	HTTPresponse::getStatusStr( void ) const
+std::string const&	HTTPresponse::getStatusStr( void ) const noexcept
 {
 	return (this->_statusStr);
 }
@@ -175,7 +175,7 @@ std::string	HTTPresponse::_mapStatus( int status) const
 		return (std::string(mapStatus.at(status)));
 	}
 	catch(const std::out_of_range& e) {
-		throw(ResponseException({"Unknown HTTP response code:", std::to_string(status)}));
+		throw(ResponseException({"Unknown HTTP response code:", std::to_string(status)}, 500));
 	}
 }
 

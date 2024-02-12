@@ -193,62 +193,45 @@ void			WebServer::_acceptConnection( int listener )
 	this->_addConn(connfd);
 }
 
-// NB: rewrite it better?
 HTTPresponse	WebServer::_handleRequest( int connfd ) const
 {
-	std::string		strHead, partialBody;
+	std::string		strHead, strBody;
 	int				status = 200;
 	HTTPrequest 	request;
 	HTTPresponse 	response;
 	Executor		executor;
 	Server 			handler;
+	ssize_t			read = -1;
 	
 	try {
-		_readHead(connfd, strHead, partialBody);
-		request.parseHead(strHead);
+		read = _readHead(connfd, strHead, strBody);
+		if (read == -1)
+			status = 500;
+		else
+		{
+			request.parseHead(strHead);
+			handler = getHandler(request.getHost());
+			read = _readRemainingBody(connfd, handler.getMaxBodySize(), strBody);
+			if (read == -1)
+				status = 500;
+			else
+				request.parseBody(strBody);
+		}
 	}
 	catch (const HTTPexception& e) {
 		std::cerr << e.what() << '\n';
-		status = 400;
-	}
-	catch (const ServerException& e) {
-		std::cerr << e.what() << '\n';
-		status = 500;
-	}
-	if (status == 200)
-	{
-		if (partialBody.empty() == false)
-			request.setTmpBody(partialBody);
-		handler = getHandler(request.getHost());
-	}
-	else
 		handler = getDefaultServer();
+		status = e.getStatus();
+	}
 	executor.setHandler(handler);
 	if (status == 200)
-	{
-		try {
-			executor.storeRemainingBody(request, connfd);
-			response = executor.execRequest(request);
-		}
-		catch (const HTTPexception& e) {
-			std::cerr << e.what() << '\n';
-			status = 400;
-		}
-		catch (const ServerException& e) {
-			std::cerr << e.what() << '\n';
-			status = 500;
-		}
-		catch (const ExecException& e) {
-			std::cerr << e.what() << '\n';
-			// status = 500;
-		}
-	}
+		response = executor.execRequest(request);
 	else
 		response = executor.createResponse(status, "");
 	return (response);
 }
 
-void			WebServer::_readHead( int fd, std::string& strHead, std::string& strBody) const
+int			WebServer::_readHead( int fd, std::string& strHead, std::string& strBody) const
 {
 	char	buffer[HEADER_BUF_SIZE + 1];
 	ssize_t readChar = -1;
@@ -259,7 +242,7 @@ void			WebServer::_readHead( int fd, std::string& strHead, std::string& strBody)
 		bzero(buffer, HEADER_BUF_SIZE + 1);
 		readChar = recv(fd, buffer, HEADER_BUF_SIZE, 0);
 		if (readChar < 0)
-			throw(ServerException({"Socket unavailable"}));
+			break ;
 		endHeadPos = std::string(buffer).find(HTTP_TERM);
 		if (endHeadPos != std::string::npos)
 		{
@@ -273,6 +256,28 @@ void			WebServer::_readHead( int fd, std::string& strHead, std::string& strBody)
 		else
 			strHead += std::string(buffer);
 	}
+	return ((int) readChar);
+}
+
+int		WebServer::_readRemainingBody( int socket, ssize_t maxBodylength, std::string& body) const
+{
+    ssize_t     lenToRead = maxBodylength - (ssize_t) body.size();
+    ssize_t     readChar = -1;
+    char        *buffer = nullptr;
+
+    if (maxBodylength < 0)
+        throw(RequestException({"body length is longer than maximum allowed"}, 400));
+    buffer = new char[lenToRead + 2];
+    bzero(buffer, lenToRead + 2);
+    readChar = recv(socket, buffer, lenToRead + 1, 0);
+	body += buffer;
+    delete [] buffer;
+    if (readChar > -1)
+    {
+		if (readChar > lenToRead)
+			throw(RequestException({"body length is longer than maximum allowed"}, 400));
+	}
+	return ((int) readChar);
 }
 
 void			WebServer::_writeResponse( int fd, std::string const& content) const

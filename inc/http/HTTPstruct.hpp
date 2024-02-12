@@ -37,7 +37,7 @@ typedef struct HTTPversion_f
 	int			major;
 	int			minor;
 
-	std::string	toString( void ) const;
+	std::string	toString( void ) const noexcept;
 } HTTPversion;
 
 class HTTPstruct
@@ -48,8 +48,8 @@ class HTTPstruct
 
 		void				parseHead( std::string const& );
 		virtual void		parseBody( std::string const& )=0;
-		virtual std::string	toString( void ) const =0;
-		bool				isReady( void ) const ;
+		virtual std::string	toString( void ) const noexcept =0;
+		bool				isReady( void ) const noexcept ;
 
 	protected:
 		dict 		_headers;

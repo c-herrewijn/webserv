@@ -22,6 +22,7 @@
 # include "Location.hpp"
 # include "Listen.hpp"
 # include "Exceptions.hpp"
+# include "HTTPrequest.hpp"
 
 # define DEF_CONF "default/default.conf"
 
@@ -34,6 +35,7 @@ class Server
 		virtual ~Server(void);
 
 		void			parseBlock(std::vector<std::string>& block);
+		bool			validateRequest(HTTPrequest const&) const;
 	
 		const std::vector<Listen>&		getListens(void) const;
 		const std::vector<std::string>& getNames(void) const;
@@ -43,6 +45,7 @@ class Server
 		const std::string& 				getCgiDir(void) const;
 		const std::string& 				getCgiExtension(void) const;
 		const bool& 					getCgiAllowed(void) const;
+		const ssize_t&					getMaxBodySize(void) const;
 
 	private:
 		std::vector<Listen> 		listens; // Listens
@@ -60,7 +63,6 @@ class Server
 		void	_parseCgiExtension(std::vector<std::string>& block);
 		void	_parseCgiAllowed(std::vector<std::string>& block);
 		void	_fillServer(std::vector<std::string>& block);
-
 
     friend std::ostream& operator<<(std::ostream& os, const Server& server);
 };

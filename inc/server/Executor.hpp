@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:10:43 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/11 03:25:55 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/12 17:01:54 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,16 +35,11 @@ class Executor
 		Executor( Server const& ) noexcept ;
 		~Executor( void ) noexcept {};
 
-		int				storeRemainingBody( HTTPrequest&, int ) const ;
-		HTTPresponse	execRequest( HTTPrequest& ) const;
+		HTTPresponse	execRequest( HTTPrequest& ) const noexcept;
 		HTTPresponse	createResponse( int, std::string) const;
 
-		// void				setRequest( HTTPrequest const& );
-		void				setHandler( Server const& );
-		// void				setStatus( int )
-		// HTTPrequest const&	getRequest( void ) const ;
-		Server const&		getHandler( void ) const ;
-		// int const&			getStatus( void ) const ;
+		void				setHandler( Server const& ) noexcept;
+		Server const&		getHandler( void ) const noexcept;
 
 	private:
 		// std::string	_execGET(HTTPrequest&, int&);

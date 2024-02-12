@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/18 14:04:58 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/11 03:16:16 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/12 13:44:17 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,34 +28,40 @@ ServerException::ServerException( std::initializer_list<std::string> const& prom
 		this->_msg += " " + prompt;
 }
 
-ExecException::ExecException( std::initializer_list<std::string> const& prompts) noexcept
-	: WebServerException()
-{
-	this->_msg = "request execution error -";
-	for (std::string prompt : prompts)
-		this->_msg += " " + prompt;
-}
-
-HTTPexception::HTTPexception( std::initializer_list<std::string> const& prompts) noexcept
+HTTPexception::HTTPexception( std::initializer_list<std::string> const& prompts, int status) noexcept
 	: WebServerException()
 {
 	this->_msg = "HTTP parsing error -";
 	for (std::string prompt : prompts)
 		this->_msg += " " + prompt;
+	this->_status = status;
 }
 
-RequestException::RequestException( std::initializer_list<std::string> const& prompts) noexcept
-	: HTTPexception(prompts)
+RequestException::RequestException( std::initializer_list<std::string> const& prompts, int status) noexcept
+	: HTTPexception(prompts, status)
 {
 	this->_msg = "request error -";
 	for (std::string prompt : prompts)
 		this->_msg += " " + prompt;
 }
 
-ResponseException::ResponseException( std::initializer_list<std::string> const& prompts) noexcept
-	: HTTPexception(prompts)
+ResponseException::ResponseException( std::initializer_list<std::string> const& prompts, int status) noexcept
+	: HTTPexception(prompts, status)
 {
 	this->_msg = "response building error -";
 	for (std::string prompt : prompts)
 		this->_msg += " " + prompt;
+}
+
+ExecException::ExecException( std::initializer_list<std::string> const& prompts, int status) noexcept
+	: HTTPexception(prompts, status)
+{
+	this->_msg = "request execution error -";
+	for (std::string prompt : prompts)
+		this->_msg += " " + prompt;
+}
+
+int	HTTPexception::getStatus( void ) const
+{
+	return (this->_status);
 }

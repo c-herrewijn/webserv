@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/12 12:13:15 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/12 16:50:19 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,7 +31,7 @@ typedef struct HTTPurl_f
 	std::string queryRaw;
 	std::string fragment;
 
-	std::string	toString( void ) const;
+	std::string	toString( void ) const noexcept;
 } HTTPurl;
 
 class HTTPrequest : public HTTPstruct
@@ -40,17 +40,13 @@ class HTTPrequest : public HTTPstruct
 		HTTPrequest( void );
 		virtual ~HTTPrequest( void ) override {};
 
-		void					setTmpBody( std::string const& );
-		std::string const&		getTmpBody( void ) const;
-
 		void		parseBody( std::string const& ) override;
-		std::string	toString( void ) const override;
-		std::string	getHost( void ) const ;
+		std::string	toString( void ) const noexcept override;
+		std::string	getHost( void ) const noexcept;
 
 	protected:
 		HTTPmethod	_method;
 		HTTPurl		_url;
-		std::string	_tmpBody;
 
 		void	_setHead( std::string const& ) override;
 		void	_setHeaders( std::string const& ) override;

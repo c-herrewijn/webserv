@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/12 08:34:58 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/12 17:00:39 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,19 +21,19 @@ class HTTPresponse : public HTTPstruct
 		HTTPresponse( void );
 		virtual ~HTTPresponse( void ) override {};
 
-		void		parseBody( std::string const& ) override;
+		void		parseBody( std::string const& ) noexcept override;
 		void		buildResponse( int, std::string const&, std::string const& ) noexcept;
-		std::string	toString( void ) const override;
+		std::string	toString( void ) const noexcept override;
 
-		int					getStatusCode( void ) const;
-		std::string const&	getStatusStr( void ) const;
+		int					getStatusCode( void ) const noexcept;
+		std::string const&	getStatusStr( void ) const noexcept;
 
 	protected:
 		int         _statusCode;
 		std::string _statusStr;
 
 		void		_setHead( std::string const& ) override;
-		void		_addHeader(std::string const&, std::string const& );
+		void		_addHeader(std::string const&, std::string const& ) noexcept;
 		std::string	_mapStatus( int ) const;
-		std::string	_getDateTime( void ) const;
+		std::string	_getDateTime( void ) const noexcept;
 };

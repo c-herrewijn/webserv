@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/11 03:22:15 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/12 16:47:09 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,7 +61,7 @@
 // 	}
 // }
 
-std::string	HTTPversion::toString( void ) const
+std::string	HTTPversion::toString( void ) const noexcept
 {
 	std::string	strVersion;
 	strVersion += this->scheme;
@@ -81,7 +81,7 @@ void	HTTPstruct::parseHead( std::string const& strReq )
 
 	delimiter = strReq.find(HTTP_TERM);
 	if (delimiter == std::string::npos)
-		throw(HTTPexception({"no header terminator"}));
+		throw(HTTPexception({"no header terminator"}, 400));
 	head = strReq.substr(0, delimiter + 2);
 	delimiter = head.find(HTTP_NL);
 	if (delimiter + 2 != head.size())		// we have the headers
@@ -93,7 +93,7 @@ void	HTTPstruct::parseHead( std::string const& strReq )
 	_setHeaders(headers);
 }
 
-bool	HTTPstruct::isReady( void ) const
+bool	HTTPstruct::isReady( void ) const noexcept
 {
 	return(this->_ready);
 }
@@ -110,7 +110,7 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 	{
 		del2 = tmpHeaders.find(": ");
 		if (del2 == std::string::npos)
-			throw(HTTPexception({"invalid header format:", tmpHeaders}));
+			throw(HTTPexception({"invalid header format:", tmpHeaders}, 400));
 		key = tmpHeaders.substr(0, del2);
 		value = tmpHeaders.substr(del2 + 2, del1 - del2 - 2);
 		this->_headers.insert({key, value});

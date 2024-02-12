@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/11 03:22:52 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/12 16:57:59 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,24 +35,12 @@ std::string	HTTPurl::toString( void ) const
 	return (strURL);
 }
 
-HTTPrequest::HTTPrequest( void ) : HTTPstruct() {}
-
-void	HTTPrequest::setTmpBody( std::string const& tmpBody)
-{
-	this->_tmpBody = tmpBody;
-}
-
-std::string const&		HTTPrequest::getTmpBody( void ) const
-{
-	return (this->_tmpBody);
-}
-
 void	HTTPrequest::parseBody( std::string const& strBody)
 {
 	bool 		isChunked = false;
-	std::string fullBody = this->_tmpBody + strBody;
+	std::string body = strBody;
 
-    if (fullBody.empty() == false)
+    if (body.empty() == false)
 	{
 		try {
 			this->_headers.at("Content-Type");
@@ -63,21 +51,21 @@ void	HTTPrequest::parseBody( std::string const& strBody)
 				if (this->_headers["Transfer-Encoding"] == "chunked")
 					isChunked = true;
 				else
-					throw(RequestException({"no Content-Length header"}));
+					throw(RequestException({"no Content-Length header"}, 400));
 			}
 		}
 		catch(const std::out_of_range& e) {
-			throw(RequestException({"no Content-Type header"}));
+			throw(RequestException({"no Content-Type header"}, 400));
 		}
 		if (isChunked == true)
-			_setChunkedBody(fullBody);
+			_setChunkedBody(body);
 		else
-			_setBody(fullBody);
+			_setBody(body);
 	}
 	this->_ready = true;
 }
 
-std::string	HTTPrequest::toString( void ) const
+std::string	HTTPrequest::toString( void ) const noexcept
 {
 	std::string	strReq;
 
@@ -98,8 +86,6 @@ std::string	HTTPrequest::toString( void ) const
 			strReq += "DELETE";
 			break;
 		}
-		default:
-			throw(RequestException({"Unknown HTTP method"}));
 	}
 	strReq += HTTP_SP;
 	strReq += this->_url.toString();
@@ -126,17 +112,12 @@ std::string	HTTPrequest::toString( void ) const
 	return (strReq);
 }
 
-std::string	HTTPrequest::getHost( void ) const
+std::string	HTTPrequest::getHost( void ) const noexcept
 {
 	std::string hostStr;
 	size_t		delim;
 
-	try {
-		hostStr = this->_headers.at("Host");
-	}
-	catch(const std::out_of_range& e) {
-		throw(RequestException({"no host found in request"}));
-	}
+	hostStr = this->_headers.at("Host");
 	delim = hostStr.find(':');
 	return (hostStr.substr(0, delim));
 }
@@ -147,16 +128,16 @@ void	HTTPrequest::_setHead( std::string const& header )
 	std::string 		method, url, version;
 
 	if (! std::getline(stream, method, ' '))
-		throw(RequestException({"invalid header:", header}));
+		throw(RequestException({"invalid header:", header}, 400));
 	_setMethod(method);
 	if (! std::getline(stream, url, ' '))
-		throw(RequestException({"invalid header:", header}));
+		throw(RequestException({"invalid header:", header}, 400));
 	_setURL(url);
 	if (! std::getline(stream, version, ' '))
-		throw(RequestException({"invalid header:", header}));
+		throw(RequestException({"invalid header:", header}, 400));
 	_setVersion(version);
 	if (version.substr(version.size() - 2) != HTTP_NL)
-		throw(RequestException({"no termination header:", header}));
+		throw(RequestException({"no termination header:", header}, 400));
 }
 
 void	HTTPrequest::_setHeaders( std::string const& headers)
@@ -170,11 +151,11 @@ void	HTTPrequest::_setHeaders( std::string const& headers)
 		else if (this->_url.host != currentHost)
 		{
 			std::cout << this->_url.host << " - " << currentHost << '\n';
-			throw(RequestException({"hosts do not match"}));
+			throw(RequestException({"hosts do not match"}, 400));
 		}
 	}
 	catch(std::out_of_range const& e) {
-		throw(RequestException({"no Host header"}));
+		throw(RequestException({"no Host header"}, 400));
 	}	
 }
 
@@ -184,17 +165,17 @@ void	HTTPrequest::_setBody( std::string const& strBody )
     size_t      delimiter = strBody.find(HTTP_TERM);
 
     if (delimiter == std::string::npos)
-		throw(RequestException({"no body terminator"}));
+		throw(RequestException({"no body terminator"}, 400));
 	tmpBody = strBody.substr(0, delimiter);
 	try {
 		if (tmpBody.size() != std::stoul(this->_headers["Content-Length"]))
-			throw(RequestException({"body lengths do not match"}));
+			throw(RequestException({"body lengths do not match"}, 400));
 	}
 	catch(const std::invalid_argument& e ) {
-		throw(RequestException({"invalid Content-Length:", this->_headers["Content-Length"]}));
+		throw(RequestException({"invalid Content-Length:", this->_headers["Content-Length"]}, 400));
 	}
 	catch(const std::out_of_range& e ) {
-		throw(RequestException({"missing or overflow Content-Length header"}));
+		throw(RequestException({"missing or overflow Content-Length header"}, 400));
 	}
 	HTTPstruct::_setBody(tmpBody);
 }
@@ -208,7 +189,7 @@ void    HTTPrequest::_setMethod( std::string const& strMethod )
 	else if (strMethod == "DELETE")
 		this->_method = HTTP_DELETE;
 	else
-		throw(RequestException({"unknown HTTP method:", strMethod}));
+		throw(RequestException({"unknown HTTP method:", strMethod}, 400));
 }
 
 void	HTTPrequest::_setURL( std::string const& strURL )
@@ -228,7 +209,7 @@ void	HTTPrequest::_setURL( std::string const& strURL )
 	if (delimiter != std::string::npos)
 	{
 		if (delimiter != 0)
-			throw(RequestException({"bad format URL:", tmpURL}));
+			throw(RequestException({"bad format URL:", tmpURL}, 400));
 		tmpURL = tmpURL.substr(2);
 		delimiter = tmpURL.find("/");
 		if (delimiter == 0)
@@ -246,30 +227,30 @@ void	HTTPrequest::_setVersion( std::string const& strVersion )
 
 	del1 = strVersion.find('/');
 	if (del1 == std::string::npos)
-		throw(RequestException({"invalid version:", strVersion}));
+		throw(RequestException({"invalid version:", strVersion}, 400));
 	this->_version.scheme = strVersion.substr(0, del1);
 	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::tolower);
 	if (this->_version.scheme != HTTP_SCHEME)
-		throw(RequestException({"invalid scheme:", strVersion}));
+		throw(RequestException({"invalid scheme:", strVersion}, 400));
 	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::toupper);
 	del2 = strVersion.find('.');
 	if (del2 == std::string::npos)
-		throw(RequestException({"invalid version:", strVersion}));
+		throw(RequestException({"invalid version:", strVersion}, 400));
 	try {
 		this->_version.major = std::stoi(strVersion.substr(del1 + 1, del2 - del1 - 1));
 		this->_version.minor = std::stoi(strVersion.substr(del2 + 1));
 	}
 	catch (std::exception const& e) {
-		throw(RequestException({"invalid version numbers:", strVersion}));
+		throw(RequestException({"invalid version numbers:", strVersion}, 400));
 	}
 	if (this->_version.major + this->_version.minor != 2)
-		throw(RequestException({"unsupported HTTP version:", strVersion}));
+		throw(RequestException({"unsupported HTTP version:", strVersion}, 400));
 }
 
 void	HTTPrequest::_setScheme( std::string const& strScheme )
 {
 	if ((strScheme != HTTP_SCHEME) and (strScheme != HTTPS_SCHEME))
-		throw(RequestException({"unsupported scheme:", strScheme}));
+		throw(RequestException({"unsupported scheme:", strScheme}, 400));
 	this->_url.scheme = strScheme;
 }
 
@@ -291,7 +272,7 @@ void	HTTPrequest::_setHostPort( std::string const& strURL )
 			this->_url.port = std::stoi(port);
 		}
 		catch(const std::exception& e ) {
-			throw(RequestException({"invalid port format:", strURL.substr(delimiter + 1)}));
+			throw(RequestException({"invalid port format:", strURL.substr(delimiter + 1)}, 400));
 		}
 	}
 	else
@@ -324,19 +305,19 @@ void	HTTPrequest::_setQuery( std::string const& queries )
 	size_t 				del1, del2;
 
 	if (queries == "?")
-		throw(RequestException({"empty query"}));
+		throw(RequestException({"empty query"}, 400));
 	this->_url.queryRaw = keyValue.substr(1);
 	while (true)
 	{
 		keyValue = keyValue.substr(1);	// remove leading '?' or '&'
 		del1 = keyValue.find('=');
 		if (del1 == std::string::npos)
-			throw(RequestException({"invalid query:", keyValue}));
+			throw(RequestException({"invalid query:", keyValue}, 400));
 		del2 = keyValue.find('&');
 		key = keyValue.substr(0, del1);
 		value = keyValue.substr(del1 + 1, del2 - del1 - 1);
 		if (key.empty() or value.empty())
-			throw(RequestException({"invalid query:", keyValue}));
+			throw(RequestException({"invalid query:", keyValue}, 400));
 		this->_url.query.insert({key, value});
 		if (del2 == std::string::npos)
 			break;
@@ -355,19 +336,19 @@ void	HTTPrequest::_setChunkedBody( std::string const& chunkedBody)
 	std::string	tmpChunkedBody=chunkedBody;
 
 	if (chunkedBody.find(HTTP_TERM) == std::string::npos)
-		throw(RequestException({"no body terminator"}));
+		throw(RequestException({"no body terminator"}, 400));
 	do
 	{
 		delimiter = tmpChunkedBody.find(HTTP_NL);
 		if (delimiter == std::string::npos)
-			throw(RequestException({"bad chunking"}));
+			throw(RequestException({"bad chunking"}, 400));
 		try {
 			sizeChunk = std::stoul(tmpChunkedBody.substr(0, delimiter), nullptr, 16);
 			this->_body += tmpChunkedBody.substr(delimiter + HTTP_NL.size(), sizeChunk);
 			tmpChunkedBody = tmpChunkedBody.substr(delimiter + sizeChunk + HTTP_NL.size() * 2);
 		}
 		catch(const std::exception& e){
-			throw(RequestException({"bad chunking"}));
+			throw(RequestException({"bad chunking"}, 400));
 		}
 	} while (sizeChunk != 0);
 }

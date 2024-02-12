@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/11 03:51:58 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/12 17:02:00 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,34 +27,26 @@ Executor::Executor( Server const& server ) noexcept : _handler(server)
     this->_maxLenBody = this->_handler.getParams().getMaxSize().first + HTTP_TERM.size();
 }
 
-int		Executor::storeRemainingBody( HTTPrequest& request, int socket) const
-{
-    ssize_t     lenToRead = this->_maxLenBody - request.getTmpBody().size();
-    ssize_t     readChar = -1;
-    int         status = 200;
-    char        *buffer = nullptr;
-    std::string body;
 
-    if (lenToRead < 0)
-        throw(RequestException({"body length is longer than maximum allowed"}));
-    buffer = new char[lenToRead + 1];
-    bzero(buffer, lenToRead + 1);
-    readChar = recv(socket, buffer, lenToRead, 0);
-    body = buffer;
-    delete [] buffer;
-    if (readChar == -1)
-        throw(ServerException({"socket not available"}));
-    request.parseBody(body);
-    return (status);
-}
-
-HTTPresponse	Executor::execRequest(HTTPrequest& req ) const
+HTTPresponse	Executor::execRequest(HTTPrequest& req ) const noexcept
 {
-    HTTPresponse response;
-    int exitStatus = 200;
-    std::string body;
-	if (req.isReady() == false)
-		throw(ExecException({"request is not ready to be executed"}));
+    HTTPresponse    response;
+    int             exitStatus = 200;
+    std::string     body;
+
+    try
+    {
+        /* code */
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+    
+    // if (this->_handler.validateRequest(req) == false)
+	// 	throw(ExecException({"validation failed"}));
+	// else if (req.isReady() == false)
+	// 	throw(ExecException({"request is not ready to be executed"}));
 	// do the checks
     // exec HTTP method
     response = createResponse(exitStatus, body);
@@ -69,12 +61,12 @@ HTTPresponse	Executor::createResponse( int status, std::string bodyResp ) const
 	return (response);
 }
 
-void				Executor::setHandler( Server const& handler)
+void				Executor::setHandler( Server const& handler) noexcept
 {
     this->_handler = handler;
 }
 
-Server const&		Executor::getHandler( void ) const 
+Server const&		Executor::getHandler( void ) const noexcept
 {
     return (this->_handler);
 }

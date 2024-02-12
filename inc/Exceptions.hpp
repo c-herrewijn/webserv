@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/18 14:04:44 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/12 08:35:17 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/12 13:44:20 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,26 +37,30 @@ class ServerException : public WebServerException
 		ServerException( std::initializer_list<std::string> const& ) noexcept;
 };
 
-class ExecException : public WebServerException
-{
-	public:
-		ExecException( std::initializer_list<std::string> const& ) noexcept;
-};
-
 class HTTPexception : public WebServerException
 {
 	public:
-		HTTPexception( std::initializer_list<std::string> const& ) noexcept;
+		HTTPexception( std::initializer_list<std::string> const&, int ) noexcept;
+		int	getStatus( void ) const ;
+
+	protected:
+		int	_status;
 };
 
 class RequestException : public HTTPexception
 {
 	public:
-		RequestException( std::initializer_list<std::string> const& ) noexcept;
+		RequestException( std::initializer_list<std::string> const&, int ) noexcept;
 };
 
 class ResponseException : public HTTPexception
 {
 	public:
-		ResponseException( std::initializer_list<std::string> const& ) noexcept;
+		ResponseException( std::initializer_list<std::string> const&, int ) noexcept;
+};
+
+class ExecException : public HTTPexception
+{
+	public:
+		ExecException( std::initializer_list<std::string> const&, int ) noexcept;
 };

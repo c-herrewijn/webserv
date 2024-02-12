@@ -64,6 +64,12 @@ void	Server::parseBlock(std::vector<std::string>& block)
 	_fillServer(block);
 }
 
+bool	Server::validateRequest(HTTPrequest const& req) const
+{
+
+	return (true);
+}
+
 const std::vector<Listen>& Server::getListens(void) const
 {
 	return (listens);
@@ -102,6 +108,11 @@ const std::string& Server::getCgiExtension(void) const
 const bool& Server::getCgiAllowed(void) const
 {
 	return (cgi_allowed);
+}
+
+const ssize_t&	Server::getMaxBodySize(void) const
+{
+	return (this->getParams().getMaxSize().first);
 }
 
 void	Server::_parseListen(std::vector<std::string>& block)
