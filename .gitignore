@@ -1,4 +1,5 @@
 .vscode
 webserv
 webclient
-obj/
+obj
+deps
