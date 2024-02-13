@@ -58,27 +58,55 @@ void			WebServer::startListen( void )
 
 void			WebServer::loop( void )
 {
-	int				nConn;
+	int	nConn = -1;
+	HTTPresponse 	response;
 
 	while (true)
 	{
-		nConn = poll(this->_connfds.data(), this->_connfds.size(), MAX_TIMEOUT);
+		nConn = poll(this->_connfds.data(), this->_connfds.size(), 0);
+		// std::cout << "I'm waiting for conns, n: " << nConn << '\n';
 		if (nConn == -1)
 		{
-			if ((errno != EAGAIN) or (errno != EWOULDBLOCK))
+			if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
 				throw(ServerException({"poll failed"}));
 		}
-		else if (nConn == 0)		// timeout (NB: right?)
-			break;
+		// else if (nConn == 0)		// timeout (NB: right?)
+		// 	break;
 		else
 		{
 			for (size_t i=0; i<this->_connfds.size(); i++)
 			{
-				if (_handleEvent(this->_connfds[i]) == true)
-					_dropConn(this->_connfds[i--].fd);
+				try {
+					if (this->_connfds[i].revents & POLLIN)		// MSG_OOB ( <-- recv()) and POLLPRI?
+					{
+						if (_isListener(this->_connfds[i].fd) == true) // new connection
+							_acceptConnection(this->_connfds[i].fd);
+						else
+						{
+							response = _handleRequest(this->_connfds[i].fd);
+							response.setSocket(this->_connfds[i].fd);
+							// std::cout << response.toString() << '\n';
+							return ;
+						}
+					}
+					// if (this->_connfds[i].revents & POLLOUT)
+					// {
+					// 	_writeResponse(response);
+					// 	// if (response.getStatusCode() != 200)
+					// 	// 	return (false);
+					// 	// return;
+					// }
+					// if (socket.revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
+					// 	return (false);
+				}
+				catch(const ServerException& e) { // socket not available, impossible reading request
+					std::cerr << e.what() << '\n';
+					// _dropConn(this->_connfds[i].fd);
+				}
 			}
 		}
 	}
+	// _dropConn();
 }
 
 std::string		WebServer::getAddress( const struct sockaddr_storage *addr ) const noexcept
@@ -165,33 +193,11 @@ void			WebServer::_listenTo( std::string const& hostname, std::string const& por
 	this->_listeners.insert(listenSocket);
 }
 
-bool			WebServer::_handleEvent(struct pollfd const& socket)
-{
-	HTTPresponse 	response;
-
-	try {
-		if (socket.revents & POLLIN)		// MSG_OOB ( <-- recv()) and POLLPRI?	
-		{
-			if (_isListener(socket.fd) == true) // new connection
-				_acceptConnection(socket.fd);
-			else
-				response = _handleRequest(socket.fd);
-		}
-		if (socket.revents & POLLOUT)
-		{
-			_writeResponse(socket.fd, response.toString());
-			if (response.getStatusCode() != 200)
-				return (false);
-		}
-		if (socket.revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
-			return (false);
-	}
-	catch(const ServerException& e) { // socket not available, impossible reading request
-		std::cerr << e.what() << '\n';
-		return (false);
-	}
-	return (true);
-}
+// bool			WebServer::_handleEvent(struct pollfd const& socket)
+// {
+	
+// 	return (true);
+// }
 
 void			WebServer::_acceptConnection( int listener )
 {
@@ -224,8 +230,10 @@ HTTPresponse	WebServer::_handleRequest( int connfd ) const
 		endHeadPos += HTTP_TERM.size();
 		strHead = rawContent.substr(0, endHeadPos);
 		strBody = rawContent.substr(endHeadPos);
+		std::cout << strHead << "|" << strBody << "|\n";
 	}
 	try {
+		request.setSocket(connfd);
 		request.parseHead(strHead);
 		handler = getHandler(request.getHost());
 		// because max body size can change depending on the URL, this should be done even later than that
@@ -244,7 +252,7 @@ HTTPresponse	WebServer::_handleRequest( int connfd ) const
 		return (executor.createResponse(status, ""));
 }
 
-std::string			WebServer::_readHead( int fd ) const
+std::string		WebServer::_readHead( int fd ) const
 {
 	char	buffer[HEADER_BUF_SIZE + 1];
 	ssize_t readChar = -1;
@@ -256,9 +264,9 @@ std::string			WebServer::_readHead( int fd ) const
 		readChar = recv(fd, buffer, HEADER_BUF_SIZE, 0);
 		if (readChar < 0)
 			throw(ServerException({"Socket not available"}));
-		else if ((readChar < HEADER_BUF_SIZE) or (content.find(HTTP_TERM) != std::string::npos))
-			break;
 		content += std::string(buffer);
+		if ((readChar < HEADER_BUF_SIZE) or (content.find(HTTP_TERM) != std::string::npos))
+			break;
 	}
 	return (content);
 }
@@ -289,16 +297,16 @@ std::string		WebServer::_readRemainingBody( int socket, size_t maxBodylength, si
 	return (body);
 }
 
-void			WebServer::_writeResponse( int fd, std::string const& content) const
+void			WebServer::_writeResponse( HTTPresponse const& resp ) const
 {
 	std::string toWrite;
-	size_t	start=0, len=content.size();
+	size_t	start=0, len=resp.toString().size();
 	ssize_t written=0;
 
-	while (start < content.size())
+	while (start < resp.toString().size())
 	{
-		toWrite = content.substr(start, len);
-		written = send(fd, toWrite.c_str(), len, 0);
+		toWrite = resp.toString().substr(start, len);
+		written = send(resp.getSocket(), toWrite.c_str(), len, 0);
 		if (written < -1)
 			throw(ServerException({"failed writing on client socket"}));
 		start += written;
@@ -326,20 +334,26 @@ void			WebServer::_addConn( int newSocket ) noexcept
 
 void			WebServer::_dropConn(int toDrop) noexcept
 {
-	int currSocket;
+	int 	currSocket;
 
-	for (auto it=this->_connfds.begin(); it!=this->_connfds.end(); it++)
+	// if (toDrop == -1)
+	// {
+	// 	this->_connfds.clear();
+	// 	this->_listeners.clear();
+	// 	return ;
+	// }
+	// for (size_t i=0; i<this->_connfds.size(); i++)
+	for (auto item : this->_connfds)
 	{
-		currSocket = (*it).fd;
-		if ((toDrop == -1) or (currSocket == toDrop))
+		currSocket = item.fd;
+		if (currSocket == toDrop)
 		{
 			shutdown(currSocket, SHUT_RDWR);
 			close(currSocket);
-			this->_connfds.erase(it);
-			if (this->_isListener(currSocket) == true)
-				this->_listeners.erase(currSocket);
-			if (toDrop != -1)
-				break;
+			// this->_connfds.erase(item, this->_connfds.end());
+			// if (this->_isListener(currSocket) == true)
+			// 	this->_listeners.erase(currSocket);
+			break;
 		}
 	}
 }

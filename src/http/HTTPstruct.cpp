@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/12 16:47:09 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/13 17:08:12 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,7 +72,7 @@ std::string	HTTPversion::toString( void ) const noexcept
 	return (strVersion);
 }
 
-HTTPstruct::HTTPstruct( void ) : _ready(false) {}
+HTTPstruct::HTTPstruct( void ) : _ready(false) , _socket(-1) {}
 
 void	HTTPstruct::parseHead( std::string const& strReq )
 {
@@ -96,6 +96,16 @@ void	HTTPstruct::parseHead( std::string const& strReq )
 bool	HTTPstruct::isReady( void ) const noexcept
 {
 	return(this->_ready);
+}
+
+void	HTTPstruct::setSocket( int socket )
+{
+	this->_socket = socket;
+}
+
+int		HTTPstruct::getSocket( void ) const
+{
+	return (this->_socket);
 }
 
 void	HTTPstruct::_setHeaders( std::string const& headers )

@@ -72,7 +72,15 @@ int main(int ac, char **av)
 	std::cout << "Parsing done with size " C_AZURE << servers.size() << C_RESET "\n";
 
 	WebServer	webserv(servers);
-	webserv.startListen();
-	webserv.loop();
+	try
+	{
+		webserv.startListen();
+		webserv.loop();
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+		return (EXIT_FAILURE);
+	}
 	return (EXIT_SUCCESS);
 }

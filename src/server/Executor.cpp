@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/12 23:34:30 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/13 17:34:51 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,6 +63,7 @@ HTTPresponse	Executor::createResponse( int status, std::string bodyResp ) const
 void				Executor::setHandler( Server const& handler) noexcept
 {
     this->_handler = handler;
+    this->_servName = handler.getPrimaryName();
 }
 
 Server const&		Executor::getHandler( void ) const noexcept

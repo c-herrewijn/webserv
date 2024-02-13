@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/12 22:36:01 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/13 17:56:01 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,7 @@ void	HTTPrequest::parseBody( std::string const& strBody)
 	bool 		isChunked = false;
 	std::string body = strBody;
 
+	std::cout << "|" << body << "|\n";
     if (body.empty() == false)
 	{
 		try {
@@ -229,10 +230,9 @@ void	HTTPrequest::_setVersion( std::string const& strVersion )
 	if (del1 == std::string::npos)
 		throw(RequestException({"invalid version:", strVersion}, 400));
 	this->_version.scheme = strVersion.substr(0, del1);
-	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::tolower);
+	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::toupper);
 	if (this->_version.scheme != HTTP_SCHEME)
 		throw(RequestException({"invalid scheme:", strVersion}, 400));
-	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::toupper);
 	del2 = strVersion.find('.');
 	if (del2 == std::string::npos)
 		throw(RequestException({"invalid version:", strVersion}, 400));
@@ -249,7 +249,7 @@ void	HTTPrequest::_setVersion( std::string const& strVersion )
 
 void	HTTPrequest::_setScheme( std::string const& strScheme )
 {
-	if ((strScheme != HTTP_SCHEME) and (strScheme != HTTPS_SCHEME))
+	if (strScheme != HTTP_SCHEME)
 		throw(RequestException({"unsupported scheme:", strScheme}, 400));
 	this->_url.scheme = strScheme;
 }
