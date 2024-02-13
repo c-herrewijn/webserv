@@ -13,7 +13,7 @@
 #include "parser/Config.hpp"
 #include "server/WebServer.hpp"
 
-std::vector<Server>	parseServers(char *fileName)
+std::vector<Server>	parseServers(std::string const& fileName)
 {
 	Config *config;
 	config = new Config();

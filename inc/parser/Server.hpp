@@ -24,7 +24,7 @@
 # include "Exceptions.hpp"
 # include "HTTPrequest.hpp"
 
-# define DEF_CONF "default/default.conf"
+# define DEF_CONF std::string("default/default.conf")
 
 class Server
 {
