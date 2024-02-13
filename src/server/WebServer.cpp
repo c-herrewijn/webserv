@@ -203,7 +203,7 @@ void			WebServer::_acceptConnection( int listener )
 
 HTTPresponse	WebServer::_handleRequest( int connfd ) const
 {
-	std::string		strHead, strBody;
+	std::string		strHead, strBody, rawContent;
 	int				status = 200;
 	HTTPrequest 	request;
 	HTTPresponse 	response;
@@ -212,7 +212,18 @@ HTTPresponse	WebServer::_handleRequest( int connfd ) const
 	ssize_t			read = -1;
 	
 	try {
-		read = g(connfd, strHead, strBody);
+		rawContent = _readHead(connfd);
+	}
+	catch(const ServerException& e)
+	{
+		std::cerr << e.what() << '\n';
+		// socket not available, impossible reading request
+	}
+	if (rawContent.empty() == true)		// client closed connection
+	{}
+	else
+		
+	try {
 		if (read == -1)
 			status = 500;
 		else
@@ -239,31 +250,23 @@ HTTPresponse	WebServer::_handleRequest( int connfd ) const
 	return (response);
 }
 
-int			WebServer::_readHead( int fd, std::string& strHead, std::string& strBody) const
+std::string			WebServer::_readHead( int fd ) const
 {
 	char	buffer[HEADER_BUF_SIZE + 1];
 	ssize_t readChar = -1;
-	size_t	endHeadPos = std::string::npos;
+	std::string content;
 
 	while (true)
 	{
 		bzero(buffer, HEADER_BUF_SIZE + 1);
 		readChar = recv(fd, buffer, HEADER_BUF_SIZE, 0);
 		if (readChar < 0)
-			break ;
-		endHeadPos = std::string(buffer).find(HTTP_TERM);
-		if (endHeadPos != std::string::npos)
-		{
-			endHeadPos += HTTP_TERM.size();
-			strHead += std::string(buffer).substr(0, endHeadPos);
-			strBody = std::string(buffer).substr(endHeadPos);
+			throw(ServerException({"Socket not available"}));
+		if (readChar == 0)
 			break;
-		}
-		else if (readChar < HEADER_BUF_SIZE)
-			throw(RequestException({"no header terminator"}, 400));\
-		strHead += std::string(buffer);
+		content += std::string(buffer);
 	}
-	return ((int) readChar);
+	return (content);
 }
 
 ssize_t		WebServer::_readRemainingBody( int socket, size_t maxBodylength, std::string& body) const

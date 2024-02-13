@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/13 00:11:40 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/13 11:25:49 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,7 +73,7 @@ class WebServer
 		void			_listenTo( std::string const&, std::string const& );
 		void			_acceptConnection( int ) ;
 		HTTPresponse	_handleRequest( int ) const ;
-		int				_readHead( int , std::string&, std::string& ) const ;
+		std::string		_readHead( int ) const ;
 		ssize_t			_readRemainingBody( int, size_t, std::string& ) const ;
 		void			_writeResponse( int, std::string const& ) const ;
 		bool			_isListener( int ) const ;
