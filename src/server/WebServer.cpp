@@ -68,31 +68,37 @@ void			WebServer::loop( void )
 	{
 		nConn = poll(this->_connfds.data(), this->_connfds.size(), MAX_TIMEOUT);
 		if (nConn == -1)
-			throw(ServerException({"poll failed"}));
+		{
+			if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
+				throw(ServerException({"poll failed"}));
+		}
 		else if (nConn == 0)		// timeout (NB: right?)
 			break;
-		for (size_t i=0; i<this->_connfds.size(); i++)
+		else
 		{
-			if (this->_connfds[i].revents & POLLIN)
+			for (size_t i=0; i<this->_connfds.size(); i++)
 			{
-				if (_isListener(this->_connfds[i].fd) == true) // new connection
-					_acceptConnection(this->_connfds[i].fd);
-				else
-					response = _handleRequest(this->_connfds[i].fd);
-			}
-			if (this->_connfds[i].revents & POLLOUT)
-			{
-				_writeResponse(this->_connfds[i].fd, response.toString());
-				if (response.getStatusCode() != 200)
+				if (this->_connfds[i].revents & POLLIN)		// MSG_OOB and POLLPRI?	
+				{
+					if (_isListener(this->_connfds[i].fd) == true) // new connection
+						_acceptConnection(this->_connfds[i].fd);
+					else
+						response = _handleRequest(this->_connfds[i].fd);
+				}
+				if (this->_connfds[i].revents & POLLOUT)
+				{
+					_writeResponse(this->_connfds[i].fd, response.toString());
+					if (response.getStatusCode() != 200)
+						toDrop.push(this->_connfds[i].fd);
+				}
+				if (this->_connfds[i].revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
 					toDrop.push(this->_connfds[i].fd);
 			}
-			if ((this->_connfds[i].revents & POLLHUP) or (this->_connfds[i].revents & POLLERR))	// client-end side was closed
-				toDrop.push(this->_connfds[i].fd);
-		}
-		while (toDrop.empty() == false)
-		{
-			_dropConn(toDrop.top());
-			toDrop.pop();
+			while (toDrop.empty() == false)
+			{
+				_dropConn(toDrop.top());
+				toDrop.pop();
+			}
 		}
 	}
 }
@@ -206,7 +212,7 @@ HTTPresponse	WebServer::_handleRequest( int connfd ) const
 	ssize_t			read = -1;
 	
 	try {
-		read = _readHead(connfd, strHead, strBody);
+		read = g(connfd, strHead, strBody);
 		if (read == -1)
 			status = 500;
 		else
@@ -254,9 +260,8 @@ int			WebServer::_readHead( int fd, std::string& strHead, std::string& strBody) 
 			break;
 		}
 		else if (readChar < HEADER_BUF_SIZE)
-			throw(RequestException({"no header terminator"}, 400));
-		else
-			strHead += std::string(buffer);
+			throw(RequestException({"no header terminator"}, 400));\
+		strHead += std::string(buffer);
 	}
 	return ((int) readChar);
 }
@@ -314,7 +319,7 @@ void			WebServer::_addConn( int newSocket ) noexcept
 	if (newSocket != -1)
 	{
 		newfd.fd = newSocket;
-		newfd.events = POLLIN | POLLOUT;
+		newfd.events = POLLIN | POLLPRI | POLLOUT;
 		newfd.revents = 0;
 		this->_connfds.push_back(newfd);
 	}

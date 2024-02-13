@@ -19,10 +19,7 @@ Listen::Listen(const Listen& copy) :
 	s_ip(copy.s_ip),
 	s_port(copy.s_port),
 	def(copy.def),
-	all(copy.all)
-{
-
-}
+	all(copy.all) {}
 
 Listen&	Listen::operator=(const Listen& assign)
 {
@@ -231,7 +228,6 @@ bool Listen::operator!=(const Listen& other) const
 {
 	return(!(*this == other));
 }
-
 
 std::ostream& operator<<(std::ostream& os, const Listen& listen) {
     os << "listen " << listen.getIpString();

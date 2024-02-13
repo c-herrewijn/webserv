@@ -13,9 +13,9 @@
 #include "Config.hpp"
 #include "Server.hpp"
 
-Config::Config(void) { }
+Config::Config(void) {}
 
-Config::~Config(void) { }
+Config::~Config(void) {}
 
 void	Config::fillConfig(const std::string& file)
 {
