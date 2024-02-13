@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/13 17:56:01 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/13 22:31:35 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,6 @@ void	HTTPrequest::parseBody( std::string const& strBody)
 	bool 		isChunked = false;
 	std::string body = strBody;
 
-	std::cout << "|" << body << "|\n";
     if (body.empty() == false)
 	{
 		try {

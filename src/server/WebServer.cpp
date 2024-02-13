@@ -85,8 +85,7 @@ void			WebServer::loop( void )
 						{
 							response = _handleRequest(this->_connfds[i].fd);
 							response.setSocket(this->_connfds[i].fd);
-							// std::cout << response.toString() << '\n';
-							return ;
+							std::cout << response.toString() << '\n';
 						}
 					}
 					// if (this->_connfds[i].revents & POLLOUT)
@@ -102,6 +101,7 @@ void			WebServer::loop( void )
 				catch(const ServerException& e) { // socket not available, impossible reading request
 					std::cerr << e.what() << '\n';
 					// _dropConn(this->_connfds[i].fd);
+							return ;
 				}
 			}
 		}
@@ -230,7 +230,7 @@ HTTPresponse	WebServer::_handleRequest( int connfd ) const
 		endHeadPos += HTTP_TERM.size();
 		strHead = rawContent.substr(0, endHeadPos);
 		strBody = rawContent.substr(endHeadPos);
-		std::cout << strHead << "|" << strBody << "|\n";
+		std::cout << "head |"<< strHead << "|\nbody |" << strBody << "|\n";
 	}
 	try {
 		request.setSocket(connfd);
@@ -265,12 +265,13 @@ std::string		WebServer::_readHead( int fd ) const
 		if (readChar < 0)
 			throw(ServerException({"Socket not available"}));
 		content += std::string(buffer);
-		if ((readChar < HEADER_BUF_SIZE) or (content.find(HTTP_TERM) != std::string::npos))
+		if (content.find(HTTP_TERM) != std::string::npos)
 			break;
 	}
 	return (content);
 }
 
+// before reading again it should still go through poll() again first
 std::string		WebServer::_readRemainingBody( int socket, size_t maxBodylength, size_t sizeBody) const
 {
     ssize_t     lenToRead, readChar=-1;
@@ -289,6 +290,7 @@ std::string		WebServer::_readRemainingBody( int socket, size_t maxBodylength, si
     bzero(buffer, lenToRead + 2);
     readChar = recv(socket, buffer, lenToRead + 1, 0);
 	body = buffer;
+	std::cout << "remaining body |" << body << "|\n";
     delete [] buffer;
 	if ((maxBodylength != 0) and (readChar > (ssize_t) lenToRead))
 		throw(RequestException({"body length is longer than maximum allowed"}, 413));

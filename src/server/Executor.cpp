@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/13 17:34:51 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/13 22:34:33 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,9 +38,10 @@ HTTPresponse	Executor::execRequest(HTTPrequest& req ) const noexcept
         if (req.isReady() == false)
 		    throw(ExecException({"request is not ready to be executed"}, 500));
     }
-    catch(const std::exception& e)
+    catch(const ExecException& e)
     {
         std::cerr << e.what() << '\n';
+        exitStatus = e.getStatus();
     }
     
     // if (this->_handler.validateRequest(req) == false)
