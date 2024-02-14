@@ -49,7 +49,7 @@ class HTTPstruct
 		virtual void		parseBody( std::string const& )=0;
 		virtual std::string	toString( void ) const noexcept =0;
 		bool				isReady( void ) const noexcept ;
-		
+
 		void				setSocket( int );
 		int					getSocket( void ) const;
 
