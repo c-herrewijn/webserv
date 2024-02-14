@@ -70,14 +70,12 @@ void			WebServer::loop( void )
 			if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
 				throw(ServerException({"poll failed"}));
 		}
-		// else if (nConn == 0)		// timeout (NB: right?)
-		// 	break;
 		else
 		{
 			for (size_t i=0; i<this->_connfds.size(); i++)
 			{
 				try {
-					if (this->_connfds[i].revents & POLLIN)		// MSG_OOB ( <-- recv()) and POLLPRI?
+					if (this->_connfds[i].revents & POLLIN)
 					{
 						if (_isListener(this->_connfds[i].fd) == true) // new connection
 							_acceptConnection(this->_connfds[i].fd);
@@ -95,13 +93,13 @@ void			WebServer::loop( void )
 					// 	// 	return (false);
 					// 	// return;
 					// }
-					// if (socket.revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
-					// 	return (false);
+					if (this->_connfds[i].revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
+					{} //_dropConn(this->_connfds[i].fd);  <-- client closed the connection
 				}
 				catch(const ServerException& e) { // socket not available, impossible reading request
 					std::cerr << e.what() << '\n';
 					// _dropConn(this->_connfds[i].fd);
-							return ;
+							// return ;
 				}
 			}
 		}
@@ -195,7 +193,7 @@ void			WebServer::_listenTo( std::string const& hostname, std::string const& por
 
 // bool			WebServer::_handleEvent(struct pollfd const& socket)
 // {
-	
+//
 // 	return (true);
 // }
 
@@ -207,7 +205,8 @@ void			WebServer::_acceptConnection( int listener )
 
 	connfd = accept(listener, (struct sockaddr *) &client, &sizeAddr);
 	if (connfd == -1)
-		throw(ServerException({"connection with:", this->getAddress(&client), "failed"}));
+		throw(ServerException({"connection with", this->getAddress(&client), "failed"}));
+	fcntl(connfd, F_SETFL, O_NONBLOCK);
 	std::cout << "connected to " << this->getAddress(&client) << '\n';
 	this->_addConn(connfd);
 }
@@ -220,17 +219,17 @@ HTTPresponse	WebServer::_handleRequest( int connfd ) const
 	HTTPrequest 	request;
 	Executor		executor;
 	Server 			handler;
-	
+
 	rawContent = _readHead(connfd);
 	if (rawContent.empty() == true)		// client closed connection
-		throw(ServerException({"client closed the connection"}));
+		throw(ServerException({"(empty) client closed the connection"}));
 	endHeadPos = rawContent.find(HTTP_TERM);
 	if (endHeadPos != std::string::npos)
 	{
 		endHeadPos += HTTP_TERM.size();
 		strHead = rawContent.substr(0, endHeadPos);
 		strBody = rawContent.substr(endHeadPos);
-		std::cout << "head |"<< strHead << "|\nbody |" << strBody << "|\n";
+		// std::cout << "head |"<< strHead << "|\nbody |" << strBody << "|\n";
 	}
 	try {
 		request.setSocket(connfd);
@@ -257,45 +256,84 @@ std::string		WebServer::_readHead( int fd ) const
 	char	buffer[HEADER_BUF_SIZE + 1];
 	ssize_t readChar = -1;
 	std::string content;
+	// struct pollfd toListen;
+	// int 			nConn = -1;
 
-	while (true)
-	{
-		bzero(buffer, HEADER_BUF_SIZE + 1);
-		readChar = recv(fd, buffer, HEADER_BUF_SIZE, 0);
-		if (readChar < 0)
-			throw(ServerException({"Socket not available"}));
-		content += std::string(buffer);
-		if (content.find(HTTP_TERM) != std::string::npos)
-			break;
-	}
+	// toListen.fd = fd;
+	// toListen.events = POLLIN;
+	// toListen.revents = 0;
+	// nConn = poll(&toListen, 1, 0);
+	// if (nConn < 0)
+	// {
+	// 	if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
+	// 		throw(ServerException({"poll failed"}));
+	// }
+	// // else if (nConn == 0)
+	// // 	return ("");
+	// if (toListen.revents & POLLIN)
+	// {
+		while (true)
+		{
+			bzero(buffer, HEADER_BUF_SIZE + 1);
+			readChar = recv(fd, buffer, HEADER_BUF_SIZE, 0);
+			if (readChar < 0)
+					throw(ServerException({"(head -1) client closed the connection", std::to_string(fd)}));
+			// {	
+			// 	if ((errno == EAGAIN) or (errno == EWOULDBLOCK))
+			// 		std::cout << errno << " " << strerror(errno) << '\n';
+			// 	else
+			// }
+			content += std::string(buffer);
+			if (content.find(HTTP_TERM) != std::string::npos)
+				break;
+		}
+	// }
 	return (content);
 }
 
 // before reading again it should still go through poll() again first
 std::string		WebServer::_readRemainingBody( int socket, size_t maxBodylength, size_t sizeBody) const
 {
-    ssize_t     lenToRead, readChar=-1;
-    char        *buffer = nullptr;
-	std::string	body;
+    ssize_t     	lenToRead, readChar=-1;
+    char        	*buffer = nullptr;
+	struct pollfd	toListen;
+	int 			nConn = -1;
+	std::string		body;
 
-    if (maxBodylength == 0)
-		lenToRead = std::numeric_limits<ssize_t>::max();
-    else if (maxBodylength < sizeBody)
-        throw(RequestException({"body length is longer than maximum allowed"}, 413));
-    else if (maxBodylength == sizeBody)
+	toListen.fd = socket;
+	toListen.events = POLLIN;
+	toListen.revents = 0;
+	nConn = poll(&toListen, 1, 0);
+	if (nConn < 0)
+	{
+		if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
+			throw(ServerException({"poll failed"}));
+	}
+	else if (nConn == 0)
 		return ("");
-	else
-		lenToRead = maxBodylength - sizeBody;
-    buffer = new char[lenToRead + 2];
-    bzero(buffer, lenToRead + 2);
-    readChar = recv(socket, buffer, lenToRead + 1, 0);
-	body = buffer;
-	std::cout << "remaining body |" << body << "|\n";
-    delete [] buffer;
-	if ((maxBodylength != 0) and (readChar > (ssize_t) lenToRead))
-		throw(RequestException({"body length is longer than maximum allowed"}, 413));
-	else if (readChar < 0)
-		throw(ServerException({"Socket not available"}));
+	if (toListen.revents & POLLIN)
+	{
+		if (maxBodylength == 0)
+			lenToRead = std::numeric_limits<ssize_t>::max();
+		else if (maxBodylength < sizeBody)
+			throw(RequestException({"body length is longer than maximum allowed"}, 413));
+		else if (maxBodylength == sizeBody)
+			return ("");
+		else
+			lenToRead = maxBodylength - sizeBody;
+		buffer = new char[lenToRead + 2];
+		bzero(buffer, lenToRead + 2);
+		readChar = recv(toListen.fd, buffer, lenToRead + 1, 0);
+		body = buffer;
+		// std::cout << "remaining body |" << body << "| read char: " << readChar << " len to read: "<< lenToRead << '\n';
+		delete [] buffer;
+		if ((maxBodylength != 0) and (readChar > (ssize_t) lenToRead))
+			throw(RequestException({"body length is longer than maximum allowed"}, 413));
+		else if (readChar < 0)
+			throw(ServerException({"(body -1)  Socket not available"}));
+	}
+	else if (toListen.revents & (POLLHUP | POLLERR | POLLNVAL))
+		throw(ServerException({"(body not POLLIN) client closed the connection"}));
 	return (body);
 }
 

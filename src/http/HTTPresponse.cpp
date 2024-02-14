@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/12 22:38:40 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/14 11:14:10 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,8 +27,7 @@ void	HTTPresponse::buildResponse( int code, std::string const& servName, std::st
 	this->_version.major = 1;
 	this->_version.minor = 1;
 	this->_statusCode = code;
-	try
-	{
+	try {
 		this->_statusStr = _mapStatus(code);
 	}
 	catch(const ResponseException& e) {
