@@ -41,8 +41,10 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(HTTPrequest &req, Serve
 
     std::array<std::string, CGI_ENV_SIZE> CGIEnv {
         "AUTH_TYPE=",
-        "CONTENT_LENGTH=",
-        "CONTENT_TYPE=",
+        // "CONTENT_LENGTH=" + std::to_string(this->_req.body.length()),
+        "CONTENT_LENGTH=222", // DUMMY value based on test string
+        "CONTENT_TYPE=multipart/form-data; boundary=-----------------------------202857591740950390693768960127", // DUMMY
+        // "CONTENT_TYPE=multipart/form-data", // NOT working
         "GATEWAY_INTERFACE=CGI/1.1", // fixed
         "PATH_INFO=",
         "PATH_TRANSLATED=",
@@ -52,11 +54,12 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(HTTPrequest &req, Serve
         "REMOTE_IDENT=",
         "REMOTE_USER=",
         "REQUEST_METHOD=" + method,
-        "SCRIPT_NAME=" + req.head.url.path, // script path relative to document root, e.g. /cgi-bin/myScript.cgi
+        "SCRIPT_NAME=" + req.head.url.path.substr(req.head.url.path.find_last_of("/\\") + 1), // script name, e.g. myScript.cgi
+        "SCRIPT_FILENAME=" + req.head.url.path, // script path relative to document root, e.g. /cgi-bin/myScript.cgi
         "SERVER_NAME=" + srv.getNames()[0], // TODO: validations try/catch!
         "SERVER_PORT=" + port,
         "SERVER_PROTOCOL=HTTP/1.1", // fixed
-        "SERVER_SOFTWARE=WebServServer", // fixed
+        "SERVER_SOFTWARE=WebServServer/1.0", // fixed
         "HTTP_COOKIE=", // TODO
     };
     return CGIEnv;
@@ -77,17 +80,21 @@ char **CGI::_createCgiEnvCStyle(void)
 
 std::string CGI::getHTTPResponse()
 {
-    int p1[2];
+    int p1[2]; // pipe where CGI writes response
+    int p2[2]; // pipe where CGI reads body
 	char read_buff[CGI_READ_BUFFER_SIZE];
     bzero(read_buff, CGI_READ_BUFFER_SIZE); // bzero() is not allowed!
 
     // run cgi, and write result into pipe
 	pipe(p1);
+	pipe(p2);
 	pid_t childPid = fork();
 	if (childPid == 0)
 	{
 	    close(p1[0]);
-        dup2(p1[1], STDOUT_FILENO);
+        dup2(p1[1], STDOUT_FILENO); // write to pipe
+        close(p2[1]);
+        dup2(p2[0], STDIN_FILENO); // read from pipe
         std::string CGIfilePath = _srv.getParams().getRoot() + _req.head.url.path;
         std::string CGIfileName = CGIfilePath.substr(CGIfilePath.rfind("/")+1); // fully stripped, only used for execve
         char *argv[2] = {(char*)CGIfileName.c_str(), NULL};
@@ -100,6 +107,23 @@ std::string CGI::getHTTPResponse()
             exit(1); // exit() is not allowed!
         }
 	}
+    // write body into pipe
+    close(p2[0]);
+    // std::string CGIRequestBody = "---Content-Type: text/plain\r\nAAAAA---";
+    std::cerr << C_RED << "parsed body: " << this->_req.body << C_RESET << std::endl;
+
+    std::string testStr =
+        "-----------------------------202857591740950390693768960127\n"
+        "Content-Disposition: form-data; name=\"filename\"; filename=\"test1.txt\"\n"
+        "Content-Type: text/plain\r\n"
+        "aaaaa\r\n"
+        "-----------------------------202857591740950390693768960127--";
+
+    std::cerr << "test string length: " << testStr.length() << std::endl;
+
+    // write(p2[1], this->_req.body.c_str(), this->_req.body.length());
+    write(p2[1], testStr.c_str(), testStr.length());
+    close(p2[1]);
 
     // return cgi response
     int	stat_loc;
@@ -109,4 +133,12 @@ std::string CGI::getHTTPResponse()
     close(p1[0]);
     std::string response = read_buff;
     return response;
+}
+
+int *CGI::getuploadPipe(){
+    return this->_uploadPipe;
+}
+
+int *CGI::getResponsePipe() {
+    return this->_responsePipe;
 }

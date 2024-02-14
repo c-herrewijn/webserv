@@ -121,10 +121,10 @@ int main(int argc, char *argv[]) {
             HTTPparser::parseRequest(reqStr, *req);
 
             // debug-------
-            // if (req->head.url.path != "/favicon.ico") {
-            //     std::cout << C_GREEN << "request via write:" << C_RESET << std::endl;
-            //     write(1, buffer, bytesReceived);
-            // }
+            if (req->head.url.path != "/favicon.ico") {
+                std::cout << C_GREEN << "request via write:" << C_RESET << std::endl;
+                write(1, buffer, bytesReceived);
+            }
             // ----------
             std::string responseStr = create_response(*req, myServerConfig);
             // write response:
