@@ -42,8 +42,8 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(HTTPrequest &req, Serve
     std::array<std::string, CGI_ENV_SIZE> CGIEnv {
         "AUTH_TYPE=",
         // "CONTENT_LENGTH=" + std::to_string(this->_req.body.length()),
-        "CONTENT_LENGTH=222", // DUMMY value based on test string
-        "CONTENT_TYPE=multipart/form-data; boundary=-----------------------------202857591740950390693768960127", // DUMMY
+        "CONTENT_LENGTH=229", // DUMMY value based on test string
+        "CONTENT_TYPE=multipart/form-data; boundary=---------------------------47207745632788886342367179802", // DUMMY
         // "CONTENT_TYPE=multipart/form-data", // NOT working
         "GATEWAY_INTERFACE=CGI/1.1", // fixed
         "PATH_INFO=",
@@ -109,15 +109,15 @@ std::string CGI::getHTTPResponse()
 	}
     // write body into pipe
     close(p2[0]);
-    // std::string CGIRequestBody = "---Content-Type: text/plain\r\nAAAAA---";
-    std::cerr << C_RED << "parsed body: " << this->_req.body << C_RESET << std::endl;
-
+    // std::cerr << C_RED << "parsed body: " << this->_req.body << C_RESET << std::endl;
     std::string testStr =
-        "-----------------------------202857591740950390693768960127\n"
-        "Content-Disposition: form-data; name=\"filename\"; filename=\"test1.txt\"\n"
+        "-----------------------------47207745632788886342367179802\r\n"
+        "Content-Disposition: form-data; name=\"filename\"; filename=\"test1.txt\"\r\n"
         "Content-Type: text/plain\r\n"
+        "\r\n"
         "aaaaa\r\n"
-        "-----------------------------202857591740950390693768960127--";
+        "\r\n"
+        "-----------------------------47207745632788886342367179802--";
 
     std::cerr << "test string length: " << testStr.length() << std::endl;
 
