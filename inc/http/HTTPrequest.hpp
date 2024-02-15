@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/12 22:38:32 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/15 18:03:49 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,11 @@ class HTTPrequest : public HTTPstruct
 
 		void		parseBody( std::string const& ) override;
 		std::string	toString( void ) const noexcept override;
-		std::string	getHost( void ) const noexcept;
+
+		HTTPmethod const& 	getMethod( void ) const noexcept;
+		std::string	const& 	getPath( void ) const noexcept;
+		std::string		 	getHost( void ) const noexcept;
+		std::string	const& 	getBody( void ) const noexcept;
 
 	protected:
 		HTTPmethod	_method;

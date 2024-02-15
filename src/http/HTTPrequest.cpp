@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/13 22:31:35 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/15 18:03:34 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -112,7 +112,37 @@ std::string	HTTPrequest::toString( void ) const noexcept
 	return (strReq);
 }
 
-std::string	HTTPrequest::getHost( void ) const noexcept
+HTTPmethod	const&	HTTPrequest::getMethod( void ) const noexcept
+{
+	// char* strMethod = NULL;
+
+	// switch (this->_method)
+	// {
+	// 	case HTTP_GET:
+	// 	{
+	// 		strMethod = "GET";
+	// 		break ;
+	// 	}
+	// 	case HTTP_POST:
+	// 	{
+	// 		strMethod = "POST";
+	// 		break ;
+	// 	}
+	// 	case HTTP_DELETE:
+	// 	{
+	// 		strMethod = "DELETE";
+	// 		break ;
+	// 	}
+	// }
+	return (this->_method);
+}
+
+std::string	const&	HTTPrequest::getPath( void ) const noexcept
+{
+	return (this->_url.path);
+}
+
+std::string		HTTPrequest::getHost( void ) const noexcept
 {
 	std::string hostStr;
 	size_t		delim;
@@ -120,6 +150,11 @@ std::string	HTTPrequest::getHost( void ) const noexcept
 	hostStr = this->_headers.at("Host");
 	delim = hostStr.find(':');
 	return (hostStr.substr(0, delim));
+}
+
+std::string	const&	HTTPrequest::getBody( void ) const noexcept
+{
+	return (this->_body);
 }
 
 void	HTTPrequest::_setHead( std::string const& header )

@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/12 22:38:26 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/15 18:02:32 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,9 +31,8 @@ class HTTPresponse : public HTTPstruct
 	protected:
 		int         _statusCode;
 		std::string _statusStr;
-
+		std::string	_mapStatusCode( int ) const ;
 		void		_setHead( std::string const& ) override;
 		void		_addHeader(std::string const&, std::string const& ) noexcept;
-		std::string	_mapStatus( int ) const;
 		std::string	_getDateTime( void ) const noexcept;
 };

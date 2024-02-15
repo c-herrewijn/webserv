@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:10:43 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/12 17:01:54 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/15 17:59:13 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@
 #include <sys/types.h>        // send, recv
 #include <sys/socket.h>       // send, recv
 #include <strings.h>
+#include <initializer_list>
 
 #include "Exceptions.hpp"
 #include "HTTPrequest.hpp"
@@ -36,22 +37,16 @@ class Executor
 		~Executor( void ) noexcept {};
 
 		HTTPresponse	execRequest( HTTPrequest& ) const noexcept;
-		HTTPresponse	createResponse( int, std::string) const;
+		HTTPresponse	createResponse( int, std::string) const noexcept;
 
 		void				setHandler( Server const& ) noexcept;
 		Server const&		getHandler( void ) const noexcept;
 
 	private:
-		// std::string	_execGET(HTTPrequest&, int&);
-		// std::string	_execPOST(HTTPrequest&, int&);
-		// std::string	_execDELETE(HTTPrequest&, int&);
-		// std::string	_readContent(std::string const&);
-
-
-		// bool	_isCGI(std::string const&);
-		// int		_checkPath(std::string const&, int);
-
-		// const std::map<HTTPmethod, std::function<std::string(void)> > _methods;
+		std::string	_execGET(HTTPrequest&) const;
+		std::string	_execPOST(HTTPrequest&) const;
+		std::string	_execDELETE(HTTPrequest&) const;
+		std::string	_readContent(std::string const&) const;
 
 		Server		_handler;
 		std::string	_servName;

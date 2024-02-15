@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/13 17:23:33 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/15 15:48:59 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,9 +71,8 @@ class WebServer
 		std::set<int>				_listeners;
 
 		void			_listenTo( std::string const&, std::string const& );
-		// bool			_handleEvent(struct pollfd const&);
 		void			_acceptConnection( int ) ;
-		HTTPresponse	_handleRequest( int ) const ;
+		HTTPresponse	_handleRequest( int, std::string const& ) const ;
 		std::string		_readHead( int ) const ;
 		std::string		_readRemainingBody( int, size_t, size_t ) const ;
 		void			_writeResponse( HTTPresponse const& ) const ;
