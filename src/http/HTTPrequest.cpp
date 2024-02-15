@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/15 18:03:34 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/16 00:19:48 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,9 +38,9 @@ std::string	HTTPurl::toString( void ) const noexcept
 void	HTTPrequest::parseBody( std::string const& strBody)
 {
 	bool 		isChunked = false;
-	std::string body = strBody;
+	std::string fullBody = this->_tmpBody + strBody;
 
-    if (body.empty() == false)
+    if (fullBody.empty() == false)
 	{
 		try {
 			this->_headers.at("Content-Type");
@@ -58,9 +58,9 @@ void	HTTPrequest::parseBody( std::string const& strBody)
 			throw(RequestException({"no Content-Type header"}, 400));
 		}
 		if (isChunked == true)
-			_setChunkedBody(body);
+			_setChunkedBody(fullBody);
 		else
-			_setBody(body);
+			_setBody(fullBody);
 	}
 	this->_ready = true;
 }
@@ -114,26 +114,6 @@ std::string	HTTPrequest::toString( void ) const noexcept
 
 HTTPmethod	const&	HTTPrequest::getMethod( void ) const noexcept
 {
-	// char* strMethod = NULL;
-
-	// switch (this->_method)
-	// {
-	// 	case HTTP_GET:
-	// 	{
-	// 		strMethod = "GET";
-	// 		break ;
-	// 	}
-	// 	case HTTP_POST:
-	// 	{
-	// 		strMethod = "POST";
-	// 		break ;
-	// 	}
-	// 	case HTTP_DELETE:
-	// 	{
-	// 		strMethod = "DELETE";
-	// 		break ;
-	// 	}
-	// }
 	return (this->_method);
 }
 

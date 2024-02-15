@@ -86,15 +86,7 @@ void			WebServer::loop( void )
 							response = _handleRequest(this->_connfds[i].fd, rawContent);
 							response.setSocket(this->_connfds[i].fd);
 							std::cout << response.toString();
-							// _writeResponse(response);
-							// if (response.getStatusCode() != 200)	// <-- is it necessary?
-							// 	_dropConn(this->_connfds[i--].fd);
 						}
-						// if (--nConn == 0)
-						// {
-						// 	std::cout << "no more activities\n"	;
-						// 	break ;
-						// }
 					}
 					else if (this->_connfds[i].revents & POLLOUT)
 					{
@@ -235,10 +227,8 @@ HTTPresponse	WebServer::_handleRequest( int connfd, std::string const& rawConten
 	try {
 		request.setSocket(connfd);
 		request.parseHead(strHead);
+		request.storeTmpBody(strBody)
 		handler = getHandler(request.getHost());
-		// because max body size can change depending on the URL, this should be done even later than that
-		strBody += _readRemainingBody(connfd, handler.getMaxBodySize(), strBody.size());
-		request.parseBody(strBody);
 	}
 	catch (const HTTPexception& e) {
 		std::cerr << e.what() << '\n';
@@ -301,50 +291,22 @@ std::string		WebServer::_readRemainingBody( int socket, size_t maxBodylength, si
     ssize_t     	lenToRead, readChar=-1;
     char        	*buffer = nullptr;
 	std::string		body;
-	// struct pollfd	toListen;
-	// int 			nConn = -1;
 
-	// toListen.fd = socket;
-	// toListen.events = POLLIN;
-	// toListen.revents = 0;
-	// nConn = poll(&toListen, 1, 0);
-	// if (nConn < 0)
-	// {
-	// 	if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
-	// 		throw(ServerException({"poll failed"}));
-	// }
-	// else if (nConn == 0)
-	// 	return ("");
-	// else if (toListen.revents & POLLIN)
-	// {
-		if (maxBodylength == 0)
-			lenToRead = std::numeric_limits<ssize_t>::max();
-		else if (maxBodylength < sizeBody)
-			throw(RequestException({"body length is longer than maximum allowed"}, 413));
-		else if (maxBodylength == sizeBody)
-			return ("");
-		else
-			lenToRead = maxBodylength - sizeBody;
-		buffer = new char[lenToRead + 2];
-		bzero(buffer, lenToRead + 2);
-		readChar = recv(socket, buffer, lenToRead + 1, 0);
-		body = buffer;
-		delete [] buffer;
-		if ((maxBodylength != 0) and (readChar > (ssize_t) lenToRead))
-			throw(RequestException({"body length is longer than maximum allowed"}, 413));
-		// else if (readChar < 0)
-		// {
-			// if ((errno == EAGAIN) or (errno == EWOULDBLOCK))
-			// 	std::cout << "socket thinghy\n";
-			// else
-			// {
-			// 	std::cout << "socket not available from read body\n";
-				// throw(ServerException({"from reading body: socket not available"}));
-			// }
-		// }
-	// }
-	// else if (toListen.revents & (POLLHUP | POLLERR | POLLNVAL))
-	// 	throw(ServerException({"(body not POLLIN) client closed the connection"}));
+	if (maxBodylength == 0)
+		lenToRead = std::numeric_limits<ssize_t>::max();
+	else if (maxBodylength < sizeBody)
+		throw(RequestException({"body length is longer than maximum allowed"}, 413));
+	else if (maxBodylength == sizeBody)
+		return ("");
+	else
+		lenToRead = maxBodylength - sizeBody;
+	buffer = new char[lenToRead + 2];
+	bzero(buffer, lenToRead + 2);
+	readChar = recv(socket, buffer, lenToRead + 1, 0);
+	body = buffer;
+	delete [] buffer;
+	if ((maxBodylength != 0) and (readChar > (ssize_t) lenToRead))
+		throw(RequestException({"body length is longer than maximum allowed"}, 413));
 	return (body);
 }
 

@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:10:43 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/15 17:59:13 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/16 00:36:58 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,6 +43,7 @@ class Executor
 		Server const&		getHandler( void ) const noexcept;
 
 	private:
+		std::string	_runMethod(HTTPrequest const&) const;
 		std::string	_execGET(HTTPrequest&) const;
 		std::string	_execPOST(HTTPrequest&) const;
 		std::string	_execDELETE(HTTPrequest&) const;
@@ -50,5 +51,5 @@ class Executor
 
 		Server		_handler;
 		std::string	_servName;
-		ssize_t		_maxLenBody;
+		// ssize_t		_maxLenBody;
 };

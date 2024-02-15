@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/15 17:59:14 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/16 00:37:16 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,41 +17,30 @@ Executor::Executor( void ) noexcept : _maxLenBody(-1) {}
 Executor::Executor( Server const& server ) noexcept : _handler(server)
 {
     this->_servName = server.getPrimaryName();
-    this->_maxLenBody = this->_handler.getParams().getMaxSize() + HTTP_TERM.size();
+    // this->_maxLenBody = this->_handler.getParams().getMaxSize() + HTTP_TERM.size();	<-- depends on the location!
 }
 
 HTTPresponse	Executor::execRequest(HTTPrequest& req ) const noexcept
 {
     int             status = 200;
     HTTPresponse    response;
-    std::string     reqMethod, body;
+    std::string     body;
 
     try
     {
         status = this->_handler.validateRequest(req);
         if (status != 200)
         	throw(ExecException({"validation failed with code:", std::to_string(status)}, status));
-        else if (req.isReady() == false)
-		    throw(ExecException({"request is not ready to be executed"}, 500));
-        reqMethod = req.getMethod();
-        switch (req.getMethod())
-        {
-            case HTTP_GET:
-            {
-                body = _execGET(req);
-                break ;
-            }
-            case HTTP_POST:
-            {
-                body = _execPOST(req);
-                break ;
-            }
-            case HTTP_DELETE:
-            {
-                body = _execDELETE(req);
-                break ;
-            }
-        }
+		// body = _readRemainingBody(connfd, this->_handler.getMaxBodySize(), strBody.size());
+		// request.parseBody(body);
+        // if (req.isReady() == false)		<-- maybe is useless
+		//     throw(ExecException({"request is not ready to be executed"}, 500));
+        body = _runMethod(req);
+    }
+    catch(const ParserException& e)
+    {
+        std::cerr << e.what() << '\n';
+        status = e.getStatus();
     }
     catch(const ExecException& e)
     {
@@ -62,6 +51,7 @@ HTTPresponse	Executor::execRequest(HTTPrequest& req ) const noexcept
     return (response);
 }
 
+// NB: move in execRequest() ?
 HTTPresponse	Executor::createResponse( int status, std::string bodyResp ) const noexcept
 {
 	HTTPresponse response;
@@ -79,6 +69,31 @@ void				Executor::setHandler( Server const& handler) noexcept
 Server const&		Executor::getHandler( void ) const noexcept
 {
     return (this->_handler);
+}
+
+std::string	Executor::_runMethod(HTTPrequest const&) const
+{
+    std::string	body;
+
+	switch (req.getMethod())
+	{
+		case HTTP_GET:
+		{
+			body = _execGET(req);
+			break ;
+		}
+		case HTTP_POST:
+		{
+			body = _execPOST(req);
+			break ;
+		}
+		case HTTP_DELETE:
+		{
+			body = _execDELETE(req);
+			break ;
+		}
+	}
+	return (body);
 }
 
 std::string	Executor::_execGET(HTTPrequest& req) const
