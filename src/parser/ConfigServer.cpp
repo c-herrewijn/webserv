@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        ::::::::            */
-/*   Server.cpp                                         :+:    :+:            */
+/*   ConfigServer.cpp                                   :+:    :+:            */
 /*                                                     +:+                    */
 /*   By: itopchu <itopchu@student.codam.nl>           +#+                     */
 /*                                                   +#+                      */
@@ -10,14 +10,14 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Server.hpp"
+#include "ConfigServer.hpp"
 
-Server::Server(void)
+ConfigServer::ConfigServer(void)
 {
 
 }
 
-Server::~Server(void)
+ConfigServer::~ConfigServer(void)
 {
 	listens.clear();
 	names.clear();
@@ -25,7 +25,7 @@ Server::~Server(void)
 	locations.clear();
 }
 
-Server::Server(const Server& copy) :
+ConfigServer::ConfigServer(const ConfigServer& copy) :
 	listens(copy.listens),
 	names(copy.names),
 	params(copy.params),
@@ -37,7 +37,7 @@ Server::Server(const Server& copy) :
 
 }
 
-Server&	Server::operator=(const Server& assign)
+ConfigServer&	ConfigServer::operator=(const ConfigServer& assign)
 {
 	listens.clear();
 	names.clear();
@@ -53,7 +53,7 @@ Server&	Server::operator=(const Server& assign)
 	return (*this);
 }
 
-void	Server::parseCgiDir(std::vector<std::string>& block)
+void	ConfigServer::parseCgiDir(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front().find(' ') != std::string::npos)
@@ -67,7 +67,7 @@ void	Server::parseCgiDir(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
-void	Server::parseCgiExtension(std::vector<std::string>& block)
+void	ConfigServer::parseCgiExtension(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front().find(' ') != std::string::npos)
@@ -79,7 +79,7 @@ void	Server::parseCgiExtension(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
-void	Server::parseCgiAllowed(std::vector<std::string>& block)
+void	ConfigServer::parseCgiAllowed(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == "true")
@@ -94,7 +94,7 @@ void	Server::parseCgiAllowed(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
-void	Server::parseListen(std::vector<std::string>& block)
+void	ConfigServer::parseListen(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == ";")
@@ -114,7 +114,7 @@ void	Server::parseListen(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
-void	Server::parseServerName(std::vector<std::string>& block)
+void	ConfigServer::parseServerName(std::vector<std::string>& block)
 {
 	// THIS PART IS SUS. What about asterix?
 	block.erase(block.begin());
@@ -132,13 +132,13 @@ void	Server::parseServerName(std::vector<std::string>& block)
 	}
 }
 
-void	Server::parseLocation(std::vector<std::string>& block)
+void	ConfigServer::parseLocation(std::vector<std::string>& block)
 {
 	Location	local(block, params);
 	locations.push_back(local);
 }
 
-void	Server::fillServer(std::vector<std::string>& block)
+void	ConfigServer::fillServer(std::vector<std::string>& block)
 {
 	params.setBlockIndex(0);
 	// Parser keyword separations
@@ -161,7 +161,7 @@ void	Server::fillServer(std::vector<std::string>& block)
 	}
 }
 
-void	Server::parseBlock(std::vector<std::string>& block)
+void	ConfigServer::parseBlock(std::vector<std::string>& block)
 {
 	if (block.front() != "server")
 		throw ErrorCatch("First arg is not 'server'");
@@ -175,42 +175,42 @@ void	Server::parseBlock(std::vector<std::string>& block)
 	fillServer(block);
 }
 
-const std::string& Server::getCgiDir(void) const
+const std::string& ConfigServer::getCgiDir(void) const
 {
 	return (cgi_directory);
 }
 
-const std::string& Server::getCgiExtension(void) const
+const std::string& ConfigServer::getCgiExtension(void) const
 {
 	return (cgi_extension);
 }
 
-const bool& Server::getCgiAllowed(void) const
+const bool& ConfigServer::getCgiAllowed(void) const
 {
 	return (cgi_allowed);
 }
 
-const std::vector<Listen>& Server::getListens(void) const
+const std::vector<Listen>& ConfigServer::getListens(void) const
 {
 	return (listens);
 }
 
-const std::vector<std::string>& Server::getNames(void) const
+const std::vector<std::string>& ConfigServer::getNames(void) const
 {
 	return (names);
 }
 
-const Parameters&	Server::getParams(void) const
+const Parameters&	ConfigServer::getParams(void) const
 {
 	return (params);
 }
 
-const std::vector<Location>&	Server::getLocations() const
+const std::vector<Location>&	ConfigServer::getLocations() const
 {
 	return (locations);
 }
 
-std::ostream& operator<<(std::ostream& os, const Server& server) {
+std::ostream& operator<<(std::ostream& os, const ConfigServer& server) {
     os << "server {\n";
 
     // Print Listens

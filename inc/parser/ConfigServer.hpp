@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        ::::::::            */
-/*   Server.hpp                                         :+:    :+:            */
+/*   ConfigServer.hpp                                   :+:    :+:            */
 /*                                                     +:+                    */
 /*   By: itopchu <itopchu@student.codam.nl>           +#+                     */
 /*                                                   +#+                      */
@@ -10,8 +10,8 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef SERVER_HPP
-# define SERVER_HPP
+#ifndef CONFIGSERVER_HPP
+# define CONFIGSERVER_HPP
 # include <map>
 # include <unordered_map>
 # include <unordered_set>
@@ -24,7 +24,7 @@
 
 # define DEF_CONF "default/default.conf"
 
-class Server
+class ConfigServer
 {
 	private:
 		std::vector<Listen> listens; // Listens
@@ -45,10 +45,10 @@ class Server
 		void	fillServer(std::vector<std::string>& block);
 	public:
 		// Form
-		Server(const Server& copy);
-		Server&	operator=(const Server& assign);
-		Server(void);
-		virtual ~Server(void);
+		ConfigServer(const ConfigServer& copy);
+		ConfigServer&	operator=(const ConfigServer& assign);
+		ConfigServer(void);
+		virtual ~ConfigServer(void);
 		// Subject
 		void	parseBlock(std::vector<std::string>& block);
 		// Getters
@@ -68,7 +68,7 @@ class Server
 			private:
 				std::string errorMessage;
 		};
-    friend std::ostream& operator<<(std::ostream& os, const Server& server);
+    friend std::ostream& operator<<(std::ostream& os, const ConfigServer& server);
 };
 
 #endif

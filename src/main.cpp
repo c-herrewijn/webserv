@@ -13,11 +13,11 @@
 #include "parser/Config.hpp"
 #include "server/WebServer.hpp"
 
-std::vector<Server>	parseServers(char **av)
+std::vector<ConfigServer>	parseServers(char **av)
 {
 	Config *config;
 	config = new Config();
-	std::vector<Server> servers;
+	std::vector<ConfigServer> servers;
 	try
 	{
 		if (av[1])
@@ -35,16 +35,16 @@ std::vector<Server>	parseServers(char **av)
 	delete config;
 	for (size_t i = 0; i < separated.size(); i++)
 	{
-		Server tmp;
+		ConfigServer tmp;
 		try
 		{
-			std::cout << "--Parsing Server index " C_GREEN << i << C_RESET "--\n";
+			std::cout << "--Parsing ConfigServer index " C_GREEN << i << C_RESET "--\n";
 			tmp.parseBlock(separated[i]);
 			servers.push_back(tmp);
 		}
 		catch(const std::exception& e)
 		{
-			std::cerr << "Failure on Server index " C_RED << i << C_RESET "\n";
+			std::cerr << "Failure on ConfigServer index " C_RED << i << C_RESET "\n";
 			std::cerr << C_RED << e.what() << C_RESET "\n";
 			std::cerr << C_YELLOW "Continuing with parsing other servers...\n" C_RESET;
 		}
@@ -79,10 +79,10 @@ int main(int ac, char **av)
 	{
 		std::cerr << "Wrong amount of arguments received\n\tValid usage: " << av[0] << " " << av[1] <<  "\n";
 	}
-	std::vector<Server> servers = parseServers(av);
+	std::vector<ConfigServer> servers = parseServers(av);
 	// for (size_t i = 0; i < servers.size(); i++)
 	// {
-	// 	std::cout << "---Printing Server index: "  C_GREEN << i << C_RESET "---\n";
+	// 	std::cout << "---Printing ConfigServer index: "  C_GREEN << i << C_RESET "---\n";
 	// 	std::cout << servers[i];
 	// }
 	runWebServer();

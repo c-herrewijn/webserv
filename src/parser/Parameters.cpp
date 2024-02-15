@@ -12,7 +12,7 @@
 
 #include "Parameters.hpp"
 
-Parameters::Parameters(void) { }
+Parameters::Parameters(void) { this->root = DEF_ROOT; }
 
 Parameters::~Parameters(void)
 {

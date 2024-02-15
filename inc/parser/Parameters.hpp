@@ -21,6 +21,7 @@
 # include <iostream>
 # define DEF_SIZE 32
 # define DEF_SIZE_TYPE 'M'
+# define DEF_ROOT "/html"
 
 class Parameters
 {
