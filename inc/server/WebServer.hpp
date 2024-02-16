@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/16 00:11:09 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/16 10:43:33 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,15 +19,15 @@
 #include <sys/poll.h>     // poll
 #include <netinet/in.h>       // socket, accept, listen, bind, connect
 #include <arpa/inet.h>        // htons, htonl, ntohs, ntohl
-#include <sys/types.h>        // send, recv
-#include <sys/socket.h>       // send, recv
+// #include <sys/types.h>        // send, recv
+// #include <sys/socket.h>       // send, recv
 #include <sys/wait.h>         // waitpid
 // #include <fcntl.h>            // open
 // #include <sys/types.h>        // chdir
 // #include <sys/stat.h>         // stat
 // #include <dirent.h>           // opendir, readdir, closedir
 #include <signal.h>           // kill, signal
-#include <limits>
+// #include <limits>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -43,11 +43,8 @@
 #include "Executor.hpp"
 #include "Exceptions.hpp"
 #include "Server.hpp"
-#define HEADER_BUF_SIZE 	1024						// max size of HTTP header
 #define BACKLOG 			10				        	// max pending connection queued up
-#define MAX_TIMEOUT 		60000               		// maximum timeout with poll()
 
-// NB: non-blocking setup sockets
 // NB: non-blocking waitpid
 // NB: in case of terminating error child process must be killed with signals
 class WebServer
@@ -73,9 +70,6 @@ class WebServer
 		void			_listenTo( std::string const&, std::string const& );
 		void			_acceptConnection( int ) ;
 		HTTPresponse	_handleRequest( int ) const ;
-		std::string		_readHead( int ) const ;
-		std::string		_readRemainingBody( int, size_t, size_t ) const ;
-		void			_writeResponse( HTTPresponse const& ) const ;
 		bool			_isListener( int ) const ;
 		void			_addConn( int ) noexcept;
 		void			_dropConn( int socket = -1 ) noexcept;

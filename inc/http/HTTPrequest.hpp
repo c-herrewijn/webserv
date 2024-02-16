@@ -6,13 +6,18 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/16 00:28:09 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/16 11:03:12 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
 #include "HTTPstruct.hpp"
+#include <sys/types.h>        // send, recv
+#include <sys/socket.h>       // send, recv
+#include <cstring>           // strerror
+#include <limits>
+#define HEADER_BUF_SIZE 	1024						// max size of HTTP header
 
 typedef enum HTTPmethod_s
 {
@@ -31,7 +36,6 @@ typedef struct HTTPurl_f
 	std::string queryRaw;
 	std::string fragment;
 
-	std::string	toString( void ) const noexcept;
 } HTTPurl;
 
 class HTTPrequest : public HTTPstruct
@@ -40,9 +44,10 @@ class HTTPrequest : public HTTPstruct
 		HTTPrequest( void ) : HTTPstruct() {};
 		virtual ~HTTPrequest( void ) override {};
 
-		void		parseBody( std::string const& ) override;
+		void		readHead( int socket=-1 );
+		void		readRemainingBody( size_t ) ;
+		void		parseBody( std::string const& strBody="" ) override;
 		std::string	toString( void ) const noexcept override;
-		void		storeTmpBody( std::string const&) noexcept;
 
 		HTTPmethod const& 	getMethod( void ) const noexcept;
 		std::string	const& 	getPath( void ) const noexcept;

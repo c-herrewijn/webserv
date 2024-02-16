@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/15 18:02:42 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/16 11:03:03 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,11 +41,34 @@ void	HTTPresponse::buildResponse( int code, std::string const& servName, std::st
 	this->_ready = true;
 }
 
+void		HTTPresponse::writeContent( int socket )
+{
+	std::string 	toWrite, fullContent=this->toString();
+	size_t			start=0, len=fullContent.size();
+	ssize_t 		written=0;
+	
+	if (socket != -1)
+		setSocket(socket);
+	while (start < fullContent.size())
+	{
+		toWrite = fullContent.substr(start, len);
+		written = send(this->_socket, toWrite.c_str(), len, 0);
+		if (written < -1)
+			throw(ServerException({"from writing: socket not available"}));
+		start += written;
+		len -= written;
+	}
+}
+
 std::string	HTTPresponse::toString( void ) const noexcept
 {
 	std::string	strResp;
 
-	strResp += this->_version.toString();
+	strResp += this->_version.scheme;
+	strResp += "/";
+	strResp += std::to_string(this->_version.major);
+	strResp += ".";
+	strResp += std::to_string(this->_version.minor);
 	strResp += HTTP_SP;
 	strResp += std::to_string(this->_statusCode);
 	strResp += HTTP_SP;

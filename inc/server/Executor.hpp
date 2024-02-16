@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:10:43 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/16 00:36:58 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/16 10:15:27 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,24 +32,17 @@
 class Executor
 {
 	public:
-		Executor( void ) noexcept;
-		Executor( Server const& ) noexcept ;
-		~Executor( void ) noexcept {};
 
-		HTTPresponse	execRequest( HTTPrequest& ) const noexcept;
-		HTTPresponse	createResponse( int, std::string) const noexcept;
-
-		void				setHandler( Server const& ) noexcept;
-		Server const&		getHandler( void ) const noexcept;
+		static HTTPresponse	execRequest( HTTPrequest&, Server const& ) noexcept;
+		static HTTPresponse	createResponse( int, std::string const&, std::string const&) noexcept;
 
 	private:
-		std::string	_runMethod(HTTPrequest const&) const;
-		std::string	_execGET(HTTPrequest&) const;
-		std::string	_execPOST(HTTPrequest&) const;
-		std::string	_execDELETE(HTTPrequest&) const;
-		std::string	_readContent(std::string const&) const;
+		Executor( void ) noexcept {};
+		~Executor( void ) noexcept {};
 
-		Server		_handler;
-		std::string	_servName;
-		// ssize_t		_maxLenBody;
+		static std::string	_runMethod(HTTPrequest const&);
+		static std::string	_execGET(HTTPrequest const&);
+		static std::string	_execPOST(HTTPrequest const&);
+		static std::string	_execDELETE(HTTPrequest const&);
+		static std::string	_readContent(std::string const&);
 };

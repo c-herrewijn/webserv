@@ -6,21 +6,13 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/16 00:37:16 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/16 10:58:05 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Executor.hpp"
 
-Executor::Executor( void ) noexcept : _maxLenBody(-1) {}
-
-Executor::Executor( Server const& server ) noexcept : _handler(server)
-{
-    this->_servName = server.getPrimaryName();
-    // this->_maxLenBody = this->_handler.getParams().getMaxSize() + HTTP_TERM.size();	<-- depends on the location!
-}
-
-HTTPresponse	Executor::execRequest(HTTPrequest& req ) const noexcept
+HTTPresponse	Executor::execRequest(HTTPrequest& req, Server const& handler ) noexcept
 {
     int             status = 200;
     HTTPresponse    response;
@@ -28,50 +20,32 @@ HTTPresponse	Executor::execRequest(HTTPrequest& req ) const noexcept
 
     try
     {
-        status = this->_handler.validateRequest(req);
+        status = handler.validateRequest(req);
         if (status != 200)
-        	throw(ExecException({"validation failed with code:", std::to_string(status)}, status));
-		// body = _readRemainingBody(connfd, this->_handler.getMaxBodySize(), strBody.size());
-		// request.parseBody(body);
-        // if (req.isReady() == false)		<-- maybe is useless
-		//     throw(ExecException({"request is not ready to be executed"}, 500));
+			throw(ExecException({"request validation failed with code:", std::to_string(status)}, status));
+		req.readRemainingBody(handler.getMaxBodySize());		//	<-- depends on the location!
+		req.parseBody();
+        std::cout << req.toString();
         body = _runMethod(req);
     }
-    catch(const ParserException& e)
+    catch(const HTTPexception& e)
     {
         std::cerr << e.what() << '\n';
         status = e.getStatus();
     }
-    catch(const ExecException& e)
-    {
-        std::cerr << e.what() << '\n';
-        status = e.getStatus();
-    }
-    response = createResponse(status, body);
+    response = createResponse(status, handler.getPrimaryName(), body);
     return (response);
 }
 
-// NB: move in execRequest() ?
-HTTPresponse	Executor::createResponse( int status, std::string bodyResp ) const noexcept
+HTTPresponse	Executor::createResponse( int status, std::string const& servName, std::string const& bodyResp ) noexcept
 {
 	HTTPresponse response;
 
-    response.buildResponse(status, this->_servName, bodyResp);
+    response.buildResponse(status, servName, bodyResp);
 	return (response);
 }
 
-void				Executor::setHandler( Server const& handler) noexcept
-{
-    this->_handler = handler;
-    this->_servName = handler.getPrimaryName();
-}
-
-Server const&		Executor::getHandler( void ) const noexcept
-{
-    return (this->_handler);
-}
-
-std::string	Executor::_runMethod(HTTPrequest const&) const
+std::string	Executor::_runMethod(HTTPrequest const& req)
 {
     std::string	body;
 
@@ -96,7 +70,7 @@ std::string	Executor::_runMethod(HTTPrequest const&) const
 	return (body);
 }
 
-std::string	Executor::_execGET(HTTPrequest& req) const
+std::string	Executor::_execGET(HTTPrequest const& req)
 {
 	std::string pathReq = req.getPath();
 	std::string htmlBody;
@@ -113,7 +87,7 @@ std::string	Executor::_execGET(HTTPrequest& req) const
 	// 	}
 	// 	else
 	// 	{
-			htmlBody = _readContent(pathReq);
+			// htmlBody = _readContent(pathReq);
 	// 	}
 	// 	status = 200;
 	// }
@@ -124,7 +98,7 @@ std::string	Executor::_execGET(HTTPrequest& req) const
 	return (htmlBody);
 }
 
-std::string	Executor::_execPOST(HTTPrequest& req) const
+std::string	Executor::_execPOST(HTTPrequest const& req)
 {
 	std::string pathReq = req.getPath();
 	std::string htmlBody;
@@ -152,13 +126,13 @@ std::string	Executor::_execPOST(HTTPrequest& req) const
 	return (htmlBody);
 }
 
-std::string	Executor::_execDELETE(HTTPrequest& req) const
+std::string	Executor::_execDELETE(HTTPrequest const& req)
 {
 	(void) req;
 	return ("");
 }
 
-std::string	Executor::_readContent(std::string const& pathReq) const
+std::string	Executor::_readContent(std::string const& pathReq)
 {
 	std::fstream	fd(pathReq.c_str());
 	std::string		body, line;
