@@ -109,7 +109,7 @@ std::string CGI::getHTTPResponse()
 	}
     // write body into pipe
     close(p2[0]);
-    // std::cerr << C_RED << "parsed body: " << this->_req.body << C_RESET << std::endl;
+    std::cerr << C_RED << "parsed body: " << this->_req.body << C_RESET << std::endl;
     std::string testStr =
         "-----------------------------47207745632788886342367179802\r\n"
         "Content-Disposition: form-data; name=\"filename\"; filename=\"test1.txt\"\r\n"
@@ -117,7 +117,7 @@ std::string CGI::getHTTPResponse()
         "\r\n"
         "aaaaa\r\n"
         "\r\n"
-        "-----------------------------47207745632788886342367179802--";
+        "-----------------------------47207745632788886342367179802--\r\n";
 
     std::cerr << "test string length: " << testStr.length() << std::endl;
 
