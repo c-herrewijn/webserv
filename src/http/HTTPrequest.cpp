@@ -6,41 +6,64 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/13 22:31:35 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/16 11:03:22 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPrequest.hpp"
 
-std::string	HTTPurl::toString( void ) const noexcept
+void	HTTPrequest::readHead( int socket )
 {
-	std::string	strURL;
+	char		buffer[HEADER_BUF_SIZE + 1];
+	std::string content, strHead, strBody;
+	size_t		endHeadPos = std::string::npos;
 
-	strURL += this->scheme;
-	strURL += "://";
-	strURL += this->host;
-	strURL += ":";
-	strURL += std::to_string(this->port);
-	strURL += this->path;
-	if (!this->queryRaw.empty())
+	if (socket != -1)
+		setSocket(socket);
+	while (true)
 	{
-		strURL += "?";
-		strURL += this->queryRaw;
+		bzero(buffer, HEADER_BUF_SIZE + 1);
+		recv(this->_socket, buffer, HEADER_BUF_SIZE, 0);
+		content += std::string(buffer);
+		if (content.find(HTTP_TERM) != std::string::npos)
+			break;
 	}
-	if (!this->fragment.empty())
-	{
-		strURL += "#";
-		strURL += this->fragment;
-	}
-	return (strURL);
+	endHeadPos = content.find(HTTP_TERM) + HTTP_TERM.size();
+	strHead = content.substr(0, endHeadPos);
+	strBody = content.substr(endHeadPos);
+	parseHead(strHead);
+	this->_tmpBody = strBody;
+}
+
+void	HTTPrequest::readRemainingBody( size_t maxBodylength )
+{
+    ssize_t     	lenToRead, readChar=-1;
+    char        	*buffer = nullptr;
+	std::string		body;
+
+	if (maxBodylength == 0)
+		lenToRead = std::numeric_limits<ssize_t>::max();
+	else if (maxBodylength < this->_tmpBody.size())
+		throw(RequestException({"body length is longer than maximum allowed"}, 413));
+	else if (maxBodylength == this->_tmpBody.size())
+		return ;
+	else
+		lenToRead = maxBodylength - this->_tmpBody.size();
+	buffer = new char[lenToRead + 2];
+	bzero(buffer, lenToRead + 2);
+	readChar = recv(this->_socket, buffer, lenToRead + 1, 0);
+	this->_tmpBody += buffer;
+	delete [] buffer;
+	if ((maxBodylength != 0) and (readChar > (ssize_t) lenToRead))
+		throw(RequestException({"body length is longer than maximum allowed"}, 413));
 }
 
 void	HTTPrequest::parseBody( std::string const& strBody)
 {
 	bool 		isChunked = false;
-	std::string body = strBody;
+	std::string fullBody = this->_tmpBody + strBody;
 
-    if (body.empty() == false)
+    if (fullBody.empty() == false)
 	{
 		try {
 			this->_headers.at("Content-Type");
@@ -58,9 +81,9 @@ void	HTTPrequest::parseBody( std::string const& strBody)
 			throw(RequestException({"no Content-Type header"}, 400));
 		}
 		if (isChunked == true)
-			_setChunkedBody(body);
+			_setChunkedBody(fullBody);
 		else
-			_setBody(body);
+			_setBody(fullBody);
 	}
 	this->_ready = true;
 }
@@ -88,9 +111,28 @@ std::string	HTTPrequest::toString( void ) const noexcept
 		}
 	}
 	strReq += HTTP_SP;
-	strReq += this->_url.toString();
+	strReq += this->_url.scheme;
+	strReq += "://";
+	strReq += this->_url.host;
+	strReq += ":";
+	strReq += std::to_string(this->_url.port);
+	strReq += this->_url.path;
+	if (!this->_url.queryRaw.empty())
+	{
+		strReq += "?";
+		strReq += this->_url.queryRaw;
+	}
+	if (!this->_url.fragment.empty())
+	{
+		strReq += "#";
+		strReq += this->_url.fragment;
+	}
 	strReq += HTTP_SP;
-	strReq += this->_version.toString();
+	strReq += this->_version.scheme;
+	strReq += "/";
+	strReq += std::to_string(this->_version.major);
+	strReq += ".";
+	strReq += std::to_string(this->_version.minor);
 	strReq += HTTP_NL;
 	if (!this->_headers.empty())
 	{
@@ -112,7 +154,17 @@ std::string	HTTPrequest::toString( void ) const noexcept
 	return (strReq);
 }
 
-std::string	HTTPrequest::getHost( void ) const noexcept
+HTTPmethod	const&	HTTPrequest::getMethod( void ) const noexcept
+{
+	return (this->_method);
+}
+
+std::string	const&	HTTPrequest::getPath( void ) const noexcept
+{
+	return (this->_url.path);
+}
+
+std::string		HTTPrequest::getHost( void ) const noexcept
 {
 	std::string hostStr;
 	size_t		delim;
@@ -120,6 +172,11 @@ std::string	HTTPrequest::getHost( void ) const noexcept
 	hostStr = this->_headers.at("Host");
 	delim = hostStr.find(':');
 	return (hostStr.substr(0, delim));
+}
+
+std::string	const&	HTTPrequest::getBody( void ) const noexcept
+{
+	return (this->_body);
 }
 
 void	HTTPrequest::_setHead( std::string const& header )
@@ -248,9 +305,12 @@ void	HTTPrequest::_setVersion( std::string const& strVersion )
 
 void	HTTPrequest::_setScheme( std::string const& strScheme )
 {
+	std::string	tmpScheme = strScheme;
+	std::transform(tmpScheme.begin(), tmpScheme.end(), tmpScheme.begin(), ::toupper);
 	if (strScheme != HTTP_SCHEME)
 		throw(RequestException({"unsupported scheme:", strScheme}, 400));
-	this->_url.scheme = strScheme;
+	std::transform(tmpScheme.begin(), tmpScheme.end(), tmpScheme.begin(), ::tolower);
+	this->_url.scheme = tmpScheme;
 }
 
 void	HTTPrequest::_setHostPort( std::string const& strURL )

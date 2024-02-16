@@ -64,10 +64,10 @@ void	Server::parseBlock(std::vector<std::string>& block)
 	_fillServer(block);
 }
 
-bool	Server::validateRequest(HTTPrequest const& req) const
+int	Server::validateRequest(HTTPrequest const& req) const
 {
 	(void) req;
-	return (true);
+	return (200);
 }
 
 const std::vector<Listen>& Server::getListens(void) const

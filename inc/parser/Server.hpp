@@ -35,7 +35,7 @@ class Server
 		virtual ~Server(void);
 
 		void			parseBlock(std::vector<std::string>& block);
-		bool			validateRequest(HTTPrequest const&) const;
+		int				validateRequest(HTTPrequest const&) const;
 	
 		const std::vector<Listen>&		getListens(void) const;
 		const std::vector<std::string>& getNames(void) const;

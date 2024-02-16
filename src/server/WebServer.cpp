@@ -38,8 +38,7 @@ WebServer::WebServer ( std::vector<Server> const& servers ) : _servers(servers)
 
 WebServer::~WebServer ( void ) noexcept
 {
-	while(this->_sockets.empty() == false)
-		this->_dropConn();
+	this->_dropConn();
 }
 
 void			WebServer::startListen( void )
@@ -58,6 +57,7 @@ void			WebServer::startListen( void )
 
 void			WebServer::loop( void )
 {
+	int				nConn = -1;
 	HTTPresponse 	response;
 	std::string		rawContent;
 	struct pollfd	toListen;
@@ -66,41 +66,38 @@ void			WebServer::loop( void )
 
 	while (true)
 	{
-		for (int socket : this->_sockets)
+		nConn = poll(this->_connfds.data(), this->_connfds.size(), 0);
+		if (nConn < 0)
 		{
-			toListen.fd = socket;
-			toListen.events = POLLIN;
-			toListen.revents = 0;
-			nConn = poll(&toListen, 1, 0);
-			if (nConn < 0)
-			{
-				if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
-					throw(ServerException({"poll failed"}));
-			}
-			else if (nConn == 0)
-				continue ;
-			else if (toListen.revents & POLLIN)
+			if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
+				throw(ServerException({"poll failed"}));
+		}
+		else if (nConn > 0)
+		{
+			for (size_t i=0; i<this->_connfds.size(); i++)
 			{
 				try {
 					std::cout << "reading fd " << toListen.fd << '\n';
 					if (_isListener(toListen.fd) == true) // new connection
 					{
-						std::cout << "new connection\n";
-						_acceptConnection(toListen.fd);
+						if (_isListener(this->_connfds[i].fd) == true) // new connection
+							_acceptConnection(this->_connfds[i].fd);
+						else
+						{
+							response = _handleRequest(this->_connfds[i].fd);
+							response.writeContent(this->_connfds[i].fd);
+							if (response.getStatusCode() != 200)
+								_dropConn(this->_connfds[i--].fd);
+						}
 					}
-					else
-					{
-						std::cout << "new request\n";
-						rawContent = _readHead(toListen.fd);
-						if (rawContent.empty() == true)		// client closed connection
-							throw(ServerException({"(empty) client closed the connection"}));
-						response = _handleRequest(toListen.fd, rawContent);
-						response.setSocket(toListen.fd);
-						std::cout << response.toString();
-						_writeResponse(response);
-						if (response.getStatusCode() != 200)
-							toRemove.insert(toListen.fd);
-					}
+					// else if (this->_connfds[i].revents & POLLOUT)
+					// {
+					// 	response.writeContent(this->_connfds[i].fd);
+					// 	if (response.getStatusCode() != 200)
+					// 		_dropConn(this->_connfds[i--].fd);
+					// }
+					if (this->_connfds[i].revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
+						_dropConn(this->_connfds[i--].fd);
 				}
 				catch(const ServerException& e) {
 					std::cerr << e.what() << '\n';
@@ -134,7 +131,6 @@ std::string		WebServer::getAddress( const struct sockaddr_storage *addr ) const 
 	return (ipAddress);
 }
 
-// NB: the logic to find the handler relies only on the server name?
 Server const&	WebServer::getHandler( std::string const& servName ) const
 {
 	std::string	tmpServName = servName;
@@ -184,7 +180,8 @@ void			WebServer::_listenTo( std::string const& hostname, std::string const& por
 	if (tmp == nullptr)
 	{
 		freeaddrinfo(list);
-		throw(ServerException({"no available IP host found for", hostname, "port", port}));
+		std::cout << "no available IP host found for " << hostname << " port " << port << '\n';
+		return ;
 	}
 	memmove(&hostIP, tmp->ai_addr, std::min(sizeof(struct sockaddr), sizeof(struct sockaddr_storage)));
 	freeaddrinfo(list);
@@ -198,17 +195,11 @@ void			WebServer::_listenTo( std::string const& hostname, std::string const& por
 	this->_listeners.insert(listenSocket);
 }
 
-// bool			WebServer::_handleEvent(struct pollfd const& socket)
-// {
-//
-// 	return (true);
-// }
-
 void			WebServer::_acceptConnection( int listener )
 {
-	struct sockaddr_storage 	client;
-	unsigned int 				sizeAddr = sizeof(client);
-	int							connfd = -1;
+	struct sockaddr_storage client;
+	unsigned int 			sizeAddr = sizeof(client);
+	int						connfd = -1;
 
 	connfd = accept(listener, (struct sockaddr *) &client, &sizeAddr);
 	if (connfd == -1)
@@ -218,136 +209,20 @@ void			WebServer::_acceptConnection( int listener )
 	this->_addConn(connfd);
 }
 
-HTTPresponse	WebServer::_handleRequest( int connfd, std::string const& rawContent ) const
+HTTPresponse	WebServer::_handleRequest( int connfd ) const
 {
-	std::string		strHead, strBody;
-	size_t			endHeadPos = std::string::npos;
-	int				status = 200;
 	HTTPrequest 	request;
-	Executor		executor;
-	Server 			handler;
+	HTTPresponse	response;
 
-	endHeadPos = rawContent.find(HTTP_TERM);
-	if (endHeadPos != std::string::npos)
-	{
-		endHeadPos += HTTP_TERM.size();
-		strHead = rawContent.substr(0, endHeadPos);
-		strBody = rawContent.substr(endHeadPos);
-	}
 	try {
-		request.setSocket(connfd);
-		request.parseHead(strHead);
-		handler = getHandler(request.getHost());
-		strBody += _readRemainingBody(connfd, handler.getMaxBodySize(), strBody.size());
-		request.parseBody(strBody);
+		request.readHead(connfd);
+		response = Executor::execRequest(request, getHandler(request.getHost()));
 	}
 	catch (const HTTPexception& e) {
 		std::cerr << e.what() << '\n';
-		handler = getDefaultServer();
-		status = e.getStatus();
+		response = Executor::createResponse(e.getStatus(), getDefaultServer().getPrimaryName(), "");
 	}
-	executor.setHandler(handler);
-	if (status == 200)
-		return (executor.execRequest(request));
-	else
-		return (executor.createResponse(status, ""));
-}
-
-std::string		WebServer::_readHead( int fd ) const
-{
-	char	buffer[HEADER_BUF_SIZE + 1];
-	ssize_t readChar = -1;
-	std::string content;
-	while (true)
-	{
-		bzero(buffer, HEADER_BUF_SIZE + 1);
-		readChar = recv(fd, buffer, HEADER_BUF_SIZE, 0);
-		if (readChar < 0)
-			throw(ServerException({"(head) socket not available"}));
-		content += std::string(buffer);
-		if (content.find(HTTP_TERM) != std::string::npos)
-			break;
-	}
-	return (content);
-}
-
-// before reading again it should still go through poll() again first
-std::string		WebServer::_readRemainingBody( int socket, size_t maxBodylength, size_t sizeBody) const
-{
-    ssize_t     	lenToRead, readChar=-1;
-    char        	*buffer = nullptr;
-	std::string		body;
-	struct pollfd	toListen;
-	int 			nConn = -1;
-
-	toListen.fd = socket;
-	toListen.events = POLLIN;
-	toListen.revents = 0;
-	nConn = poll(&toListen, 1, 0);
-	if (nConn < 0)
-	{
-		if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
-			throw(ServerException({"poll failed"}));
-	}
-	else if (nConn == 0)
-		return ("");
-	else if (toListen.revents & POLLIN)
-	{
-		if (maxBodylength == 0)
-			lenToRead = std::numeric_limits<ssize_t>::max();
-		else if (maxBodylength < sizeBody)
-			throw(RequestException({"body length is longer than maximum allowed"}, 413));
-		else if (maxBodylength == sizeBody)
-			return ("");
-		else
-			lenToRead = maxBodylength - sizeBody;
-		buffer = new char[lenToRead + 2];
-		bzero(buffer, lenToRead + 2);
-		readChar = recv(toListen.fd, buffer, lenToRead + 1, 0);
-		body = buffer;
-		// std::cout << "remaining body |" << body << "| read char: " << readChar << " len to read: "<< lenToRead << '\n';
-		delete [] buffer;
-		if ((maxBodylength != 0) and (readChar > (ssize_t) lenToRead))
-			throw(RequestException({"body length is longer than maximum allowed"}, 413));
-		else if (readChar < 0)
-			throw(ServerException({"(body) socket not available"}));
-	}
-	// else if (toListen.revents & (POLLHUP | POLLERR | POLLNVAL))
-	// 	throw(ServerException({"(body not POLLIN) client closed the connection"}));
-	return (body);
-}
-
-void			WebServer::_writeResponse( HTTPresponse const& resp ) const
-{
-	std::string 	toWrite;
-	size_t			start=0, len=resp.toString().size();
-	ssize_t 		written=0;
-	struct pollfd	toListen;
-	int 			nConn = -1;
-
-	toListen.fd = resp.getSocket();
-	toListen.events = POLLOUT;
-	toListen.revents = 0;
-	nConn = poll(&toListen, 1, 0);
-	if (nConn < 0)
-	{
-		if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
-			throw(ServerException({"poll failed"}));
-	}
-	else if (nConn == 0)
-		return ;
-	else if (toListen.revents & POLLOUT)
-	{
-		while (start < resp.toString().size())
-		{
-			toWrite = resp.toString().substr(start, len);
-			written = send(toListen.fd, toWrite.c_str(), len, 0);
-			if (written < -1)
-				throw(ServerException({"failed writing on client socket"}));
-			start += written;
-			len -= written;
-		}
-	}
+	return (response);
 }
 
 bool			WebServer::_isListener( int socket ) const
@@ -363,17 +238,18 @@ void			WebServer::_addConn( int newSocket ) noexcept
 
 void			WebServer::_dropConn(int toDrop) noexcept
 {
-	for (int socket : this->_sockets)
+	for (size_t i=0; i<this->_connfds.size(); i++)
 	{
-		if ((socket == toDrop) or (toDrop == -1))
+		if ((this->_connfds[i].fd == toDrop) or (toDrop == -1))
 		{
-			shutdown(socket, SHUT_RDWR);
-			close(socket);
-			this->_sockets.erase(socket);
-			if (this->_isListener(socket) == true)
-				this->_listeners.erase(socket);
+			shutdown(this->_connfds[i].fd, SHUT_RDWR);
+			close(this->_connfds[i].fd);
+			this->_connfds.erase(this->_connfds.begin() + i);
+			if (this->_isListener(this->_connfds[i].fd) == true)
+				this->_listeners.erase(this->_connfds[i].fd);
 			if (toDrop != -1)
 				break;
+			i--;
 		}
 	}
 }

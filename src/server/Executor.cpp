@@ -6,184 +6,141 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/13 22:34:33 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/16 10:58:05 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Executor.hpp"
 
-// const std::map<HTTPmethod, std::function<std::string(HTTPrequest&, int&)> > HTTPexecutor::_methods = 
-// {
-// 	{HTTP_GET, _execGET},
-// 	{HTTP_POST, _execPOST},
-// 	{HTTP_DELETE, _execDELETE},
-// };
-
-Executor::Executor( void ) noexcept : _maxLenBody(-1) {}
-
-Executor::Executor( Server const& server ) noexcept : _handler(server)
+HTTPresponse	Executor::execRequest(HTTPrequest& req, Server const& handler ) noexcept
 {
-    this->_servName = server.getPrimaryName();
-    this->_maxLenBody = this->_handler.getParams().getMaxSize() + HTTP_TERM.size();
-}
-
-HTTPresponse	Executor::execRequest(HTTPrequest& req ) const noexcept
-{
+    int             status = 200;
     HTTPresponse    response;
-    int             exitStatus = 200;
     std::string     body;
 
     try
     {
-        if (req.isReady() == false)
-		    throw(ExecException({"request is not ready to be executed"}, 500));
+        status = handler.validateRequest(req);
+        if (status != 200)
+			throw(ExecException({"request validation failed with code:", std::to_string(status)}, status));
+		req.readRemainingBody(handler.getMaxBodySize());		//	<-- depends on the location!
+		req.parseBody();
+        std::cout << req.toString();
+        body = _runMethod(req);
     }
-    catch(const ExecException& e)
+    catch(const HTTPexception& e)
     {
         std::cerr << e.what() << '\n';
-        exitStatus = e.getStatus();
+        status = e.getStatus();
     }
-    
-    // if (this->_handler.validateRequest(req) == false)
-	// 	throw(ExecException({"validation failed"}));
-	// else 
-	// do the checks
-    // exec HTTP method
-    response = createResponse(exitStatus, body);
+    response = createResponse(status, handler.getPrimaryName(), body);
     return (response);
 }
 
-HTTPresponse	Executor::createResponse( int status, std::string bodyResp ) const
+HTTPresponse	Executor::createResponse( int status, std::string const& servName, std::string const& bodyResp ) noexcept
 {
 	HTTPresponse response;
 
-    response.buildResponse(status, this->_servName, bodyResp);
+    response.buildResponse(status, servName, bodyResp);
 	return (response);
 }
 
-void				Executor::setHandler( Server const& handler) noexcept
+std::string	Executor::_runMethod(HTTPrequest const& req)
 {
-    this->_handler = handler;
-    this->_servName = handler.getPrimaryName();
+    std::string	body;
+
+	switch (req.getMethod())
+	{
+		case HTTP_GET:
+		{
+			body = _execGET(req);
+			break ;
+		}
+		case HTTP_POST:
+		{
+			body = _execPOST(req);
+			break ;
+		}
+		case HTTP_DELETE:
+		{
+			body = _execDELETE(req);
+			break ;
+		}
+	}
+	return (body);
 }
 
-Server const&		Executor::getHandler( void ) const noexcept
+std::string	Executor::_execGET(HTTPrequest const& req)
 {
-    return (this->_handler);
+	std::string pathReq = req.getPath();
+	std::string htmlBody;
+
+	// try
+	// {
+	// 	status = _checkPath(pathReq, R_OK);
+	// 	if (status != 200)
+	// 		return ("");
+	// 	else if (_isCGI(pathReq))
+	// 	{
+	// 		std::cout << "CGI\n";
+	// 		// fork and do CGI
+	// 	}
+	// 	else
+	// 	{
+			// htmlBody = _readContent(pathReq);
+	// 	}
+	// 	status = 200;
+	// }
+	// catch (ExecException const& e) {
+	// 	std::cerr << e.what() << '\n';
+	// 	status = 500;
+	// }
+	return (htmlBody);
 }
 
-// int	HTTPexecutor::execRequest(HTTPrequest& req, std::string& body)
-// {
-// 	int reqStatus = -1;
+std::string	Executor::_execPOST(HTTPrequest const& req)
+{
+	std::string pathReq = req.getPath();
+	std::string htmlBody;
 
-// 	try
-// 	{
-// 		body = HTTPexecutor::_methods.at(req.head.method)(req, reqStatus);
-// 	}
-// 	catch(const std::out_of_range& e) {
-// 		std::cerr << "unsupported HTTP method\n";
-// 		reqStatus = 501;
-// 	}
-// 	return(reqStatus);
-// }
+	// try
+	// {
+	// 	status = _checkPath(pathReq, W_OK);
+	// 	if (status != 200)
+	// 		return ("");
+	// 	else if (_isCGI(pathReq))
+	// 	{
+	// 		std::cout << "CGI\n";
+	// 		// fork and do CGI
+	// 	}
+	// 	else
+	// 	{
+	// 		htmlBody = "";
+	// 	}
+	// 	status = 200;
+	// }
+	// catch (ExecException const& e) {
+	// 	std::cerr << e.what() << '\n';
+	// 	status = 500;
+	// }
+	return (htmlBody);
+}
 
-// std::string	HTTPexecutor::_execGET(HTTPrequest& req, int& status)
-// {
-// 	std::string pathReq = "var/www/test.html"; //req.head.url.path;
-// 	std::string htmlBody;
-// 	(void) req;
+std::string	Executor::_execDELETE(HTTPrequest const& req)
+{
+	(void) req;
+	return ("");
+}
 
-// 	try
-// 	{
-// 		status = _checkPath(pathReq, R_OK);
-// 		if (status != 200)
-// 			return ("");
-// 		else if (_isCGI(pathReq))
-// 		{
-// 			std::cout << "CGI\n";
-// 			// fork and do CGI
-// 		}
-// 		else
-// 		{
-// 			htmlBody = _readContent(pathReq);
-// 		}
-// 		status = 200;
-// 	}
-// 	catch (ExecException const& e) {
-// 		std::cerr << e.what() << '\n';
-// 		status = 500;
-// 	}
-// 	return (htmlBody);
-// }
+std::string	Executor::_readContent(std::string const& pathReq)
+{
+	std::fstream	fd(pathReq.c_str());
+	std::string		body, line;
 
-// std::string	HTTPexecutor::_execPOST(HTTPrequest& req, int& status)
-// {
-// 	std::string pathReq = req.head.url.path;
-// 	std::string htmlBody;
-
-// 	try
-// 	{
-// 		status = _checkPath(pathReq, W_OK);
-// 		if (status != 200)
-// 			return ("");
-// 		else if (_isCGI(pathReq))
-// 		{
-// 			std::cout << "CGI\n";
-// 			// fork and do CGI
-// 		}
-// 		else
-// 		{
-// 			htmlBody = "";
-// 		}
-// 		status = 200;
-// 	}
-// 	catch (ExecException const& e) {
-// 		std::cerr << e.what() << '\n';
-// 		status = 500;
-// 	}
-// 	return (htmlBody);
-// }
-
-// std::string	HTTPexecutor::_execDELETE(HTTPrequest& req, int& status)
-// {
-// 	(void) req;
-// 	status = 200;
-// 	return ("");
-// }
-
-// std::string	HTTPexecutor::_readContent(std::string const& pathReq)
-// {
-// 	std::fstream	fd(pathReq.c_str());
-// 	std::string		body, line;
-
-// 	if (!fd.is_open())
-// 		throw(ExecException({"error opening file", pathReq}));	// NB not an exception! has to be the correspondant to 40X error code
-// 	while (std::getline(fd, line))
-// 		body += line + std::string("\n");
-// 	fd.close();
-// 	return (body);
-// }
-
-// int	HTTPexecutor::_checkPath(std::string const& path, int action)
-// {
-// 	if ((action != F_OK) and (action != R_OK) and (action != W_OK) and (action != X_OK))
-// 		throw(ExecException({"Unknown access mode:", std::to_string(action)}));
-// 	if (access(path.c_str(), F_OK) != 0)
-// 		return (404);
-// 	else if (access(path.c_str(), action) != 0)
-// 		return (403);
-// 	else
-// 		return (200);
-	
-// }
-
-// bool	HTTPexecutor::_isCGI(std::string const& path)
-// {
-// 	// what about checks for the directory?
-// 	size_t		dotPos = path.rfind('.');
-// 	std::string	ext;
-// 	if (dotPos == std::string::npos)
-// 		return (false);
-// 	ext = path.substr(dotPos);
-// 	return ((ext == CGI_EXT_PY) or (ext == CGI_EXT_SH));
-// }
+	if (!fd.is_open())
+		throw(ExecException({"error opening file", pathReq}, 500));	// NB not an exception! has to be the correspondant to 40X error code
+	while (std::getline(fd, line))
+		body += line + std::string("\n");
+	fd.close();
+	return (body);
+}

@@ -35,8 +35,6 @@ typedef struct HTTPversion_f
 	std::string	scheme;
 	int			major;
 	int			minor;
-
-	std::string	toString( void ) const noexcept;
 } HTTPversion;
 
 class HTTPstruct
@@ -51,7 +49,7 @@ class HTTPstruct
 		bool				isReady( void ) const noexcept ;
 
 		void				setSocket( int );
-		int					getSocket( void ) const;
+		int					getSocket( void ) const noexcept;
 
 	protected:
 		dict 		_headers;

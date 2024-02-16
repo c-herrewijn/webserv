@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:10:43 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/12 17:01:54 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/16 10:15:27 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@
 #include <sys/types.h>        // send, recv
 #include <sys/socket.h>       // send, recv
 #include <strings.h>
+#include <initializer_list>
 
 #include "Exceptions.hpp"
 #include "HTTPrequest.hpp"
@@ -31,29 +32,17 @@
 class Executor
 {
 	public:
-		Executor( void ) noexcept;
-		Executor( Server const& ) noexcept ;
-		~Executor( void ) noexcept {};
 
-		HTTPresponse	execRequest( HTTPrequest& ) const noexcept;
-		HTTPresponse	createResponse( int, std::string) const;
-
-		void				setHandler( Server const& ) noexcept;
-		Server const&		getHandler( void ) const noexcept;
+		static HTTPresponse	execRequest( HTTPrequest&, Server const& ) noexcept;
+		static HTTPresponse	createResponse( int, std::string const&, std::string const&) noexcept;
 
 	private:
-		// std::string	_execGET(HTTPrequest&, int&);
-		// std::string	_execPOST(HTTPrequest&, int&);
-		// std::string	_execDELETE(HTTPrequest&, int&);
-		// std::string	_readContent(std::string const&);
+		Executor( void ) noexcept {};
+		~Executor( void ) noexcept {};
 
-
-		// bool	_isCGI(std::string const&);
-		// int		_checkPath(std::string const&, int);
-
-		// const std::map<HTTPmethod, std::function<std::string(void)> > _methods;
-
-		Server		_handler;
-		std::string	_servName;
-		ssize_t		_maxLenBody;
+		static std::string	_runMethod(HTTPrequest const&);
+		static std::string	_execGET(HTTPrequest const&);
+		static std::string	_execPOST(HTTPrequest const&);
+		static std::string	_execDELETE(HTTPrequest const&);
+		static std::string	_readContent(std::string const&);
 };

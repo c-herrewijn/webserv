@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/14 11:14:10 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/16 11:03:03 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,12 +28,12 @@ void	HTTPresponse::buildResponse( int code, std::string const& servName, std::st
 	this->_version.minor = 1;
 	this->_statusCode = code;
 	try {
-		this->_statusStr = _mapStatus(code);
+		this->_statusStr = _mapStatusCode(code);
 	}
-	catch(const ResponseException& e) {
+	catch(const HTTPexception& e) {
 		std::cout << e.what() << '\n';
 		this->_statusCode = 500;
-		this->_statusStr = _mapStatus(500);
+		this->_statusStr = _mapStatusCode(500);
 	}
 	_addHeader("Date", _getDateTime());
 	_addHeader("Server", servName);
@@ -41,11 +41,34 @@ void	HTTPresponse::buildResponse( int code, std::string const& servName, std::st
 	this->_ready = true;
 }
 
+void		HTTPresponse::writeContent( int socket )
+{
+	std::string 	toWrite, fullContent=this->toString();
+	size_t			start=0, len=fullContent.size();
+	ssize_t 		written=0;
+	
+	if (socket != -1)
+		setSocket(socket);
+	while (start < fullContent.size())
+	{
+		toWrite = fullContent.substr(start, len);
+		written = send(this->_socket, toWrite.c_str(), len, 0);
+		if (written < -1)
+			throw(ServerException({"from writing: socket not available"}));
+		start += written;
+		len -= written;
+	}
+}
+
 std::string	HTTPresponse::toString( void ) const noexcept
 {
 	std::string	strResp;
 
-	strResp += this->_version.toString();
+	strResp += this->_version.scheme;
+	strResp += "/";
+	strResp += std::to_string(this->_version.major);
+	strResp += ".";
+	strResp += std::to_string(this->_version.minor);
 	strResp += HTTP_SP;
 	strResp += std::to_string(this->_statusCode);
 	strResp += HTTP_SP;
@@ -81,20 +104,9 @@ std::string const&	HTTPresponse::getStatusStr( void ) const noexcept
 	return (this->_statusStr);
 }
 
-// NB: todo: parses the response normally form a string (or a fd/pipe) (for cgi probably)
-void	HTTPresponse::_setHead( std::string const& strHead)
+std::string	HTTPresponse::_mapStatusCode( int status) const
 {
-	(void) strHead;
-}
-
-void	HTTPresponse::_addHeader(std::string const& name, std::string const& content) noexcept
-{
-	this->_headers[name] = content;
-}
-
-std::string	HTTPresponse::_mapStatus( int status) const
-{
-	std::map<int, std::string> mapStatus = 
+	std::map<int, const char*> mapStatus = 
 	{
 		// Information responses
 		{100, "Continue"},				// This interim response indicates that the client should continue the request or ignore the response if the request is already finished.
@@ -171,8 +183,19 @@ std::string	HTTPresponse::_mapStatus( int status) const
 		return (std::string(mapStatus.at(status)));
 	}
 	catch(const std::out_of_range& e) {
-		throw(ResponseException({"Unknown HTTP response code:", std::to_string(status)}, 500));
+		throw(HTTPexception({"Unknown HTTP response code:", std::to_string(status)}, 500));
 	}
+}
+
+// NB: todo: parses the response normally form a string (or a fd/pipe) (for cgi probably)
+void	HTTPresponse::_setHead( std::string const& strHead)
+{
+	(void) strHead;
+}
+
+void	HTTPresponse::_addHeader(std::string const& name, std::string const& content) noexcept
+{
+	this->_headers[name] = content;
 }
 
 std::string	HTTPresponse::_getDateTime( void ) const noexcept
