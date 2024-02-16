@@ -12,128 +12,93 @@
 
 #include "WebServer.hpp"
 
+WebServer::WebServer ( std::vector<Server> const& servers ) : _servers(servers)
+{
+	bool defServerFound = false;
+
+	if (servers.empty() == true)
+		throw(ServerException({"No Servers provided for configuration"}));
+	for (auto const& server : this->_servers)
+	{
+		for (auto const& listAddress : server.getListens())
+		{
+			if (listAddress.getDef() == true)
+			{
+				this->_defaultServer = server;
+				defServerFound = true;
+			}
+			auto isPresent = std::find(this->_listenAddress.begin(),this->_listenAddress.end(), listAddress);
+			if ( isPresent == this->_listenAddress.end() )
+				this->_listenAddress.push_back(listAddress);
+		}
+	}
+	if (defServerFound == false)
+		this->_defaultServer = servers[0];
+}
+
 WebServer::~WebServer ( void ) noexcept
 {
-	while(this->_connfds.empty() == false)
-		this->_dropConn();
+	this->_dropConn();
 }
 
-void	WebServer::listenTo( const char* hostname, const char* port )
+void			WebServer::startListen( void )
 {
-	struct addrinfo *tmp, *list, filter;
-	struct sockaddr_storage	hostip;
-	int yes=1, listenSocket=-1;
-
-	bzero(&filter, sizeof(struct addrinfo));
-	filter.ai_flags = AI_PASSIVE;
-	filter.ai_family = AF_UNSPEC;
-	filter.ai_protocol = IPPROTO_TCP;
-	if (getaddrinfo(hostname, port, &filter, &list) != 0)
-		throw(ServerException({"failed to get addresses for ", hostname, ":",port}));
-	for (tmp=list; tmp!=nullptr; tmp=tmp->ai_next)
+	for (auto const& listAddress : this->_listenAddress)
 	{
-		listenSocket = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
-		if (listenSocket == -1)
-			continue;
-		fcntl(listenSocket, F_SETFL, O_NONBLOCK);
-		if (setsockopt(listenSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) != 0)
-			std::cout << "failed to update socket, trying to bind anyway... \n";
-		if (bind(listenSocket, tmp->ai_addr, tmp->ai_addrlen) == 0)
-			break;
-		close(listenSocket);
+		try {
+			this->_listenTo(listAddress.getIpString(), listAddress.getPortString());
+		}
+		catch(const ServerException& e) {
+			std::cout << e.what() << '\n';
+		}
 	}
-	if (tmp == nullptr)
-	{
-		freeaddrinfo(list);
-		throw(ServerException({"no available IP host found for ", hostname, ":",port}));
-	}
-	memmove(&hostip, tmp->ai_addr, std::min(sizeof(struct sockaddr), sizeof(struct sockaddr_storage)));
-	freeaddrinfo(list);
-	if (listen(listenSocket, BACKLOG) != 0)
-		throw(ServerException({"failed listen on", this->getAddress(&hostip).c_str()}));
-	std::cout << "listening on: " << this->getAddress(&hostip) << "\n";
-	this->_addConn(listenSocket);
-	this->_listeners.insert(listenSocket);
+
 }
 
-void		WebServer::_acceptConnection( int listener )
+void			WebServer::loop( void )
 {
-	struct sockaddr_storage 	client;
-	unsigned int 				sizeAddr = sizeof(client);
-	int							connfd = -1;
-
-	connfd = accept(listener, (struct sockaddr *) &client, &sizeAddr);
-	if (connfd == -1)
-		std::cout << "failed connection with: " << this->getAddress(&client) << '\n';
-	else
-		std::cout << "connected to " << this->getAddress(&client) << '\n';
-	this->_addConn(connfd);
-}
-
-// NB: refine POLLOUT
-// NB: why do I need TIMEOUT if my sockets are non-blocking? I should count the time elsewhere...
-void	WebServer::loop( void )
-{
-	int			nConn;
-	int			exitStatus = 200;
-	std::string bodyResp;
+	int				nConn = -1;
+	HTTPresponse 	response;
 
 	while (true)
 	{
-		nConn = poll(this->_connfds.data(), this->_connfds.size(), MAX_TIMEOUT);
-		if (nConn == -1)
-			throw(ServerException({"poll failed"}));		//		maybe these checks have to be done when I try to read the socket, maybe...
-		// {
-		// 	if ((errno != EAGAIN) and (errno != EWOULDBLOCK))	// <-- this check doesn't seem correct, poll() never sets errno to EWOULDBLOCK,
-		// }
-		else if (nConn == 0)		// timeout (NB: right?)
-			break;
-		for (size_t i=0; i<this->_connfds.size(); i++)
+		nConn = poll(this->_connfds.data(), this->_connfds.size(), 0);
+		if (nConn < 0)
 		{
-			if (this->_connfds[i].revents & POLLIN)
+			if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
+				throw(ServerException({"poll failed"}));
+		}
+		else if (nConn > 0)
+		{
+			for (size_t i=0; i<this->_connfds.size(); i++)
 			{
-				if (_isListener(this->_connfds[i].fd) == true) // new connection
-					_acceptConnection(this->_connfds[i].fd);
-				else
-				{
-					exitStatus = _handleRequest(this->_connfds[i].fd, bodyResp);
+				try {
+					if (this->_connfds[i].revents & POLLIN)
+					{
+						if (_isListener(this->_connfds[i].fd) == true) // new connection
+							_acceptConnection(this->_connfds[i].fd);
+						else
+						{
+							response = _handleRequest(this->_connfds[i].fd);
+							response.writeContent(this->_connfds[i].fd);
+							if (response.getStatusCode() != 200)
+								_dropConn(this->_connfds[i--].fd);
+						}
+					}
+					if (this->_connfds[i].revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
+						_dropConn(this->_connfds[i--].fd);
 				}
-			}
-			if (this->_connfds[i].revents & POLLOUT)
-			{
-				_writeSocket(this->_connfds[i].fd, HTTPbuilder::buildResponse(exitStatus, bodyResp).toString());		// NB _writeSocket() can throw exceptions!
-				_dropConn(this->_connfds[i--].fd);
+				catch(const ServerException& e) {
+					std::cerr << e.what() << '\n';
+					_dropConn(this->_connfds[i--].fd);
+				}
 			}
 		}
 	}
+	_dropConn();
 }
 
-int	WebServer::_handleRequest( int connfd, std::string& body )
-{
-	HTTPrequest		request;
-	HTTPresponse	response;
-	int				reqStat = -1;
-	std::string		stringRequest;
-	
-	try
-	{
-		stringRequest = _readSocket(connfd);
-		HTTPparser::parseRequest(stringRequest, request);
-		// std::cout << request.toString();
-		reqStat = HTTPexecutor::execRequest(request, body);
-		// response = HTTPbuilder::buildResponse(reqStat, body);
-		// std::cout << response.toString();
-		// _writeSocket(connfd, std::string(response.toString()));
-	}
-	catch (WebServerException const& err) {
-		std::cout << err.what() << '\n';
-		_dropConn(connfd);
-		return (500);
-	}
-	return (reqStat);
-}
-
-std::string	WebServer::getAddress( const struct sockaddr_storage *addr ) const noexcept
+std::string		WebServer::getAddress( const struct sockaddr_storage *addr ) const noexcept
 {
 	std::string ipAddress;
 	if (addr->ss_family == AF_INET)
@@ -153,41 +118,109 @@ std::string	WebServer::getAddress( const struct sockaddr_storage *addr ) const n
 	return (ipAddress);
 }
 
-WebServer::WebServer ( WebServer const& other ) noexcept
+Server const&	WebServer::getHandler( std::string const& servName ) const
 {
-	// ofc shallow copy of port and IP attributes would be problematic because
-	// of the cuncurrency of two servers accessing the same ip:port, if fact it 
-	// makes no sense to create copies of servers
-	(void) other;
-}
+	std::string	tmpServName = servName;
 
-WebServer& WebServer::operator=( WebServer const& other ) noexcept
-{
-	// see copy constructor
-	(void) other;
-	return (*this);
-}
-
-// NB: protection for erase(), i.e. check returned value
-void	WebServer::_dropConn(int toDrop) noexcept
-{
-	int currSocket;
-	for (auto it=this->_connfds.begin(); it!=this->_connfds.end(); it++)
+	for (auto const& server : this->_servers)
 	{
-		currSocket = (*it).fd;
-		if ((toDrop == -1) or (currSocket == toDrop))
+		for (auto name : server.getNames())
 		{
-			shutdown(currSocket, SHUT_RDWR);
-			close(currSocket);
-			this->_connfds.erase(it);
-			if (this->_isListener(currSocket) == true)
-				this->_listeners.erase(currSocket);
-			break;
+			std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+			std::transform(tmpServName.begin(), tmpServName.end(), tmpServName.begin(), ::tolower);
+			if (tmpServName == name)
+				return (server);
 		}
 	}
+	return (getDefaultServer());
 }
 
-void	WebServer::_addConn( int newSocket ) noexcept
+Server const&	WebServer::getDefaultServer( void ) const
+{
+	return (this->_defaultServer);
+}
+
+void			WebServer::_listenTo( std::string const& hostname, std::string const& port )
+{
+	struct addrinfo *tmp, *list, filter;
+	struct sockaddr_storage	hostIP;
+	int yes=1, listenSocket=-1;
+
+	bzero(&filter, sizeof(struct addrinfo));
+	filter.ai_flags = AI_PASSIVE;
+	filter.ai_family = AF_UNSPEC;
+	filter.ai_protocol = IPPROTO_TCP;
+	if (getaddrinfo(hostname.c_str(), port.c_str(), &filter, &list) != 0)
+		throw(ServerException({"failed to get addresses for", hostname, ":", port}));
+	for (tmp=list; tmp!=nullptr; tmp=tmp->ai_next)
+	{
+		listenSocket = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);
+		if (listenSocket == -1)
+			continue;
+		fcntl(listenSocket, F_SETFL, O_NONBLOCK);
+		if (setsockopt(listenSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) != 0)
+			std::cout << "failed to update socket, trying to bind anyway... \n";
+		if (bind(listenSocket, tmp->ai_addr, tmp->ai_addrlen) == 0)
+			break;
+		close(listenSocket);
+	}
+	if (tmp == nullptr)
+	{
+		freeaddrinfo(list);
+		std::cout << "no available IP host found for " << hostname << " port " << port << '\n';
+		return ;
+	}
+	memmove(&hostIP, tmp->ai_addr, std::min(sizeof(struct sockaddr), sizeof(struct sockaddr_storage)));
+	freeaddrinfo(list);
+	if (listen(listenSocket, BACKLOG) != 0)
+	{
+		close(listenSocket);
+		throw(ServerException({"failed listen on", this->getAddress(&hostIP)}));
+	}
+	std::cout << "listening on: " << this->getAddress(&hostIP) << "\n";
+	this->_addConn(listenSocket);
+	this->_listeners.insert(listenSocket);
+}
+
+void			WebServer::_acceptConnection( int listener )
+{
+	struct sockaddr_storage client;
+	unsigned int 			sizeAddr = sizeof(client);
+	int						connfd = -1;
+
+	connfd = accept(listener, (struct sockaddr *) &client, &sizeAddr);
+	if (connfd == -1)
+		throw(ServerException({"connection with", this->getAddress(&client), "failed"}));
+	fcntl(connfd, F_SETFL, O_NONBLOCK);
+	std::cout << "connected to " << this->getAddress(&client) << '\n';
+	this->_addConn(connfd);
+}
+
+HTTPresponse	WebServer::_handleRequest( int connfd ) const
+{
+	HTTPrequest 	request;
+	HTTPresponse	response;
+	Executor		executor;
+
+	try {
+		request.readHead(connfd);
+		executor.setHandler(getHandler(request.getHost()));
+		response = executor.execRequest(request);
+	}
+	catch (const HTTPexception& e) {
+		std::cerr << e.what() << '\n';
+		executor.setHandler(getDefaultServer());
+		response = executor.createResponse(e.getStatus(), "");
+	}
+	return (response);
+}
+
+bool			WebServer::_isListener( int socket ) const
+{
+	return (this->_listeners.find(socket) != this->_listeners.end());
+}
+
+void			WebServer::_addConn( int newSocket ) noexcept
 {
 	struct pollfd	newfd;
 
@@ -200,67 +233,20 @@ void	WebServer::_addConn( int newSocket ) noexcept
 	}
 }
 
-bool	WebServer::_isListener( int socket ) const
+void			WebServer::_dropConn(int toDrop) noexcept
 {
-	return (this->_listeners.find(socket) != this->_listeners.end());
-}
-
-std::string	WebServer::_readSocket( int fd ) const
-{
-	char			buffer[HEADER_MAX_SIZE + 1];
-	ssize_t 		readChar = HEADER_MAX_SIZE;
-	std::string		stringRequest;
-
-	while (readChar == HEADER_MAX_SIZE)
+	for (size_t i=0; i<this->_connfds.size(); i++)
 	{
-		memset(buffer, 0, HEADER_MAX_SIZE + 1);		// NB: remove C functions!
-		readChar = recv(fd, buffer, HEADER_MAX_SIZE, 0);
-		if (readChar < 0)
-			throw(ServerException({"socket not available or empty"}));
-		stringRequest += buffer;
-	}
-	return (stringRequest);
-}
-
-void	WebServer::_writeSocket( int fd, std::string const& content) const
-{
-	std::string toWrite;
-	size_t	start=0, len=content.size();
-	ssize_t written=0;
-
-	while (start < content.size())
-	{
-		toWrite = content.substr(start, len);
-		written = send(fd, toWrite.c_str(), len, 0);
-		if (written < -1)
-			throw(ServerException({"failed writing on client socket"}));
-		start += written;
-		len -= written;
-	}
-}
-
-// NB: how can i keep the information about which connection close()?
-void	WebServer::_waitForChildren( void )
-{
-	int 	statProc;
-	pid_t	childProc;
-
-	if (this->_currentJobs.empty())
-		return ;
-	childProc = waitpid(-1, &statProc, WNOHANG);
-	if (childProc < 0)
-	{
-		if (errno != ECHILD)
-			throw(ServerException({"error while terminating process"}));
-	}
-	else
-	{
-		if (this->_currentJobs.erase(childProc) == 0)
-			throw(ServerException({"no child process found with id:", std::to_string(childProc).c_str()}));
-		else if (WEXITSTATUS(statProc) != REQ_OK)
+		if ((this->_connfds[i].fd == toDrop) or (toDrop == -1))
 		{
-			std::cout << "failed to a request, closing connection";
-			_dropConn();
+			shutdown(this->_connfds[i].fd, SHUT_RDWR);
+			close(this->_connfds[i].fd);
+			this->_connfds.erase(this->_connfds.begin() + i);
+			if (this->_isListener(this->_connfds[i].fd) == true)
+				this->_listeners.erase(this->_connfds[i].fd);
+			if (toDrop != -1)
+				break;
+			i--;
 		}
 	}
 }

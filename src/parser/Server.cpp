@@ -12,9 +12,34 @@
 
 #include "Server.hpp"
 
-Server::Server(void)
+Server::Server(const Server& copy) :
+	listens(copy.listens),
+	names(copy.names),
+	params(copy.params),
+	locations(copy.locations),
+	cgi_directory(copy.cgi_directory),
+	cgi_extension(copy.cgi_extension),
+	cgi_allowed(copy.cgi_allowed)
 {
+}
 
+Server&	Server::operator=(const Server& assign)
+{
+	if (this != &assign)
+	{
+		listens.clear();
+		names.clear();
+		locations.clear();
+		listens = assign.listens;
+		names = assign.names;
+		locations = assign.locations;
+		params = assign.params;
+
+		cgi_directory = assign.cgi_directory;
+		cgi_extension = assign.cgi_extension;
+		cgi_allowed = assign.cgi_allowed;
+	}
+	return (*this);
 }
 
 Server::~Server(void)
@@ -25,154 +50,49 @@ Server::~Server(void)
 	locations.clear();
 }
 
-Server::Server(const Server& copy) :
-	listens(copy.listens),
-	names(copy.names),
-	params(copy.params),
-	locations(copy.locations),
-	cgi_directory(copy.cgi_directory),
-	cgi_extension(copy.cgi_extension),
-	cgi_allowed(copy.cgi_allowed)
-{
-
-}
-
-Server&	Server::operator=(const Server& assign)
-{
-	listens.clear();
-	names.clear();
-	locations.clear();
-	listens = assign.listens;
-	names = assign.names;
-	locations = assign.locations;
-	params = assign.params;
-
-	cgi_directory = assign.cgi_directory;
-	cgi_extension = assign.cgi_extension;
-	cgi_allowed = assign.cgi_allowed;
-	return (*this);
-}
-
-void	Server::parseCgiDir(std::vector<std::string>& block)
-{
-	block.erase(block.begin());
-	if (block.front().find(' ') != std::string::npos)
-		throw ErrorCatch("Unexpected element in cgi_directory: '" + block.front() + "'");
-	if (block.front().front() != '/')
-		throw ErrorCatch("Directories must begin with a '/''" + block.front() + "'");
-	cgi_directory = block.front();
-	block.erase(block.begin());
-	if (block.front() != ";")
-		throw ErrorCatch("Unexpected element in cgi_directory: '" + block.front() + "', a ';' is expected");
-	block.erase(block.begin());
-}
-
-void	Server::parseCgiExtension(std::vector<std::string>& block)
-{
-	block.erase(block.begin());
-	if (block.front().find(' ') != std::string::npos)
-		throw ErrorCatch("Unexpected element in cgi_extension: '" + block.front() + "'");
-	cgi_extension = block.front();
-	block.erase(block.begin());
-	if (block.front() != ";")
-		throw ErrorCatch("Unexpected element in cgi_extension: '" + block.front() + "', a ';' is expected");
-	block.erase(block.begin());
-}
-
-void	Server::parseCgiAllowed(std::vector<std::string>& block)
-{
-	block.erase(block.begin());
-	if (block.front() == "true")
-		cgi_allowed = true;
-	else if (block.front() == "false")
-		cgi_allowed = false;
-	else
-		throw ErrorCatch("Unexpected element in cgi_allowed: '" + block.front() + "'");
-	block.erase(block.begin());
-	if (block.front() != ";")
-		throw ErrorCatch("Unexpected element in cgi_allowed: '" + block.front() + "', a ';' is expected");
-	block.erase(block.begin());
-}
-
-void	Server::parseListen(std::vector<std::string>& block)
-{
-	block.erase(block.begin());
-	if (block.front() == ";")
-		throw ErrorCatch("Can't use ';' after keyword 'listen'");
-	if (block.front() == "default_server")
-		throw ErrorCatch("Before 'default_server' an ip/port expected");
-	Listen tmp;
-	tmp.fillValues(block);
-	if (block.front() == "default_server")
-	{
-		tmp.setDef(true);
-		block.erase(block.begin());
-	}
-	listens.push_back(tmp);
-	if (block.front() != ";")
-		throw ErrorCatch("Missing semicolumn on Listen, before: '" + block.front() + "'");
-	block.erase(block.begin());
-}
-
-void	Server::parseServerName(std::vector<std::string>& block)
-{
-	// THIS PART IS SUS. What about asterix?
-	block.erase(block.begin());
-	for (std::vector<std::string>::iterator it = block.begin(); it != block.end();)
-	{
-		if (*it == ";")
-		{
-			block.erase(block.begin());
-			break ;
-		}
-		if (block.front().find_first_not_of("abcdefghijklmnoprstuvyzwxqABCDEFGHIJKLMNOPRSTUVYZWXQ0123456789-.") != std::string::npos)
-			throw ErrorCatch("Only 'alpha' 'digit' '-' and '.' characters are accepted in 'server_name'");
-		names.push_back(block.front());
-		block.erase(block.begin());
-	}
-}
-
-void	Server::parseLocation(std::vector<std::string>& block)
-{
-	Location	local(block, params);
-	locations.push_back(local);
-}
-
-void	Server::fillServer(std::vector<std::string>& block)
-{
-	params.setBlockIndex(0);
-	// Parser keyword separations
-	for (std::vector<std::string>::iterator it = block.begin(); it != block.end();)
-	{
-		if (*it == "listen")
-			parseListen(block);
-		else if (*it == "server_name")
-			parseServerName(block);
-		else if (*it == "location")
-			parseLocation(block);
-		else if (block.front() == "cgi_directory")
-			parseCgiDir(block);
-		else if (block.front() == "cgi_extension")
-			parseCgiExtension(block);
-		else if (block.front() == "cgi_allowed")
-			parseCgiAllowed(block);
-		else
-			params.fill(block);
-	}
-}
-
 void	Server::parseBlock(std::vector<std::string>& block)
 {
 	if (block.front() != "server")
-		throw ErrorCatch("First arg is not 'server'");
+		throw ParserException({"first arg is not 'server'"});
     block.erase(block.begin());
 	if (block.front() != "{")
-		throw ErrorCatch("After 'server' a '{' expected");
+		throw ParserException({"after a 'server' directive a '{' is expected"});
     block.erase(block.begin());
 	if (block[block.size() - 1] != "}")
-		throw ErrorCatch("Last element is not a '}");
+		throw ParserException({"last element is not a '}"});
 	block.pop_back();
-	fillServer(block);
+	_fillServer(block);
+}
+
+int	Server::validateRequest(HTTPrequest const& req) const
+{
+	(void) req;
+	return (200);
+}
+
+const std::vector<Listen>& Server::getListens(void) const
+{
+	return (listens);
+}
+
+const std::vector<std::string>& Server::getNames(void) const
+{
+	return (names);
+}
+
+const std::string&		Server::getPrimaryName(void) const
+{
+	return (names[0]);
+}
+
+const Parameters&	Server::getParams(void) const
+{
+	return (params);
+}
+
+const std::vector<Location>&	Server::getLocations() const
+{
+	return (locations);
 }
 
 const std::string& Server::getCgiDir(void) const
@@ -190,24 +110,117 @@ const bool& Server::getCgiAllowed(void) const
 	return (cgi_allowed);
 }
 
-const std::vector<Listen>& Server::getListens(void) const
+size_t	Server::getMaxBodySize(void) const
 {
-	return (listens);
+	return (this->getParams().getMaxSize());
 }
 
-const std::vector<std::string>& Server::getNames(void) const
+void	Server::_parseListen(std::vector<std::string>& block)
 {
-	return (names);
+	block.erase(block.begin());
+	if (block.front() == ";")
+		throw ParserException({"can't use ';' after keyword 'listen'"});
+	if (block.front() == "default_server")
+		throw ParserException({"before 'default_server' an ip/port expected"});
+	Listen tmp;
+	tmp.fillValues(block);
+	if (block.front() == "default_server")
+	{
+		tmp.setDef(true);
+		block.erase(block.begin());
+	}
+	listens.push_back(tmp);
+	if (block.front() != ";")
+		throw ParserException({"missing semicolumn on Listen, before: '" + block.front() + "'"});
+	block.erase(block.begin());
 }
 
-const Parameters&	Server::getParams(void) const
+void	Server::_parseServerName(std::vector<std::string>& block)
 {
-	return (params);
+	// THIS PART IS SUS. What about asterix?
+	block.erase(block.begin());
+	for (std::vector<std::string>::iterator it = block.begin(); it != block.end();)
+	{
+		if (*it == ";")
+		{
+			block.erase(block.begin());
+			break ;
+		}
+		if (block.front().find_first_not_of("abcdefghijklmnoprstuvyzwxqABCDEFGHIJKLMNOPRSTUVYZWXQ0123456789-.") != std::string::npos)
+			throw ParserException({"only 'alpha' 'digit' '-' and '.' characters are accepted in 'server_name' directive"});
+		names.push_back(block.front());
+		block.erase(block.begin());
+	}
 }
 
-const std::vector<Location>&	Server::getLocations() const
+void	Server::_parseLocation(std::vector<std::string>& block)
 {
-	return (locations);
+	Location	local(block, params);
+	locations.push_back(local);
+}
+
+void	Server::_parseCgiDir(std::vector<std::string>& block)
+{
+	block.erase(block.begin());
+	if (block.front().find(' ') != std::string::npos)
+		throw ParserException({"unexpected element in cgi_directory: '" + block.front() + "'"});
+	if (block.front().front() != '/')
+		throw ParserException({"directories must begin with a '/''" + block.front() + "'"});
+	cgi_directory = block.front();
+	block.erase(block.begin());
+	if (block.front() != ";")
+		throw ParserException({"unexpected element in cgi_directory: '" + block.front() + "', a ';' is expected"});
+	block.erase(block.begin());
+}
+
+void	Server::_parseCgiExtension(std::vector<std::string>& block)
+{
+	block.erase(block.begin());
+	if (block.front().find(' ') != std::string::npos)
+		throw ParserException({"unexpected element in cgi_extension: '" + block.front() + "'"});
+	cgi_extension = block.front();
+	block.erase(block.begin());
+	if (block.front() != ";")
+		throw ParserException({"unexpected element in cgi_extension: '" + block.front() + "', a ';' is expected"});
+	block.erase(block.begin());
+}
+
+void	Server::_parseCgiAllowed(std::vector<std::string>& block)
+{
+	block.erase(block.begin());
+	if (block.front() == "true")
+		cgi_allowed = true;
+	else if (block.front() == "false")
+		cgi_allowed = false;
+	else
+		throw ParserException({"unexpected element in cgi_allowed: '" + block.front() + "'"});
+	block.erase(block.begin());
+	if (block.front() != ";")
+		throw ParserException({"unexpected element in cgi_allowed: '" + block.front() + "', a ';' is expected"});
+	block.erase(block.begin());
+}
+
+void	Server::_fillServer(std::vector<std::string>& block)
+{
+	params.setBlockIndex(0);
+	// Parser keyword separations
+	for (std::vector<std::string>::iterator it = block.begin(); it != block.end();)
+	{
+		if (*it == "listen")
+			_parseListen(block);
+		else if (*it == "server_name")
+			_parseServerName(block);
+		else if (*it == "location")
+			_parseLocation(block);
+		else if (block.front() == "cgi_directory")
+			_parseCgiDir(block);
+		else if (block.front() == "cgi_extension")
+			_parseCgiExtension(block);
+		else if (block.front() == "cgi_allowed")
+			_parseCgiAllowed(block);
+		else
+			params.fill(block);
+	}
 }
 
 std::ostream& operator<<(std::ostream& os, const Server& server) {
@@ -231,7 +244,7 @@ std::ostream& operator<<(std::ostream& os, const Server& server) {
     os << "\tcgi_allowed " << (server.getCgiAllowed() ? "true" : "false") << ";\n";
 
     os << "\troot " << server.getParams().getRoot() << ";\n";
-    os << "\tclient_max_body_size " << server.getParams().getMaxSize().first << server.getParams().getMaxSize().second << ";\n";
+    os << "\tclient_max_body_size " << server.getParams().getMaxSize() << ";\n";
     os << "\tautoindex " << (server.getParams().getAutoindex() ? "on" : "off") << ";\n";
 
     const auto& indexes = server.getParams().getIndexes();

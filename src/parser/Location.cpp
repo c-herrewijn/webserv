@@ -54,18 +54,18 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 	params.setBlockIndex(param.getBlockIndex());
 	block.erase(block.begin());
 	if (block.front()[0] != '/')
-		throw ErrorCatch("After 'location' expected a /URL");
+		throw ParserException({"after 'location' expected a /URL"});
 	URL = block.front();
 	block.erase(block.begin());
 	if (block.front() != "{")
-		throw ErrorCatch("After '/URL' expected a '{'");
+		throw ParserException({"after '/URL' expected a '{'"});
 	block.erase(block.begin());
 	while (block.front() != "}")
 	{
 		if (block.front() == "alias")
-			parseAlias(block);
+			_parseAlias(block);
 		else if (block.front() == "allowMethods")
-			parseAllowedMethod(block);
+			_parseAllowedMethod(block);
 		else if (block.front() == "location")
 		{
 			Location local(block, params);
@@ -77,12 +77,12 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 				block.front() == "error_page" || block.front() == "return")
 			params.fill(block);
 		else
-			throw ErrorCatch("\'" + block.front() + "\' is not a valid parameter in 'location' context");
+			throw ParserException({"'" + block.front() + "' is not a valid parameter in 'location' context"});
 	}
 	block.erase(block.begin());
 }
 
-void	Location::parseAllowedMethod(std::vector<std::string>& block)
+void	Location::_parseAllowedMethod(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	while (1)
@@ -105,22 +105,22 @@ void	Location::parseAllowedMethod(std::vector<std::string>& block)
 		else if (block.front() == ";")
 			break ;
 		else
-			throw ErrorCatch("'" + block.front() + "' is not a valid element in allowMethods parameters");
+			throw ParserException({"'" + block.front() + "' is not a valid element in allowMethods parameters"});
 	}
 	block.erase(block.begin());
 }
 
-void	Location::parseAlias(std::vector<std::string>& block)
+void	Location::_parseAlias(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front().find_first_of(" ") != std::string::npos)
-		throw ErrorCatch("Unwanted space found in '" + block.front() + "' while parsing alias");
+		throw ParserException({"unwanted space found in '" + block.front() + "' while parsing alias"});
 	if (block.front()[0] != '/')
-		throw ErrorCatch("Improper alias without '/' found on '" + block.front() + "'");
+		throw ParserException({"improper alias without '/' found on '" + block.front() + "'"});
 	alias = block.front();
 	block.erase(block.begin());
 	if (block.front() != ";")
-		throw ErrorCatch("After first element expected a ';' with alias elements. Error on '" + block.front() + "'");
+		throw ParserException({"after first element expected a ';' with alias elements. Error on '" + block.front() + "'"});
 	block.erase(block.begin());
 }
 
@@ -163,14 +163,14 @@ std::ostream& operator<<(std::ostream& os, const Location& location)
 {
     size_t indentation = location.getBlockIndex();
     // Print the opening line for the current location
-    os << std::string(indentation, '\t') << "location " << location.URL << " {\n";
+    os << std::string(indentation, '\t') << "location " << location.getURL() << " {\n";
 
     // Print alias and allowMethods
-    os << std::string(indentation + 1, '\t') << "alias " << location.alias << ";\n";
-    os << std::string(indentation + 1, '\t') << "allowMethods " << location.allowedMethods << ";\n";
+    os << std::string(indentation + 1, '\t') << "alias " << location.getAlias() << ";\n";
+    os << std::string(indentation + 1, '\t') << "allowMethods " << location.getAllowedMethods() << ";\n";
 
     // Print location params
-    os << location.params;
+    os << location.getParams();
 
     // Print Nested Locations
     const auto& nestedLocations = location.getNested();

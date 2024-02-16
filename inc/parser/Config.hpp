@@ -19,43 +19,37 @@
 # include <exception>
 # include <cctype>
 # include <stack>
+
 # include "Server.hpp"
+# include "Exceptions.hpp"
 
 class Config
 {
-	private:
-		size_t	doComment(size_t &i);
-		size_t	doSpace(size_t& i);
-		void	doQuote(size_t& i, size_t& j);
-		void	doToken(size_t& i, size_t& j);
-		void	doExceptions(size_t& i);
-		void	doClean(void);
-		void	readFile(const std::string& file_path);
-		void	tokenizeFile(void);
-		void	checkBrackets(void);
-		void	printContent(void);
-		std::vector<std::string>	file_content;
-		std::string raw_input;
 	public:
-		// Form
 		Config(void);
 		virtual	~Config();
 		Config(const Config& copy);
 		Config&	operator=(const Config& assign);
-		// Subject
-		void	fillConfig(const std::string& file);
-		bool	clearEmpty(void);
-		std::vector<std::string>	getFileContent(void);
+
+		void									fillConfig(const std::string& file);
+		bool									clearEmpty(void);
+		std::vector<std::string>				getFileContent(void);
 		std::vector<std::vector<std::string>>	divideContent(void);
-		class ErrorCatch : public std::exception {
-			public:
-				ErrorCatch(const std::string& message) : errorMessage(message) {}
-				const char* what() const throw() override {
-					return errorMessage.c_str();
-				}
-			private:
-				std::string errorMessage;
-		};
+
+	private:
+		size_t	_doComment(size_t &i);
+		size_t	_doSpace(size_t& i);
+		void	_doQuote(size_t& i, size_t& j);
+		void	_doToken(size_t& i, size_t& j);
+		void	_doExceptions(size_t& i);
+		void	_doClean(void);
+		void	_readFile(const std::string& file_path);
+		void	_tokenizeFile(void);
+		void	_checkBrackets(void);
+		void	_printContent(void);
+
+		std::vector<std::string>	file_content;
+		std::string 				raw_input;
 };
 
 #endif
