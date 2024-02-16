@@ -26,7 +26,7 @@ CLIENT := $(CLI_DIR)/webclient
 CLIENT_SRCS := $(shell find $(CLI_DIR) -type f -name '*.cpp')
 
 CC := c++
-INC_FLAGS := -I$(INC_DIR) -I$(INC_DIR)/http -I$(INC_DIR)/parser -I$(INC_DIR)/server
+INC_FLAGS := -I$(INC_DIR) -I$(INC_DIR)/http -I$(INC_DIR)/parser -I$(INC_DIR)/server -I$(INC_DIR)/CGI
 CPP_FLAGS := -Wall -Wextra -Werror -Wshadow -Wpedantic -g3 -fsanitize=address -std=c++17
 DEP_FLAGS = -MMD -MF $(DEP_DIR)/$*.d
 
@@ -79,7 +79,7 @@ fclean: clean
 	@printf "(WebServ) $(RED)Removed executable $(CLIENT)$(RESET)\n"
 
 re: fclean all
-	
+
 .PHONY: all run client clean fclean re
 
 .DEFAULT_GOAL:=all

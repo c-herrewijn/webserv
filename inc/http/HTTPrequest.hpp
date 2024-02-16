@@ -53,6 +53,7 @@ class HTTPrequest : public HTTPstruct
 		std::string	const& 	getPath( void ) const noexcept;
 		std::string		 	getHost( void ) const noexcept;
 		std::string	const& 	getBody( void ) const noexcept;
+		std::string	const&	getQueryRaw( void ) const noexcept;
 
 	protected:
 		HTTPmethod	_method;
@@ -72,6 +73,6 @@ class HTTPrequest : public HTTPstruct
 		void	_setPath( std::string const& );
 		void	_setQuery( std::string const& );
 		void	_setFragment( std::string const& );
-		
+
 		void	_setChunkedBody( std::string const& );
 };

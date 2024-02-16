@@ -75,6 +75,8 @@ std::string	Executor::_execGET(HTTPrequest const& req)
 	std::string pathReq = req.getPath();
 	std::string htmlBody;
 
+	if (pathReq == "/")
+		htmlBody = _readContent("./var/www/test.html");
 	// try
 	// {
 	// 	status = _checkPath(pathReq, R_OK);

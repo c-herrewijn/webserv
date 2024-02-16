@@ -179,6 +179,11 @@ std::string	const&	HTTPrequest::getBody( void ) const noexcept
 	return (this->_body);
 }
 
+std::string	const&	HTTPrequest::getQueryRaw( void ) const noexcept
+{
+	return (this->_url.queryRaw);
+}
+
 void	HTTPrequest::_setHead( std::string const& header )
 {
 	std::istringstream	stream(header);
@@ -213,7 +218,7 @@ void	HTTPrequest::_setHeaders( std::string const& headers)
 	}
 	catch(std::out_of_range const& e) {
 		throw(RequestException({"no Host header"}, 400));
-	}	
+	}
 }
 
 void	HTTPrequest::_setBody( std::string const& strBody )

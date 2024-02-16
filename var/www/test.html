@@ -3,19 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My First Website</title>
+    <title>Webserv Demo Page</title>
 </head>
 <body>
-    <h1>Welcome to my first website!</h1>
-    <p>This is a paragraph of text. You can start writing your content here.</p>
+    <h1>Welcome!</h1>
+    <p>You can do the following things:</p>
     <ul>
-        <li>List item 1</li>
-        <li>List item 2</li>
-        <li>List item 3</li>
+        <li><p>Tell us your name
+            <form action = "/cgi-bin/setname.cgi" method = "get">
+            First Name: <input type = "text" name = "first_name">  <br />
+            Last Name: <input type = "text" name = "last_name" />
+            <input type = "submit" value = "Submit" />
+            </form>
+        </p></li>
+        <li><a href="/cgi-bin/gettime.cgi">Ask the time!</a></li>
+        <li><a href="/cgi-bin/see-env.cgi">See some meta properties!</a></li>
+
+        <li><p>Upload a file
+            <form enctype = "multipart/form-data" action = "/cgi-bin/uploadfile.cgi" method = "post">
+            File: <input type = "file" name = "filename" />
+            <input type = "submit" value = "Upload" />
+            </form>
+        </p></li>
     </ul>
-    <p>You can add images:</p>
-    <img src="image.jpg" alt="Image Description">
-    <p>And hyperlinks:</p>
-    <a href="https://www.example.com">Visit the example website</a>
 </body>
 </html>
