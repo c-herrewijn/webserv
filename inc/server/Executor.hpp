@@ -32,17 +32,22 @@
 class Executor
 {
 	public:
+		Executor( void ) noexcept {};
+		Executor( Server const& ) noexcept ;
+		~Executor( void ) noexcept {};
+		HTTPresponse	execRequest( HTTPrequest& ) noexcept;
+		HTTPresponse	createResponse( int, std::string const&) noexcept;
 
-		static HTTPresponse	execRequest( HTTPrequest&, Server const& ) noexcept;
-		static HTTPresponse	createResponse( int, std::string const&, std::string const&) noexcept;
+		void				setHandler( Server const& ) noexcept;
+		Server const&		getHandler( void ) const noexcept;
 
 	private:
-		Executor( void ) noexcept {};
-		~Executor( void ) noexcept {};
+		Server		_configServer;
+		std::string	_servName;
 
-		static std::string	_runMethod(HTTPrequest const&);
-		static std::string	_execGET(HTTPrequest const&);
-		static std::string	_execPOST(HTTPrequest const&);
-		static std::string	_execDELETE(HTTPrequest const&);
-		static std::string	_readContent(std::string const&);
+		std::string	_runMethod(HTTPrequest const&);
+		std::string	_execGET(HTTPrequest const&);
+		std::string	_execPOST(HTTPrequest const&);
+		std::string	_execDELETE(HTTPrequest const&);
+		std::string	_readContent(std::string const&);
 };

@@ -11,8 +11,14 @@
 /* ************************************************************************** */
 
 #include "Executor.hpp"
+#include "CGI.hpp"
 
-HTTPresponse	Executor::execRequest(HTTPrequest& req, Server const& handler ) noexcept
+Executor::Executor( Server const& server ) noexcept : _configServer(server)
+{
+    this->_servName = server.getPrimaryName();
+}
+
+HTTPresponse	Executor::execRequest(HTTPrequest& req ) noexcept
 {
     int             status = 200;
     HTTPresponse    response;
@@ -20,12 +26,14 @@ HTTPresponse	Executor::execRequest(HTTPrequest& req, Server const& handler ) noe
 
     try
     {
-        status = handler.validateRequest(req);
+		// check if the executor does have the handler
+        status = this->_configServer.validateRequest(req);
         if (status != 200)
 			throw(ExecException({"request validation failed with code:", std::to_string(status)}, status));
-		req.readRemainingBody(handler.getMaxBodySize());		//	<-- depends on the location!
+		req.readRemainingBody(this->_configServer.getMaxBodySize());		//	<-- depends on the location!
 		req.parseBody();
         std::cout << req.toString();
+
         body = _runMethod(req);
     }
     catch(const HTTPexception& e)
@@ -33,38 +41,62 @@ HTTPresponse	Executor::execRequest(HTTPrequest& req, Server const& handler ) noe
         std::cerr << e.what() << '\n';
         status = e.getStatus();
     }
-    response = createResponse(status, handler.getPrimaryName(), body);
+    response = createResponse(status, body);
     return (response);
 }
 
-HTTPresponse	Executor::createResponse( int status, std::string const& servName, std::string const& bodyResp ) noexcept
+HTTPresponse	Executor::createResponse( int status, std::string const& bodyResp ) noexcept
 {
 	HTTPresponse response;
 
-    response.buildResponse(status, servName, bodyResp);
+    response.buildResponse(status, this->_configServer.getPrimaryName(), bodyResp);
 	return (response);
+}
+
+void				Executor::setHandler( Server const& handler) noexcept
+{
+    this->_configServer = handler;
+    this->_servName = handler.getPrimaryName();
+}
+
+Server const&		Executor::getHandler( void ) const noexcept
+{
+    return (this->_configServer);
 }
 
 std::string	Executor::_runMethod(HTTPrequest const& req)
 {
     std::string	body;
 
-	switch (req.getMethod())
-	{
-		case HTTP_GET:
+    std::istringstream ss((req).getPath());
+    std::string reqExtension;
+    while (getline(ss, reqExtension, '.')) {} // get last part after '.'
+	if (reqExtension == this->_configServer.getCgiExtension()
+        || "." + reqExtension == this->_configServer.getCgiExtension())
+    {
+        // CGI
+		CGI CGIrequest(req, this->_configServer);
+        body = CGIrequest.getHTMLBody();
+	}
+	else {
+		// non-CGI
+		switch (req.getMethod())
 		{
-			body = _execGET(req);
-			break ;
-		}
-		case HTTP_POST:
-		{
-			body = _execPOST(req);
-			break ;
-		}
-		case HTTP_DELETE:
-		{
-			body = _execDELETE(req);
-			break ;
+			case HTTP_GET:
+			{
+				body = _execGET(req);
+				break ;
+			}
+			case HTTP_POST:
+			{
+				body = _execPOST(req);
+				break ;
+			}
+			case HTTP_DELETE:
+			{
+				body = _execDELETE(req);
+				break ;
+			}
 		}
 	}
 	return (body);

@@ -7,10 +7,7 @@
 #include <sstream>
 #include <string.h>
 
-CGI::CGI(
-    HTTPrequest &req,
-    Server &srv
-)
+CGI::CGI(const HTTPrequest &req, const Server &srv)
     : _req(req),
       _srv(srv),
       _CGIEnvArr(this->_createCgiEnv(req, srv)),
@@ -21,7 +18,7 @@ CGI::~CGI() {
     delete[] this->_CgiEnvCStyle;
 }
 
-std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(HTTPrequest &req, Server &srv)
+std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(const HTTPrequest &req, const Server &srv)
 {
     // split "Host" in addr and port. TODO: error handling via try/catch
     std::istringstream ss(req.getHost());
@@ -78,7 +75,7 @@ char **CGI::_createCgiEnvCStyle(void)
     return CgiEnv;
 }
 
-std::string CGI::getHTTPResponse()
+std::string CGI::getHTMLBody()
 {
     int p1[2]; // pipe where CGI writes response
     int p2[2]; // pipe where CGI reads body
@@ -103,6 +100,7 @@ std::string CGI::getHTTPResponse()
         {
             close(p1[1]);
             std::cerr << "Error in running CGI script!" << std::endl;
+            std::cerr << "path: " << CGIfilePath.c_str() << std::endl;
             perror("");
             exit(1); // exit() is not allowed!
         }

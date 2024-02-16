@@ -52,7 +52,7 @@ void			WebServer::startListen( void )
 			std::cout << e.what() << '\n';
 		}
 	}
-	
+
 }
 
 void			WebServer::loop( void )
@@ -200,14 +200,17 @@ HTTPresponse	WebServer::_handleRequest( int connfd ) const
 {
 	HTTPrequest 	request;
 	HTTPresponse	response;
+	Executor		executor;
 
 	try {
 		request.readHead(connfd);
-		response = Executor::execRequest(request, getHandler(request.getHost()));
+		executor.setHandler(getHandler(request.getHost()));
+		response = executor.execRequest(request);
 	}
 	catch (const HTTPexception& e) {
 		std::cerr << e.what() << '\n';
-		response = Executor::createResponse(e.getStatus(), getDefaultServer().getPrimaryName(), "");
+		executor.setHandler(getDefaultServer());
+		response = executor.createResponse(e.getStatus(), "");
 	}
 	return (response);
 }
