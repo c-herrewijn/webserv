@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/16 11:03:15 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/16 14:50:32 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -114,11 +114,16 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 			throw(HTTPexception({"invalid header format:", tmpHeaders}, 400));
 		key = tmpHeaders.substr(0, del2);
 		value = tmpHeaders.substr(del2 + 2, del1 - del2 - 2);
-		this->_headers.insert({key, value});
+		_addHeader(key, value);
 		tmpHeaders = tmpHeaders.substr(del1 + 2);
 		del1 = tmpHeaders.find(HTTP_NL);
 	} while (del1 != std::string::npos);
 
+}
+
+void	HTTPstruct::_addHeader(std::string const& name, std::string const& content) noexcept
+{
+	this->_headers[name] = content;
 }
 
 void	HTTPstruct::_setBody( std::string const& strBody )

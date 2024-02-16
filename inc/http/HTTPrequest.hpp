@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/16 11:03:12 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/16 14:12:50 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,7 @@ class HTTPrequest : public HTTPstruct
 
 		void	_setMethod( std::string const& );
 		void	_setURL( std::string const& );
-		void	_setVersion( std::string const& );
+		void	_setVersion( std::string const& ) override;
 
 		void	_setScheme( std::string const& );
 		void	_setHostPort( std::string const& );

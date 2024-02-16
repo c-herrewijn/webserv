@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/16 11:03:03 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/16 15:03:35 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,7 @@ void	HTTPresponse::parseBody( std::string const& strBody) noexcept
 	_setBody(strBody + HTTP_TERM);
 }
 
-void	HTTPresponse::buildResponse( int code, std::string const& servName, std::string const& body ) noexcept
+void	HTTPresponse::parseFromCode( int code, std::string const& servName, std::string const& body ) noexcept
 {
 	this->_version.scheme = HTTP_SCHEME;
 	this->_version.major = 1;
@@ -39,6 +39,29 @@ void	HTTPresponse::buildResponse( int code, std::string const& servName, std::st
 	_addHeader("Server", servName);
 	parseBody(body);
 	this->_ready = true;
+}
+
+void	HTTPresponse::parseFromCGI( std::string const& strResp ) noexcept
+{
+	std::string head, headers, body;
+	size_t		del1, del2;
+
+	del1 = strResp.find(HTTP_TERM);
+	if (del1 == std::string::npos)
+		throw(HTTPresponse({"no header terminator"}, 500));
+	del2 = strResp.find(del1 + HTTP_TERM.size());
+	if (del2 != std::string::npos)
+		body = strResp.substr(del1 + HTTP_TERM.size());
+	head = strResp.substr(0, del1 + HTTP_NL.size());
+	del1 = head.find(HTTP_NL);
+	if (del1 + 2 != head.size())		// we have the headers
+	{
+		headers = head.substr(del1 + HTTP_NL.size());
+		head = head.substr(0, del1 + HTTP_NL.size());
+	}
+	// _setHead(head);
+	_setHeaders(headers);
+	_setBody(body);
 }
 
 void		HTTPresponse::writeContent( int socket )
@@ -187,15 +210,63 @@ std::string	HTTPresponse::_mapStatusCode( int status) const
 	}
 }
 
-// NB: todo: parses the response normally form a string (or a fd/pipe) (for cgi probably)
 void	HTTPresponse::_setHead( std::string const& strHead)
 {
-	(void) strHead;
+	std::istringstream	stream(strHead);
+	std::string 		version, statusCode, statusStr;
+
+	if (! std::getline(stream, method, HTTP_SP))
+		throw(ResponseException({"invalid CGI version:", strHead}, 500));
+	_setVersion(version);
+	if (! std::getline(stream, statusCode, HTTP_SP))
+		throw(ResponseException({"invalid header:", strHead}, 500));
+	_setStatusCode(statusCode);
+	if (! std::getline(stream, statusStr, HTTP_SP))
+		throw(ResponseException({"invalid header:", strHead}, 500));
+	_setStatusStr(statusStr);
+	if (statusStr.substr(statusStr.size() - 2) != HTTP_NL)
+		throw(ResponseException({"no termination header:", strHead}, 500));
 }
 
-void	HTTPresponse::_addHeader(std::string const& name, std::string const& content) noexcept
+void	HTTPresponse::_setVersion( std::string const& strVersion )
 {
-	this->_headers[name] = content;
+	size_t	del1, del2;
+
+	del1 = strVersion.find('/');
+	if (del1 == std::string::npos)
+		throw(ResponseException({"invalid version:", strVersion}, 500));
+	this->_version.scheme = strVersion.substr(0, del1);
+	if (this->_version.scheme != HTTP_CGI_STR)
+		throw(ResponseException({"invalid scheme:", strVersion}, 500));
+	del2 = strVersion.find('.');
+	if (del2 == std::string::npos)
+		throw(ResponseException({"invalid version:", strVersion}, 500));
+	try {
+		this->_version.major = std::stoi(strVersion.substr(del1 + 1, del2 - del1 - 1));
+		this->_version.minor = std::stoi(strVersion.substr(del2 + 1));
+	}
+	catch (std::exception const& e) {
+		throw(ResponseException({"invalid version numbers:", strVersion}, 500));
+	}
+	if (this->_version.major + this->_version.minor != 2)
+		throw(ResponseException({"unsupported CGI version:", strVersion}, 500));
+}
+
+void	HTTPresponse::_setStatusCode( std::string const& strStatusCode )
+{
+	try {
+		this->_statusCode = std::stoi(strStatusCode);
+	}
+	catch (std::exception const& e) {
+		throw(ResponseException({"invalid status code:", strVersion}, 500));
+	}
+}
+
+void	HTTPresponse::_setStatusStr( std::string const& strStatusStr )
+{
+	this->_statusStr = strStatusStr;
+	if (this->_statusStr != mapStatus(this->_statusCode))
+		throw(ResponseException({"status code descriptions do not match"}, 500));
 }
 
 std::string	HTTPresponse::_getDateTime( void ) const noexcept

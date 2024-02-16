@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/16 10:58:05 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/16 15:02:54 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,7 +49,7 @@ HTTPresponse	Executor::createResponse( int status, std::string const& bodyResp )
 {
 	HTTPresponse response;
 
-    response.buildResponse(status, this->_configServer.getPrimaryName(), bodyResp);
+    response.parseFromCode(status, this->_configServer.getPrimaryName(), bodyResp);
 	return (response);
 }
 

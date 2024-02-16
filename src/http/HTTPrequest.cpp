@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/16 11:03:22 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/16 13:56:02 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -189,13 +189,13 @@ void	HTTPrequest::_setHead( std::string const& header )
 	std::istringstream	stream(header);
 	std::string 		method, url, version;
 
-	if (! std::getline(stream, method, ' '))
+	if (! std::getline(stream, method, HTTP_SP))
 		throw(RequestException({"invalid header:", header}, 400));
 	_setMethod(method);
-	if (! std::getline(stream, url, ' '))
+	if (! std::getline(stream, url, HTTP_SP))
 		throw(RequestException({"invalid header:", header}, 400));
 	_setURL(url);
-	if (! std::getline(stream, version, ' '))
+	if (! std::getline(stream, version, HTTP_SP))
 		throw(RequestException({"invalid header:", header}, 400));
 	_setVersion(version);
 	if (version.substr(version.size() - 2) != HTTP_NL)
