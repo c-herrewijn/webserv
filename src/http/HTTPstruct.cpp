@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/16 14:50:32 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/16 16:50:23 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,12 +71,13 @@ void	HTTPstruct::parseHead( std::string const& strReq )
 	delimiter = strReq.find(HTTP_TERM);
 	if (delimiter == std::string::npos)
 		throw(HTTPexception({"no header terminator"}, 400));
-	head = strReq.substr(0, delimiter + 2);
+	head = strReq.substr(0, delimiter);																																																																																									);
 	delimiter = head.find(HTTP_NL);
-	if (delimiter + 2 != head.size())		// we have the headers
+	if (delimiter != std::string::npos)
 	{
-		headers = head.substr(delimiter + 2);
-		head = head.substr(0, delimiter + 2);
+		delimiter += HTTP_NL.size();
+		headers = head.substr(delimiter);
+		head = head.substr(0, delimiter);
 	}
 	_setHead(head);
 	_setHeaders(headers);
@@ -129,4 +130,29 @@ void	HTTPstruct::_addHeader(std::string const& name, std::string const& content)
 void	HTTPstruct::_setBody( std::string const& strBody )
 {
     this->_body = strBody;
+}
+
+void	HTTPstruct::_setVersion( std::string const& strVersion )
+{
+	size_t	del1, del2;
+
+	del1 = strVersion.find('/');
+	if (del1 == std::string::npos)
+		throw(HTTPexception({"invalid version:", strVersion}, 400));
+	this->_version.scheme = strVersion.substr(0, del1);
+	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::toupper);
+	if (this->_version.scheme != HTTP_SCHEME)
+		throw(HTTPexception({"invalid scheme:", strVersion}, 400));
+	del2 = strVersion.find('.');
+	if (del2 == std::string::npos)
+		throw(HTTPexception({"invalid version:", strVersion}, 400));
+	try {
+		this->_version.major = std::stoi(strVersion.substr(del1 + 1, del2 - del1 - 1));
+		this->_version.minor = std::stoi(strVersion.substr(del2 + 1));
+	}
+	catch (std::exception const& e) {
+		throw(HTTPexception({"invalid version numbers:", strVersion}, 400));
+	}
+	if (this->_version.major + this->_version.minor != 2)
+		throw(HTTPexception({"unsupported HTTP version:", strVersion}, 400));
 }

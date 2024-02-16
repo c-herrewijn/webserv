@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/16 13:56:02 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/16 16:37:51 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,7 +60,7 @@ void	HTTPrequest::readRemainingBody( size_t maxBodylength )
 
 void	HTTPrequest::parseBody( std::string const& strBody)
 {
-	bool 		isChunked = false;
+	bool 		isChunked=false, isFileUpload=false;
 	std::string fullBody = this->_tmpBody + strBody;
 
     if (fullBody.empty() == false)
@@ -69,6 +69,8 @@ void	HTTPrequest::parseBody( std::string const& strBody)
 			this->_headers.at("Content-Type");
 			try {
 				this->_headers.at("Content-Length");
+				if (this->_headers["Content-Type"].find_first_of("multipart/form-data;") == 0)
+					isFileUpload = true;
 			}
 			catch (const std::out_of_range& e) {
 				if (this->_headers["Transfer-Encoding"] == "chunked")
@@ -82,6 +84,8 @@ void	HTTPrequest::parseBody( std::string const& strBody)
 		}
 		if (isChunked == true)
 			_setChunkedBody(fullBody);
+		else if (isFileUpload == true)
+			_setFileUploadBody(fullBody);
 		else
 			_setBody(fullBody);
 	}
@@ -224,7 +228,7 @@ void	HTTPrequest::_setHeaders( std::string const& headers)
 void	HTTPrequest::_setBody( std::string const& strBody )
 {
     std::string tmpBody;
-    size_t      delimiter = strBody.find(HTTP_TERM);
+    size_t      delimiter = strBody.rfind(HTTP_TERM);
 
     if (delimiter == std::string::npos)
 		throw(RequestException({"no body terminator"}, 400));
@@ -281,31 +285,6 @@ void	HTTPrequest::_setURL( std::string const& strURL )
 		tmpURL = tmpURL.substr(delimiter);
 	}
 	_setPath(tmpURL);
-}
-
-void	HTTPrequest::_setVersion( std::string const& strVersion )
-{
-	size_t	del1, del2;
-
-	del1 = strVersion.find('/');
-	if (del1 == std::string::npos)
-		throw(RequestException({"invalid version:", strVersion}, 400));
-	this->_version.scheme = strVersion.substr(0, del1);
-	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::toupper);
-	if (this->_version.scheme != HTTP_SCHEME)
-		throw(RequestException({"invalid scheme:", strVersion}, 400));
-	del2 = strVersion.find('.');
-	if (del2 == std::string::npos)
-		throw(RequestException({"invalid version:", strVersion}, 400));
-	try {
-		this->_version.major = std::stoi(strVersion.substr(del1 + 1, del2 - del1 - 1));
-		this->_version.minor = std::stoi(strVersion.substr(del2 + 1));
-	}
-	catch (std::exception const& e) {
-		throw(RequestException({"invalid version numbers:", strVersion}, 400));
-	}
-	if (this->_version.major + this->_version.minor != 2)
-		throw(RequestException({"unsupported HTTP version:", strVersion}, 400));
 }
 
 void	HTTPrequest::_setScheme( std::string const& strScheme )
@@ -415,4 +394,9 @@ void	HTTPrequest::_setChunkedBody( std::string const& chunkedBody)
 			throw(RequestException({"bad chunking"}, 400));
 		}
 	} while (sizeChunk != 0);
+}
+
+void	HTTPrequest::_setFileUploadBody( std::string const& body)
+{
+	_setBody(body);
 }
