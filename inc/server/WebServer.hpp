@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/16 11:06:07 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/16 11:11:28 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,7 +64,7 @@ class WebServer
 		Server						_defaultServer;
 		std::vector<Server>			_servers;
 		std::vector<Listen>			_listenAddress;
-		std::set<int>				_sockets;
+		std::vector<struct pollfd>	_connfds;
 		std::set<int>				_listeners;
 
 		void			_listenTo( std::string const&, std::string const& );

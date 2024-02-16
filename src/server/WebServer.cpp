@@ -59,10 +59,6 @@ void			WebServer::loop( void )
 {
 	int				nConn = -1;
 	HTTPresponse 	response;
-	std::string		rawContent;
-	struct pollfd	toListen;
-	int 			nConn = -1;
-	std::set<int>	toRemove;
 
 	while (true)
 	{
@@ -77,8 +73,7 @@ void			WebServer::loop( void )
 			for (size_t i=0; i<this->_connfds.size(); i++)
 			{
 				try {
-					std::cout << "reading fd " << toListen.fd << '\n';
-					if (_isListener(toListen.fd) == true) // new connection
+					if (this->_connfds[i].revents & POLLIN)
 					{
 						if (_isListener(this->_connfds[i].fd) == true) // new connection
 							_acceptConnection(this->_connfds[i].fd);
@@ -90,23 +85,15 @@ void			WebServer::loop( void )
 								_dropConn(this->_connfds[i--].fd);
 						}
 					}
-					// else if (this->_connfds[i].revents & POLLOUT)
-					// {
-					// 	response.writeContent(this->_connfds[i].fd);
-					// 	if (response.getStatusCode() != 200)
-					// 		_dropConn(this->_connfds[i--].fd);
-					// }
 					if (this->_connfds[i].revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
 						_dropConn(this->_connfds[i--].fd);
 				}
 				catch(const ServerException& e) {
 					std::cerr << e.what() << '\n';
-					toRemove.insert(toListen.fd);
+					_dropConn(this->_connfds[i--].fd);
 				}
 			}
 		}
-		for (int socketToDrop : toRemove)
-			_dropConn(socketToDrop);
 	}
 	_dropConn();
 }
@@ -232,8 +219,15 @@ bool			WebServer::_isListener( int socket ) const
 
 void			WebServer::_addConn( int newSocket ) noexcept
 {
+	struct pollfd	newfd;
+
 	if (newSocket != -1)
-		this->_sockets.insert(newSocket);
+	{
+		newfd.fd = newSocket;
+		newfd.events = POLLIN | POLLOUT;
+		newfd.revents = 0;
+		this->_connfds.push_back(newfd);
+	}
 }
 
 void			WebServer::_dropConn(int toDrop) noexcept
