@@ -136,7 +136,7 @@ void	Listen::_fillPort(std::vector<std::string>& block)
 {
 	all = true;
 	if (block.front().find_first_of(":") != block.front().find_last_of(":"))
-		throw ParserException({"expected 'port' type '*:80' or ':80' or '8000' on '" + block.front() + "'"});
+		throw ParserException({"expected 'port' type '*:80' or ':80' or '8080' on '" + block.front() + "'"});
 	if (block.front().front() == '*')
 		block.front().erase(block.front().begin());
 	if (block.front().front() == ':')

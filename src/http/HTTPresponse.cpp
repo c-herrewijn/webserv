@@ -6,45 +6,35 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/16 16:59:43 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/17 00:06:41 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPresponse.hpp"
 
-void	HTTPresponse::parseBody( std::string const& strBody) noexcept
+void	HTTPresponse::parseFromStatic( int code, std::string const& servName, std::string const& body ) noexcept
 {
-    if (strBody.empty())
-		return ;
-	_addHeader("Content-Length", std::to_string(strBody.size()));
-	_addHeader("Content-Type", std::string("text/html; charset=utf-8"));	// NB: do I need other formats?
-	_setBody(strBody);
-}
-
-void	HTTPresponse::parseFromCode( int code, std::string const& servName, std::string const& body ) noexcept
-{
-	_setHead("");
+	_setHead(std::to_string(code));
 	_addHeader("Date", _getDateTime());
 	_addHeader("Server", servName);
-	parseBody(body);
-	this->_ready = true;
+	_setBody(body);
 }
 
-void	HTTPresponse::parseFromCGI( std::string const& strResp ) noexcept
+void	HTTPresponse::parseFromCGI( int code, std::string const& CGIresp ) noexcept
 {
 	std::string headers, body;
 	size_t		delimiter;
 
-	headers = strResp;
-	delimiter = strResp.find(HTTP_TERM);
+	_setHead(std::to_string(code));
+	headers = CGIresp;
+	delimiter = CGIresp.find(HTTP_TERM);
 	if (delimiter != std::string::npos)
 	{
 		delimiter += HTTP_NL.size();
-		body = strResp.substr(delimiter);
-		headers = strResp.substr(0, delimiter);
+		body = CGIresp.substr(delimiter);
+		headers = CGIresp.substr(0, delimiter);
 	}
 	_setHeaders(headers);
-	parseFromCode()
 	_setBody(body);
 }
 
@@ -194,63 +184,30 @@ std::string	HTTPresponse::_mapStatusCode( int status) const
 	}
 }
 
-void	HTTPresponse::_setHead( std::string const& strHead)
+void	HTTPresponse::_setHead( std::string const& strStatusCode)
 {
-	(void) strHead;
 	this->_version.scheme = HTTP_SCHEME;
 	this->_version.major = 1;
 	this->_version.minor = 1;
-	this->_statusCode = code;
 	try {
-		this->_statusStr = _mapStatusCode(code);
+		this->_statusCode = std::stoi(strStatusCode);
+		this->_statusStr = _mapStatusCode(this->_statusCode);
 	}
-	catch(const HTTPexception& e) {
+	catch(const std::exception& e) {
 		std::cout << e.what() << '\n';
 		this->_statusCode = 500;
 		this->_statusStr = _mapStatusCode(500);
 	}
 }
 
-// void	HTTPresponse::_setVersion( std::string const& strVersion )
-// {
-// 	size_t	del1, del2;
-
-// 	del1 = strVersion.find('/');
-// 	if (del1 == std::string::npos)
-// 		throw(ResponseException({"invalid version:", strVersion}, 500));
-// 	this->_version.scheme = strVersion.substr(0, del1);
-// 	if (this->_version.scheme != HTTP_CGI_STR)
-// 		throw(ResponseException({"invalid scheme:", strVersion}, 500));
-// 	del2 = strVersion.find('.');
-// 	if (del2 == std::string::npos)
-// 		throw(ResponseException({"invalid version:", strVersion}, 500));
-// 	try {
-// 		this->_version.major = std::stoi(strVersion.substr(del1 + 1, del2 - del1 - 1));
-// 		this->_version.minor = std::stoi(strVersion.substr(del2 + 1));
-// 	}
-// 	catch (std::exception const& e) {
-// 		throw(ResponseException({"invalid version numbers:", strVersion}, 500));
-// 	}
-// 	if (this->_version.major + this->_version.minor != 2)
-// 		throw(ResponseException({"unsupported CGI version:", strVersion}, 500));
-// }
-
-// void	HTTPresponse::_setStatusCode( std::string const& strStatusCode )
-// {
-// 	try {
-// 		this->_statusCode = std::stoi(strStatusCode);
-// 	}
-// 	catch (std::exception const& e) {
-// 		throw(ResponseException({"invalid status code:", strVersion}, 500));
-// 	}
-// }
-
-// void	HTTPresponse::_setStatusStr( std::string const& strStatusStr )
-// {
-// 	this->_statusStr = strStatusStr;
-// 	if (this->_statusStr != mapStatus(this->_statusCode))
-// 		throw(ResponseException({"status code descriptions do not match"}, 500));
-// }
+void	HTTPresponse::_setBody( std::string const& strBody)
+{
+    if (strBody.empty())
+		return ;
+	_addHeader("Content-Length", std::to_string(strBody.size()));
+	_addHeader("Content-Type", std::string("text/html; charset=utf-8"));	// NB: do I need other formats?
+	HTTPstruct::_setBody(strBody);
+}
 
 std::string	HTTPresponse::_getDateTime( void ) const noexcept
 {

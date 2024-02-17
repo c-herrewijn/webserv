@@ -200,17 +200,15 @@ HTTPresponse	WebServer::_handleRequest( int connfd ) const
 {
 	HTTPrequest 	request;
 	HTTPresponse	response;
-	Executor		executor;
 
 	try {
-		request.readHead(connfd);
-		executor.setHandler(getHandler(request.getHost()));
-		response = executor.execRequest(request);
+		request.readHead(connfd);	
+		Executor executor(getHandler(request.getHost()), request);
+		response = executor.execRequest();
 	}
 	catch (const HTTPexception& e) {
 		std::cerr << e.what() << '\n';
-		executor.setHandler(getDefaultServer());
-		response = executor.createResponse(e.getStatus(), "");
+		response.parseFromStatic(e.getStatus(), getDefaultServer().getPrimaryName(), "");
 	}
 	return (response);
 }

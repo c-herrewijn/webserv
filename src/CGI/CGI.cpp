@@ -27,14 +27,7 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(const HTTPrequest &req,
     std::getline(ss, addr, ':');
     std::getline(ss, port);
 
-    std::string method;
-    if (req.getMethod() == HTTP_GET) {
-        method = "GET";
-    } else if (req.getMethod() == HTTP_POST) {
-        method = "POST";
-    } else if (req.getMethod() == HTTP_DELETE) {
-        method = "DELETE";
-    }
+    std::string method = req.getStrMethod();
 
     std::array<std::string, CGI_ENV_SIZE> CGIEnv {
         "AUTH_TYPE=",
@@ -108,19 +101,19 @@ std::string CGI::getHTMLBody()
     // write body into pipe
     close(p2[0]);
     std::cerr << C_RED << "parsed body: " << this->_req.getBody() << C_RESET << std::endl;
-    std::string testStr =
-        "-----------------------------47207745632788886342367179802\r\n"
-        "Content-Disposition: form-data; name=\"filename\"; filename=\"test1.txt\"\r\n"
-        "Content-Type: text/plain\r\n"
-        "\r\n"
-        "aaaaa\r\n"
-        "\r\n"
-        "-----------------------------47207745632788886342367179802--\r\n";
+    // std::string testStr =
+    //     "-----------------------------47207745632788886342367179802\r\n"
+    //     "Content-Disposition: form-data; name=\"filename\"; filename=\"test1.txt\"\r\n"
+    //     "Content-Type: text/plain\r\n"
+    //     "\r\n"
+    //     "aaaaa\r\n"
+    //     "\r\n"
+    //     "-----------------------------47207745632788886342367179802--\r\n";
 
-    std::cerr << "test string length: " << testStr.length() << std::endl;
+    // std::cerr << "test string length: " << testStr.length() << std::endl;
 
     // write(p2[1], this->_req.body.c_str(), this->_req.body.length());
-    write(p2[1], testStr.c_str(), testStr.length());
+    write(p2[1], this->_req.getBody().c_str(), this->_req.getBody().length());
     close(p2[1]);
 
     // return cgi response

@@ -43,10 +43,7 @@ class HTTPstruct
 		HTTPstruct( void );
 		virtual	~HTTPstruct( void ) {};
 
-		void				parseHead( std::string const& );
-		virtual void		parseBody( std::string const& )=0;
 		virtual std::string	toString( void ) const noexcept =0;
-		bool				isReady( void ) const noexcept ;
 
 		void				setSocket( int );
 		int					getSocket( void ) const noexcept;
@@ -55,7 +52,6 @@ class HTTPstruct
 		dict 		_headers;
 		std::string	_body;
     	HTTPversion	_version;
-		bool		_ready;
 		int			_socket;
 
 		virtual void	_setHead( std::string const& )=0;

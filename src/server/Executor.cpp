@@ -6,19 +6,19 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/16 15:02:54 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/17 01:19:31 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Executor.hpp"
 #include "CGI.hpp"
 
-Executor::Executor( Server const& server ) noexcept : _configServer(server)
+Executor::Executor( Server const& config, HTTPrequest& req) noexcept : _configServer(config) , _request(req)
 {
-    this->_servName = server.getPrimaryName();
+    this->_servName = config.getPrimaryName();
 }
 
-HTTPresponse	Executor::execRequest(HTTPrequest& req ) noexcept
+HTTPresponse	Executor::execRequest( void ) noexcept
 {
     int             status = 200;
     HTTPresponse    response;
@@ -26,15 +26,11 @@ HTTPresponse	Executor::execRequest(HTTPrequest& req ) noexcept
 
     try
     {
-		// check if the executor does have the handler
-        status = this->_configServer.validateRequest(req);
+        status = this->_configServer.validateRequest(this->_request);
         if (status != 200)
 			throw(ExecException({"request validation failed with code:", std::to_string(status)}, status));
-		req.readRemainingBody(this->_configServer.getMaxBodySize());		//	<-- depends on the location!
-		req.parseBody();
-        std::cout << req.toString();
-
-        body = _runMethod(req);
+		this->_request.readRemainingBody(this->_configServer.getMaxBodySize());		//	<-- depends on the location!
+        body = _runHTTPmethod();
     }
     catch(const HTTPexception& e)
     {
@@ -49,14 +45,8 @@ HTTPresponse	Executor::createResponse( int status, std::string const& bodyResp )
 {
 	HTTPresponse response;
 
-    response.parseFromCode(status, this->_configServer.getPrimaryName(), bodyResp);
+    response.parseFromStatic(status, this->_configServer.getPrimaryName(), bodyResp);
 	return (response);
-}
-
-void				Executor::setHandler( Server const& handler) noexcept
-{
-    this->_configServer = handler;
-    this->_servName = handler.getPrimaryName();
 }
 
 Server const&		Executor::getHandler( void ) const noexcept
@@ -64,37 +54,43 @@ Server const&		Executor::getHandler( void ) const noexcept
     return (this->_configServer);
 }
 
-std::string	Executor::_runMethod(HTTPrequest const& req)
+void				Executor::setRequest( HTTPrequest& req) noexcept
+{
+	this->_request = req;
+}
+
+HTTPrequest const&	Executor::getRequest( void ) const noexcept
+{
+	return(this->_request);
+}
+
+std::string	Executor::_runHTTPmethod( void )
 {
     std::string	body;
 
-    std::istringstream ss((req).getPath());
-    std::string reqExtension;
-    while (getline(ss, reqExtension, '.')) {} // get last part after '.'
-	if (reqExtension == this->_configServer.getCgiExtension()
-        || "." + reqExtension == this->_configServer.getCgiExtension())
+	if (this->_request.isCGI() == true)
     {
         // CGI
-		CGI CGIrequest(req, this->_configServer);
+		CGI CGIrequest(this->_request, this->_configServer);
         body = CGIrequest.getHTMLBody();
 	}
 	else {
 		// non-CGI
-		switch (req.getMethod())
+		switch (this->_request.getMethod())
 		{
 			case HTTP_GET:
 			{
-				body = _execGET(req);
+				body = _execGET();
 				break ;
 			}
 			case HTTP_POST:
 			{
-				body = _execPOST(req);
+				body = _execPOST();
 				break ;
 			}
 			case HTTP_DELETE:
 			{
-				body = _execDELETE(req);
+				body = _execDELETE();
 				break ;
 			}
 		}
@@ -102,9 +98,9 @@ std::string	Executor::_runMethod(HTTPrequest const& req)
 	return (body);
 }
 
-std::string	Executor::_execGET(HTTPrequest const& req)
+std::string	Executor::_execGET( void )
 {
-	std::string pathReq = req.getPath();
+	std::string pathReq = this->_request.getPath();
 	std::string htmlBody;
 
 	if (pathReq == "/")
@@ -132,9 +128,9 @@ std::string	Executor::_execGET(HTTPrequest const& req)
 	return (htmlBody);
 }
 
-std::string	Executor::_execPOST(HTTPrequest const& req)
+std::string	Executor::_execPOST( void )
 {
-	std::string pathReq = req.getPath();
+	std::string pathReq = this->_request.getPath();
 	std::string htmlBody;
 
 	// try
@@ -160,9 +156,8 @@ std::string	Executor::_execPOST(HTTPrequest const& req)
 	return (htmlBody);
 }
 
-std::string	Executor::_execDELETE(HTTPrequest const& req)
+std::string	Executor::_execDELETE( void )
 {
-	(void) req;
 	return ("");
 }
 
