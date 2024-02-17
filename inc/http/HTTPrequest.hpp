@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/17 01:41:32 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/17 17:14:07 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,7 @@ class HTTPrequest : public HTTPstruct
 		virtual ~HTTPrequest( void ) override {};
 
 		void		readHead( int socket=-1 );
-		void		readRemainingBody( size_t );
+		void		readBody( size_t );
 		void		parseHead( std::string const& );
 		void		parseBody( std::string const& strBody="" );
 		bool		isCGI( void ) const noexcept;
@@ -78,5 +78,4 @@ class HTTPrequest : public HTTPstruct
 		void	_setFragment( std::string const& );
 
 		void	_setChunkedBody( std::string const& );
-		void	_setFileUploadBody( std::string const& );
 };

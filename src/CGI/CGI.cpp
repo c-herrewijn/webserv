@@ -100,17 +100,7 @@ std::string CGI::getHTMLBody()
 	}
     // write body into pipe
     close(p2[0]);
-    std::cerr << C_RED << "parsed body: " << this->_req.getBody() << C_RESET << std::endl;
-    // std::string testStr =
-    //     "-----------------------------47207745632788886342367179802\r\n"
-    //     "Content-Disposition: form-data; name=\"filename\"; filename=\"test1.txt\"\r\n"
-    //     "Content-Type: text/plain\r\n"
-    //     "\r\n"
-    //     "aaaaa\r\n"
-    //     "\r\n"
-    //     "-----------------------------47207745632788886342367179802--\r\n";
-
-    // std::cerr << "test string length: " << testStr.length() << std::endl;
+    std::cerr << C_RED << this->_req.getBody() << C_RESET << std::endl;
 
     // write(p2[1], this->_req.body.c_str(), this->_req.body.length());
     write(p2[1], this->_req.getBody().c_str(), this->_req.getBody().length());

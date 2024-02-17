@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/17 01:41:54 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/17 17:21:32 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ void	HTTPrequest::readHead( int socket )
 }
 
 //NB: add timeout ?
-void	HTTPrequest::readRemainingBody( size_t maxBodylength )
+void	HTTPrequest::readBody( size_t maxBodylength )
 {
     ssize_t     	lenToRead, readChar=-1;
     char        	*buffer = nullptr;
@@ -84,7 +84,7 @@ void	HTTPrequest::parseHead( std::string const& strReq )
 
 void	HTTPrequest::parseBody( std::string const& strBody)
 {
-	bool 		isChunked=false, isFileUpload=false;
+	bool 		isChunked=false;
 	std::string	fullBody = this->_tmpBody + strBody;
 
     if ((fullBody.empty() == true) or (fullBody == HTTP_TERM))
@@ -93,8 +93,6 @@ void	HTTPrequest::parseBody( std::string const& strBody)
 		this->_headers.at("Content-Type");
 		try {
 			this->_headers.at("Content-Length");
-			if (this->_headers["Content-Type"].find_first_of("multipart/form-data;") == 0)
-				isFileUpload = true;
 		}
 		catch (const std::out_of_range& e) {
 			if (this->_headers["Transfer-Encoding"] == "chunked")
@@ -108,8 +106,6 @@ void	HTTPrequest::parseBody( std::string const& strBody)
 	}
 	if (isChunked == true)
 		_setChunkedBody(fullBody);
-	else if (isFileUpload == true)
-		_setFileUploadBody(fullBody);
 	else
 		_setBody(fullBody);
 }
@@ -162,10 +158,7 @@ std::string	HTTPrequest::toString( void ) const noexcept
 	}
 	strReq += HTTP_NL;
 	if (!this->_body.empty())
-	{
 		strReq += this->_body;
-		strReq += HTTP_TERM;
-	}
 	return (strReq);
 }
 
@@ -411,9 +404,4 @@ void	HTTPrequest::_setChunkedBody( std::string const& chunkedBody)
 			throw(RequestException({"bad chunking"}, 400));
 		}
 	} while (sizeChunk != 0);
-}
-
-void	HTTPrequest::_setFileUploadBody( std::string const& body)
-{
-	_setBody(body);
 }
