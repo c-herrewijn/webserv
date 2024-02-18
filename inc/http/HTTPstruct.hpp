@@ -59,5 +59,4 @@ class HTTPstruct
 		virtual void	_setBody( std::string const& );
 
 		void			_addHeader(std::string const&, std::string const& ) noexcept;
-		void			_setVersion( std::string const& );
 	};

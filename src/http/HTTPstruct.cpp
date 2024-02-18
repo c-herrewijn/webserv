@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/17 00:04:30 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/18 03:20:50 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -104,29 +104,4 @@ void	HTTPstruct::_addHeader(std::string const& name, std::string const& content)
 void	HTTPstruct::_setBody( std::string const& strBody )
 {
     this->_body = strBody;
-}
-
-void	HTTPstruct::_setVersion( std::string const& strVersion )
-{
-	size_t	del1, del2;
-
-	del1 = strVersion.find('/');
-	if (del1 == std::string::npos)
-		throw(HTTPexception({"invalid version:", strVersion}, 400));
-	this->_version.scheme = strVersion.substr(0, del1);
-	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::toupper);
-	if (this->_version.scheme != HTTP_SCHEME)
-		throw(HTTPexception({"invalid scheme:", strVersion}, 400));
-	del2 = strVersion.find('.');
-	if (del2 == std::string::npos)
-		throw(HTTPexception({"invalid version:", strVersion}, 400));
-	try {
-		this->_version.major = std::stoi(strVersion.substr(del1 + 1, del2 - del1 - 1));
-		this->_version.minor = std::stoi(strVersion.substr(del2 + 1));
-	}
-	catch (std::exception const& e) {
-		throw(HTTPexception({"invalid version numbers:", strVersion}, 400));
-	}
-	if (this->_version.major + this->_version.minor != 2)
-		throw(HTTPexception({"unsupported HTTP version:", strVersion}, 400));
 }
