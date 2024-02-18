@@ -1,6 +1,6 @@
 #include "CGI.hpp"
 #include "HTTPparser.hpp"
-#include "Server.hpp"
+#include "ConfigServer.hpp"
 
 #include <string>
 #include <iostream>
@@ -9,7 +9,7 @@
 
 CGI::CGI(
     HTTPrequest &req,
-    Server &srv
+    ConfigServer &srv
 )
     : _req(req),
       _srv(srv),
@@ -21,7 +21,7 @@ CGI::~CGI() {
     delete[] this->_CgiEnvCStyle;
 }
 
-std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(HTTPrequest &req, Server &srv)
+std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(HTTPrequest &req, ConfigServer &srv)
 {
     // split "Host" in addr and port. TODO: error handling via try/catch
     std::istringstream ss(req.headers["Host"]);

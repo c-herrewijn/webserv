@@ -141,6 +141,9 @@ void	ConfigServer::parseLocation(std::vector<std::string>& block)
 void	ConfigServer::fillServer(std::vector<std::string>& block)
 {
 	params.setBlockIndex(0);
+	std::vector<std::vector<std::string>> locationHolder;
+	std::vector<std::string>::iterator index;
+	uint64_t size = 0;
 	// Parser keyword separations
 	for (std::vector<std::string>::iterator it = block.begin(); it != block.end();)
 	{
@@ -148,17 +151,40 @@ void	ConfigServer::fillServer(std::vector<std::string>& block)
 			parseListen(block);
 		else if (*it == "server_name")
 			parseServerName(block);
-		else if (*it == "location")
-			parseLocation(block);
-		else if (block.front() == "cgi_directory")
+		else if (*it == "cgi_directory")
 			parseCgiDir(block);
-		else if (block.front() == "cgi_extension")
+		else if (*it == "cgi_extension")
 			parseCgiExtension(block);
-		else if (block.front() == "cgi_allowed")
+		else if (*it == "cgi_allowed")
 			parseCgiAllowed(block);
+		else if (*it == "location")
+		{
+			index = it;
+			while (index != block.end() && *index != "{")
+				index++;
+			if (index == block.end())
+				throw ErrorCatch("Error on location parsing");
+			index++;
+			size++;
+			while (size && index != block.end())
+			{
+				if (*index == "{")
+					size++;
+				else if (*index == "}")
+					size--;
+				index++;
+			}
+			if (size)
+				throw ErrorCatch("Error on location parsing with brackets");
+			std::vector<std::string> subVector(it, index);
+			block.erase(it, index);
+			locationHolder.push_back(subVector);
+		}
 		else
 			params.fill(block);
 	}
+	for (std::vector<std::vector<std::string>>::iterator it = locationHolder.begin(); it != locationHolder.end(); it++)
+		parseLocation(*it);
 }
 
 void	ConfigServer::parseBlock(std::vector<std::string>& block)

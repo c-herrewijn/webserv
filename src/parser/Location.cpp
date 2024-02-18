@@ -28,7 +28,6 @@ Location::Location(const Location& copy) :
 	block_index(copy.block_index),
 	allowedMethods(copy.allowedMethods),
 	URL(copy.URL),
-	alias(copy.alias),
 	params(copy.params),
 	nested(copy.nested)
 {
@@ -40,7 +39,6 @@ Location&	Location::operator=(const Location& assign)
 	block_index = assign.block_index;
 	allowedMethods = assign.allowedMethods;
 	URL = assign.URL;
-	alias = assign.alias;
 	params = assign.params;
 	nested.clear();
 	nested = assign.nested;
@@ -49,6 +47,9 @@ Location&	Location::operator=(const Location& assign)
 
 Location::Location(std::vector<std::string>& block, const Parameters& param)
 {
+	std::vector<std::vector<std::string>> locationHolder;
+	std::vector<std::string>::iterator index;
+	uint64_t size = 0;
 	block_index = param.getBlockIndex();
 	params = param;
 	params.setBlockIndex(param.getBlockIndex());
@@ -60,17 +61,32 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 	if (block.front() != "{")
 		throw ErrorCatch("After '/URL' expected a '{'");
 	block.erase(block.begin());
-	while (block.front() != "}")
+	while (block.front() != "}" && !block.empty())
 	{
-		if (block.front() == "alias")
-			parseAlias(block);
-		else if (block.front() == "allowMethods")
+		if (block.front() == "allowMethods")
 			parseAllowedMethod(block);
 		else if (block.front() == "location")
 		{
-			Location local(block, params);
-			local.setBlockIndex(this->block_index);
-			nested.push_back(local);
+			index = block.begin();
+			while (index != block.end() && *index != "{")
+				index++;
+			if (index == block.end())
+				throw ErrorCatch("Error on location parsing");
+			index++;
+			size++;
+			while (size && index != block.end())
+			{
+				if (*index == "{")
+					size++;
+				else if (*index == "}")
+					size--;
+				index++;
+			}
+			if (size)
+				throw ErrorCatch("Error on location parsing with brackets");
+			std::vector<std::string> subVector(block.begin(), index);
+			block.erase(block.begin(), index);
+			locationHolder.push_back(subVector);
 		}
 		else if (block.front() == "root" || block.front() == "client_max_body_size" ||
 				block.front() == "autoindex" || block.front() == "index" ||
@@ -80,6 +96,12 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 			throw ErrorCatch("\'" + block.front() + "\' is not a valid parameter in 'location' context");
 	}
 	block.erase(block.begin());
+	for (std::vector<std::vector<std::string>>::iterator it = locationHolder.begin(); it != locationHolder.end(); it++)
+	{
+		Location local(*it, params);
+		local.setBlockIndex(this->block_index);
+		nested.push_back(local);
+	}
 }
 
 void	Location::parseAllowedMethod(std::vector<std::string>& block)
@@ -110,20 +132,6 @@ void	Location::parseAllowedMethod(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
-void	Location::parseAlias(std::vector<std::string>& block)
-{
-	block.erase(block.begin());
-	if (block.front().find_first_of(" ") != std::string::npos)
-		throw ErrorCatch("Unwanted space found in '" + block.front() + "' while parsing alias");
-	if (block.front()[0] != '/')
-		throw ErrorCatch("Improper alias without '/' found on '" + block.front() + "'");
-	alias = block.front();
-	block.erase(block.begin());
-	if (block.front() != ";")
-		throw ErrorCatch("After first element expected a ';' with alias elements. Error on '" + block.front() + "'");
-	block.erase(block.begin());
-}
-
 const std::vector<Location>& Location::getNested(void) const
 {
 	return (nested);
@@ -137,11 +145,6 @@ const Parameters&	Location::getParams(void) const
 const std::bitset<M_SIZE>&	Location::getAllowedMethods(void) const
 {
 	return (allowedMethods);
-}
-
-const std::string& Location::getAlias(void) const
-{
-	return (alias);
 }
 
 const std::string& Location::getURL(void) const
@@ -165,8 +168,7 @@ std::ostream& operator<<(std::ostream& os, const Location& location)
     // Print the opening line for the current location
     os << std::string(indentation, '\t') << "location " << location.URL << " {\n";
 
-    // Print alias and allowMethods
-    os << std::string(indentation + 1, '\t') << "alias " << location.alias << ";\n";
+    // Print allowMethods
     os << std::string(indentation + 1, '\t') << "allowMethods " << location.allowedMethods << ";\n";
 
     // Print location params

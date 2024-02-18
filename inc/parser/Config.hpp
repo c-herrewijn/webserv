@@ -19,7 +19,7 @@
 # include <exception>
 # include <cctype>
 # include <stack>
-# include "Server.hpp"
+# include "ConfigServer.hpp"
 
 class Config
 {

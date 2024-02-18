@@ -5,7 +5,7 @@
 # define CGI_READ_BUFFER_SIZE 10000
 
 # include "HTTPparser.hpp"
-# include "Server.hpp"
+# include "ConfigServer.hpp"
 
 # include <array>
 # include <string>
@@ -15,17 +15,17 @@
 
 class  CGI {
 public:
-    CGI(HTTPrequest &req, Server &srv);
+    CGI(HTTPrequest &req, ConfigServer &srv);
     ~CGI();
     std::string getHTTPResponse();
 
 private:
     HTTPrequest &_req;
-    Server &_srv;
+    ConfigServer &_srv;
     std::array<std::string, CGI_ENV_SIZE> _CGIEnvArr;
     char *const *_CgiEnvCStyle;
 
-    std::array<std::string, CGI_ENV_SIZE> _createCgiEnv(HTTPrequest &req, Server &srv);
+    std::array<std::string, CGI_ENV_SIZE> _createCgiEnv(HTTPrequest &req, ConfigServer &srv);
     char **_createCgiEnvCStyle();
 };
 

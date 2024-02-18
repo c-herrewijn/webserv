@@ -64,11 +64,11 @@ void	Parameters::parseBodySize(std::vector<std::string>& block)
 	if (block.front() == ";")
 		throw ErrorCatch("'client_max_body_size' can't have an empty parameter");
 	if (std::isdigit(block.front().front()) == 0)
-		throw ErrorCatch("'client_max_body_size' must have a digit as firt value in parameter");
+		throw ErrorCatch("'client_max_body_size' must have a digit as first value in parameter");
 	errno = 0;
 	char*	endPtr = NULL;
 	long convertedValue = std::strtol(block.front().c_str(), &endPtr, 10);
-	if ((errno == ERANGE && (convertedValue == LONG_MAX || convertedValue == LONG_MIN)) ||
+	if ((errno == ERANGE && (convertedValue == LONG_MAX || convertedValue < 0)) ||
 		(errno != 0 && convertedValue == 0))
 		throw ErrorCatch("\"" + block.front() + "\" resulted in overflow or underflow\n'client_max_body_size' must be formated as '(unsigned int)/(type=K|M|G)'");
 	else if (endPtr == block.front())
@@ -135,18 +135,18 @@ void	Parameters::parseErrorPage(std::vector<std::string>& block)
 			throw std::out_of_range("Value is not in the range of 100-599");
 		block.erase(block.begin());
 	} catch (const std::invalid_argument& e) {
-		throw ErrorCatch("Error code is not a valid integer");
+		throw ErrorCatch("error_page code is not a valid integer '" + block.front() + "'");
 	} catch (const std::out_of_range& e) {
-		throw ErrorCatch("Given value is out of range: " + block.front());
+		throw ErrorCatch("error_page code is out of range: '" + block.front() + "'");
 	}
 	if (block.front() == ";")
-		throw ErrorCatch("After error code expected a file");
+		throw ErrorCatch("After error_page code expected a file '" + block.front() + "'");
 	if (block.front().front() != '/')
-		throw ErrorCatch("Error code file must start with a '/':" + block.front());
+		throw ErrorCatch("File name for error_page must start with a '/': " + block.front());
 	error_pages[code] = block.front();
 	block.erase(block.begin());
 	if (block.front() != ";")
-		throw ErrorCatch("Error page can only contain 2 arguments");
+		throw ErrorCatch("error_page can only contain 2 arguments: '" + block.front() + "'");
 	block.erase(block.begin());
 }
 
@@ -242,7 +242,7 @@ void	Parameters::fill(std::vector<std::string>& block)
 	else if (block.front() == "return")
 		parseReturn(block);
 	else
-		throw ErrorCatch("\"" + block.front() + "\" is not a valid parameter");
+		throw ErrorCatch("'" + block.front() + "' is not a valid parameter");
 }
 
 void Parameters::setBlockIndex(size_t ref)

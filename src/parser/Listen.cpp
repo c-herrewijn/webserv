@@ -137,11 +137,14 @@ void	Listen::fillIp(std::vector<std::string>& block)
 
 void	Listen::fillPort(std::vector<std::string>& block)
 {
-	all = true;
+	all = false;
 	if (block.front().find_first_of(":") != block.front().find_last_of(":"))
 		throw ErrorCatch("Expected 'port' type '*:80' or ':80' or '8000' on '" + block.front() + "'");
 	if (block.front().front() == '*')
+	{
 		block.front().erase(block.front().begin());
+		all = true;
+	}
 	if (block.front().front() == ':')
 		block.front().erase(block.front().begin());
 	uint32_t port = 0;
