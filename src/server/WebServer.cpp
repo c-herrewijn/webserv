@@ -202,7 +202,7 @@ HTTPresponse	WebServer::_handleRequest( int connfd ) const
 	HTTPresponse	response;
 
 	try {
-		request.readHead(connfd);	
+		request.readHead(connfd);
 		Executor executor(getHandler(request.getHost()), request);
 		response = executor.execRequest();
 	}

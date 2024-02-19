@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/19 19:45:08 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/19 20:59:56 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,8 +44,7 @@ void		HTTPresponse::writeContent( int socket )
 	size_t			start=0, len=fullContent.size();
 	ssize_t 		written=0;
 	
-	if (socket != -1)
-		setSocket(socket);
+	_setSocket(socket);
 	while (start < fullContent.size())
 	{
 		toWrite = fullContent.substr(start, len);

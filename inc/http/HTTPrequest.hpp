@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/19 19:40:17 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/19 22:03:54 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,16 +42,19 @@ typedef struct HTTPurl_f
 class HTTPrequest : public HTTPstruct
 {
 	public:
-		HTTPrequest( void ) : HTTPstruct() , _maxBodySize(0) {};
+		HTTPrequest( void ) : HTTPstruct() , 
+			_maxBodySize(0) , 
+			_contentLength(0) , 
+			_isChunked(false) {};
 		virtual ~HTTPrequest( void ) override {};
 
-		void		readHead( int socket=-1 );
-		void		readPlainBody( size_t );
-		void		readChunkedBody( void );
+		void		readHead( int );
+		std::string readPlainBody( void );
+		std::string readChunkedBody( void );
 		void		parseHead( std::string const& );
-		void		parseBody( void );
+		void		parseBody( size_t );
 		bool		isCGI( void ) const noexcept;
-		void		setMaxBodySize( size_t ) noexcept;
+		bool		isChunked( void ) const noexcept;
 
 		std::string	toString( void ) const noexcept override;
 
@@ -68,11 +71,11 @@ class HTTPrequest : public HTTPstruct
 		HTTPurl		_url;
 		std::string	_tmpBody;
 
-		size_t		_maxBodySize;
+		size_t		_maxBodySize, _contentLength;
+		bool		_isChunked, isFileUpload;
 
 		void	_setHead( std::string const& ) override;
 		void	_setHeaders( std::string const& ) override;
-		void	_setBody( std::string const& ) override;
 
 		void	_setMethod( std::string const& );
 		void	_setURL( std::string const& );
@@ -83,5 +86,6 @@ class HTTPrequest : public HTTPstruct
 		void	_setQuery( std::string const& );
 		void	_setFragment( std::string const& );
 
-		void	_setChunkedBody( std::string const& );
+		void		_checkBodyInfo( size_t );
+		std::string	_unchunkBody( std::string const& );
 };

@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:11:07 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/19 19:42:56 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/19 21:44:35 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,9 +29,7 @@ HTTPresponse	Executor::execRequest( void ) noexcept
         status = this->_configServer.validateRequest(this->_request);
         if (status != 200)
 			throw(ExecException({"request validation failed with code:", std::to_string(status)}, status));
-		this->_request.setMaxBodySize(this->_configServer.getMaxBodySize());
-		this->_request.parseBody();		//	<-- depends on the location!
-		std::cout << this->_request.toString();
+		this->_request.parseBody(this->_configServer.getMaxBodySize());
         body = _runHTTPmethod();
     }
     catch(const HTTPexception& e)
