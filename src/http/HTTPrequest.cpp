@@ -238,6 +238,18 @@ std::string		HTTPrequest::getHost( void ) const noexcept
 	return (hostStr.substr(0, delim));
 }
 
+std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
+{
+	std::string boundary = "";
+	if (this->_headers.count("Content-Type") > 0)
+	{
+		std::string contentType = this->_headers.at("Content-Type");
+		size_t delim = contentType.find('=');
+		boundary = contentType.substr(delim + 1, contentType.length() - delim);
+	}
+	return (boundary);
+}
+
 std::string	const&	HTTPrequest::getBody( void ) const noexcept
 {
 	return (this->_body);

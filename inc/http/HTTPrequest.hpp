@@ -59,6 +59,7 @@ class HTTPrequest : public HTTPstruct
 		std::string		 	getHost( void ) const noexcept;
 		std::string	const& 	getBody( void ) const noexcept;
 		std::string	const&	getQueryRaw( void ) const noexcept;
+		std::string			getContentTypeBoundary( void ) const noexcept;
 
 	protected:
 		HTTPmethod	_method;
