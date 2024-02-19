@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/17 18:43:18 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/17 17:14:07 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 #include <cstring>           // strerror
 #include <limits>
 #include <filesystem>
-#define DEF_BODY_SIZE 	1024						// max size of HTTP header
+#define HEADER_BUF_SIZE 	1024						// max size of HTTP header
 
 typedef enum HTTPmethod_s
 {
@@ -46,10 +46,9 @@ class HTTPrequest : public HTTPstruct
 		virtual ~HTTPrequest( void ) override {};
 
 		void		readHead( int socket=-1 );
-		void		readPlainBody( size_t );
-		void		readChunkedBody( void );
+		void		readBody( size_t );
 		void		parseHead( std::string const& );
-		void		parseBody( size_t );
+		void		parseBody( std::string const& strBody="" );
 		bool		isCGI( void ) const noexcept;
 		std::string	toString( void ) const noexcept override;
 
