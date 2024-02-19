@@ -40,24 +40,26 @@ typedef struct HTTPversion_f
 class HTTPstruct
 {
 	public:
-		HTTPstruct( void );
+		HTTPstruct( void ) : _socket(-1) , _hasBody(true) {}
 		virtual	~HTTPstruct( void ) {};
 
 		virtual std::string	toString( void ) const noexcept =0;
 
-		void				setSocket( int );
-		int					getSocket( void ) const noexcept;
+		int		getSocket( void ) const noexcept;
+		bool	hasBody( void) const noexcept;
 
 	protected:
 		dict 		_headers;
 		std::string	_body;
     	HTTPversion	_version;
 		int			_socket;
+		bool		_hasBody;
 
+		void			_setSocket( int );
 		virtual void	_setHead( std::string const& )=0;
 		virtual void	_setHeaders( std::string const& );
 		virtual void	_setBody( std::string const& );
+		void			_setVersion( std::string const& );
 
 		void			_addHeader(std::string const&, std::string const& ) noexcept;
-		void			_setVersion( std::string const& );
 	};

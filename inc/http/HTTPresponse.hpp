@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/19 19:34:27 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/19 22:30:57 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 #include <sys/socket.h>       // send, recv
 
 #include "HTTPstruct.hpp"
-#define STD_CONTENT_TYPE "plain/text"
+#define STD_CONTENT_TYPE "text/html; charset=utf-8"
 
 class HTTPresponse : public HTTPstruct
 {
@@ -30,15 +30,14 @@ class HTTPresponse : public HTTPstruct
 		std::string	toString( void ) const noexcept override;
 
 		int			getStatusCode( void ) const noexcept;
-		std::string	getStatusStr( void ) const noexcept;
+		std::string	getStatusStr( void ) const;
 
 	protected:
 		int         _statusCode;
 		std::string _statusStr;
 
-		std::string	_mapStatusCode( int ) const ;
 		void		_setHead( std::string const& ) override;
 		void		_setBody( std::string const& ) override;
-		std::string	_mapStatusCode( int ) const noexcept;
+		std::string	_mapStatusCode( int ) const ;
 		std::string	_getDateTime( void ) const noexcept;
 };

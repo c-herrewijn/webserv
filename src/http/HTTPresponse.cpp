@@ -5,8 +5,8 @@
 /*                                                     +:+                    */
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
-/*   Created: 2024/02/19 17:08:42 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/19 19:34:17 by fra           ########   odam.nl         */
+/*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
+/*   Updated: 2024/02/19 22:30:38 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,8 +44,7 @@ void		HTTPresponse::writeContent( int socket )
 	size_t			start=0, len=fullContent.size();
 	ssize_t 		written=0;
 	
-	if (socket != -1)
-		setSocket(socket);
+	_setSocket(socket);
 	while (start < fullContent.size())
 	{
 		toWrite = fullContent.substr(start, len);
@@ -96,7 +95,7 @@ int		HTTPresponse::getStatusCode( void ) const noexcept
 	return (this->_statusCode);
 }
 
-std::string	HTTPresponse::getStatusStr( void ) const noexcept
+std::string	HTTPresponse::getStatusStr( void ) const
 {
 	return (this->_statusStr);
 }
@@ -125,7 +124,7 @@ void	HTTPresponse::_setBody( std::string const& strBody)
 }
 
 // NB: see RC 7231 for info about every specific error code
-std::string	HTTPresponse::_mapStatusCode( int status) const noexcept
+std::string	HTTPresponse::_mapStatusCode( int status) const
 {
 	std::map<int, const char*> mapStatus = 
 	{
@@ -206,31 +205,6 @@ std::string	HTTPresponse::_mapStatusCode( int status) const noexcept
 	catch(const std::out_of_range& e) {
 		throw(HTTPexception({"Unknown HTTP response code:", std::to_string(status)}, 500));
 	}
-}
-
-void	HTTPresponse::_setHead( std::string const& strStatusCode)
-{
-	this->_version.scheme = HTTP_SCHEME;
-	this->_version.major = 1;
-	this->_version.minor = 1;
-	try {
-		this->_statusCode = std::stoi(strStatusCode);
-		this->_statusStr = _mapStatusCode(this->_statusCode);
-	}
-	catch(const std::exception& e) {
-		std::cout << e.what() << '\n';
-		this->_statusCode = 500;
-		this->_statusStr = _mapStatusCode(500);
-	}
-}
-
-void	HTTPresponse::_setBody( std::string const& strBody)
-{
-    if (strBody.empty())
-		return ;
-	_addHeader("Content-Length", std::to_string(strBody.size()));
-	_addHeader("Content-Type", std::string("text/html; charset=utf-8"));	// NB: do I need other formats?
-	HTTPstruct::_setBody(strBody);
 }
 
 std::string	HTTPresponse::_getDateTime( void ) const noexcept

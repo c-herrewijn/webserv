@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/17 00:04:30 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/19 21:49:21 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,18 +61,21 @@
 // 	}
 // }
 
-HTTPstruct::HTTPstruct( void ) : _socket(-1) {}
+int		HTTPstruct::getSocket( void ) const noexcept
+{
+	return (this->_socket);
+}
 
-void	HTTPstruct::setSocket( int socket )
+bool	HTTPstruct::hasBody( void) const noexcept
+{
+	return(this->_hasBody);
+}
+
+void	HTTPstruct::_setSocket( int socket )
 {
 	if (socket == -1)
 		throw(HTTPexception({"invalid socket"}, 500));
 	this->_socket = socket;
-}
-
-int		HTTPstruct::getSocket( void ) const noexcept
-{
-	return (this->_socket);
 }
 
 void	HTTPstruct::_setHeaders( std::string const& headers )
@@ -94,11 +97,6 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 		tmpHeaders = tmpHeaders.substr(del1 + 2);
 		del1 = tmpHeaders.find(HTTP_NL);
 	} while (del1 != std::string::npos);
-}
-
-void	HTTPstruct::_addHeader(std::string const& name, std::string const& content) noexcept
-{
-	this->_headers[name] = content;
 }
 
 void	HTTPstruct::_setBody( std::string const& strBody )
@@ -129,4 +127,9 @@ void	HTTPstruct::_setVersion( std::string const& strVersion )
 	}
 	if (this->_version.major + this->_version.minor != 2)
 		throw(HTTPexception({"unsupported HTTP version:", strVersion}, 400));
+}
+
+void	HTTPstruct::_addHeader(std::string const& name, std::string const& content) noexcept
+{
+	this->_headers[name] = content;
 }
