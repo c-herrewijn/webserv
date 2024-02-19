@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/16 14:50:32 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/18 03:20:50 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,31 +61,7 @@
 // 	}
 // }
 
-HTTPstruct::HTTPstruct( void ) : _ready(false) , _socket(-1) {}
-
-void	HTTPstruct::parseHead( std::string const& strReq )
-{
-	std::string head, headers;
-	size_t		delimiter;
-
-	delimiter = strReq.find(HTTP_TERM);
-	if (delimiter == std::string::npos)
-		throw(HTTPexception({"no header terminator"}, 400));
-	head = strReq.substr(0, delimiter + 2);
-	delimiter = head.find(HTTP_NL);
-	if (delimiter + 2 != head.size())		// we have the headers
-	{
-		headers = head.substr(delimiter + 2);
-		head = head.substr(0, delimiter + 2);
-	}
-	_setHead(head);
-	_setHeaders(headers);
-}
-
-bool	HTTPstruct::isReady( void ) const noexcept
-{
-	return(this->_ready);
-}
+HTTPstruct::HTTPstruct( void ) : _socket(-1) {}
 
 void	HTTPstruct::setSocket( int socket )
 {
@@ -118,7 +94,6 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 		tmpHeaders = tmpHeaders.substr(del1 + 2);
 		del1 = tmpHeaders.find(HTTP_NL);
 	} while (del1 != std::string::npos);
-
 }
 
 void	HTTPstruct::_addHeader(std::string const& name, std::string const& content) noexcept

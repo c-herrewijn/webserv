@@ -69,7 +69,7 @@ int main(int ac, char **av)
 		std::cerr << C_RED "Wrong amount of arguments - valid usage: ./" << av[0] << " [config_file_path]\n";
 		return (EXIT_FAILURE);
 	}
-	std::cout << "Parsing done with size " C_AZURE << servers.size() << C_RESET "\n";
+	std::cout << "Found " C_AZURE << servers.size() << C_RESET " available server\n";
 
 	WebServer	webserv(servers);
 	try

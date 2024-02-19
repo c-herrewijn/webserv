@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/12/31 11:10:43 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/16 10:15:27 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/16 22:34:06 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,7 @@
 #include <sys/socket.h>       // send, recv
 #include <strings.h>
 #include <initializer_list>
+#include <filesystem>
 
 #include "Exceptions.hpp"
 #include "HTTPrequest.hpp"
@@ -32,22 +33,23 @@
 class Executor
 {
 	public:
-		Executor( void ) noexcept {};
-		Executor( Server const& ) noexcept ;
+		Executor( Server const&, HTTPrequest& ) noexcept;
 		~Executor( void ) noexcept {};
-		HTTPresponse	execRequest( HTTPrequest& ) noexcept;
+		HTTPresponse	execRequest( void ) noexcept;
 		HTTPresponse	createResponse( int, std::string const&) noexcept;
 
-		void				setHandler( Server const& ) noexcept;
 		Server const&		getHandler( void ) const noexcept;
+		void				setRequest( HTTPrequest& ) noexcept;
+		HTTPrequest const&	getRequest( void ) const noexcept;
 
 	private:
-		Server		_configServer;
-		std::string	_servName;
+		Server const&		_configServer;
+		std::string 		_servName;
+		HTTPrequest&		_request;
 
-		std::string	_runMethod(HTTPrequest const&);
-		std::string	_execGET(HTTPrequest const&);
-		std::string	_execPOST(HTTPrequest const&);
-		std::string	_execDELETE(HTTPrequest const&);
+		std::string	_runHTTPmethod( void );
+		std::string	_execGET( void );
+		std::string	_execPOST( void );
+		std::string	_execDELETE( void );
 		std::string	_readContent(std::string const&);
 };

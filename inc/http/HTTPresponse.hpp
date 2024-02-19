@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/16 15:03:06 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/18 03:33:29 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,17 +16,17 @@
 #include <sys/socket.h>       // send, recv
 
 #include "HTTPstruct.hpp"
-#define	HTTP_CGI_STR	std::string("CGI")
+
+#define STD_CONTENT_TYPE "text/html; charset=utf-8"
 
 class HTTPresponse : public HTTPstruct
 {
 	public:
-		HTTPresponse( void ) : HTTPstruct() {};
+		HTTPresponse( void ) : HTTPstruct() , _statusCode(200) {};
 		virtual ~HTTPresponse( void ) override {};
 
-		void		parseBody( std::string const& ) noexcept override;
-		void		parseFromCode( int, std::string const&, std::string const& ) noexcept;
-		void		parseFromCGI( std::string const& ) noexcept;
+		void		parseFromStatic( int, std::string const&, std::string const& ) noexcept;
+		void		parseFromCGI( int, std::string const& ) noexcept;
 		void		writeContent( int socket=-1 ) ;
 		std::string	toString( void ) const noexcept override;
 
@@ -35,13 +35,9 @@ class HTTPresponse : public HTTPstruct
 
 	protected:
 		int         _statusCode;
-		std::string _statusStr;
-	
-		std::string	_mapStatusCode( int ) const ;
-		void		_setHead( std::string const& ) override;
-		void		_setVersion( std::string const& ) override;
-		void		_setStatusCode( std::string const& );
-		void		_setStatusStr( std::string const& );
 
+		void		_setHead( std::string const& ) override;
+		void		_setBody( std::string const& ) override;
+		std::string	_mapStatusCode( int ) const ;
 		std::string	_getDateTime( void ) const noexcept;
 };

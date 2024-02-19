@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/16 14:12:50 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/18 03:20:25 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,8 @@
 #include <sys/socket.h>       // send, recv
 #include <cstring>           // strerror
 #include <limits>
-#define HEADER_BUF_SIZE 	1024						// max size of HTTP header
+#include <filesystem>
+#define DEF_BUF_SIZE 	1024						// max size of HTTP header
 
 typedef enum HTTPmethod_s
 {
@@ -28,13 +29,13 @@ typedef enum HTTPmethod_s
 
 typedef struct HTTPurl_f
 {
-	std::string	scheme;
-	std::string	host;
-	int			port;
-	std::string	path;
-	dict		query;
-	std::string queryRaw;
-	std::string fragment;
+	std::string				scheme;
+	std::string				host;
+	int						port;
+	std::filesystem::path	path;
+	dict					query;
+	std::string 			queryRaw;
+	std::string 			fragment;
 
 } HTTPurl;
 
@@ -45,12 +46,16 @@ class HTTPrequest : public HTTPstruct
 		virtual ~HTTPrequest( void ) override {};
 
 		void		readHead( int socket=-1 );
-		void		readRemainingBody( size_t ) ;
-		void		parseBody( std::string const& strBody="" ) override;
+		void		readPlainBody( size_t );
+		void		readChunkedBody( size_t );
+		void		parseHead( std::string const& );
+		void		parseBody( size_t );
+		bool		isCGI( void ) const noexcept;
 		std::string	toString( void ) const noexcept override;
 
-		HTTPmethod const& 	getMethod( void ) const noexcept;
-		std::string	const& 	getPath( void ) const noexcept;
+		HTTPmethod		 	getMethod( void ) const noexcept;
+		std::string		 	getStrMethod( void ) const noexcept;
+		std::string		 	getPath( void ) const noexcept;
 		std::string		 	getHost( void ) const noexcept;
 		std::string	const& 	getBody( void ) const noexcept;
 		std::string	const&	getQueryRaw( void ) const noexcept;
@@ -62,11 +67,10 @@ class HTTPrequest : public HTTPstruct
 
 		void	_setHead( std::string const& ) override;
 		void	_setHeaders( std::string const& ) override;
-		void	_setBody( std::string const& ) override;
 
 		void	_setMethod( std::string const& );
 		void	_setURL( std::string const& );
-		void	_setVersion( std::string const& ) override;
+		void	_setVersion( std::string const& );
 
 		void	_setScheme( std::string const& );
 		void	_setHostPort( std::string const& );
@@ -74,5 +78,5 @@ class HTTPrequest : public HTTPstruct
 		void	_setQuery( std::string const& );
 		void	_setFragment( std::string const& );
 
-		void	_setChunkedBody( std::string const& );
+		void	_unchunkBody( std::string const& );
 };
