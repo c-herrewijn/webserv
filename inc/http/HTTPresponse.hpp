@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/18 03:33:29 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/19 17:09:56 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,14 +30,14 @@ class HTTPresponse : public HTTPstruct
 		void		writeContent( int socket=-1 ) ;
 		std::string	toString( void ) const noexcept override;
 
-		int					getStatusCode( void ) const noexcept;
-		std::string const&	getStatusStr( void ) const noexcept;
+		int			getStatusCode( void ) const noexcept;
+		std::string	getStatusStr( void ) const noexcept;
 
 	protected:
 		int         _statusCode;
 
 		void		_setHead( std::string const& ) override;
 		void		_setBody( std::string const& ) override;
-		std::string	_mapStatusCode( int ) const ;
+		std::string	_mapStatusCode( int ) const noexcept;
 		std::string	_getDateTime( void ) const noexcept;
 };
