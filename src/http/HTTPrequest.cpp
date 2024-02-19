@@ -6,11 +6,45 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/19 22:00:08 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/19 22:27:59 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPrequest.hpp"
+
+void	HTTPrequest::parseHead( std::string const& strReq )
+{
+	std::string head, headers;
+	size_t		delimiter;
+
+	delimiter = strReq.find(HTTP_TERM);
+	if (delimiter == std::string::npos)
+		throw(RequestException({"no header terminator"}, 400));
+	head = strReq.substr(0, delimiter);
+	if (strReq.substr(delimiter) != HTTP_TERM)
+		throw(RequestException({"invalid request"}, 400));
+	delimiter = head.find(HTTP_NL);
+	if (delimiter != std::string::npos)
+	{
+		headers = head.substr(delimiter + HTTP_NL.size()) + HTTP_NL;
+		head = head.substr(0, delimiter);
+		_setHeaders(headers);
+	}
+	_setHead(head);
+}
+
+void	HTTPrequest::parseBody( size_t maxBodyLength )
+{
+
+	_checkBodyInfo(maxBodyLength);
+	if (this->_hasBody == false)
+		return ;
+	else if (this->_isChunked == true)
+		readChunkedBody();
+	else
+		readPlainBody();
+	// std::cout << toString();
+}
 
 //NB: add timeout
 void	HTTPrequest::readHead( int socket )
@@ -36,7 +70,7 @@ void	HTTPrequest::readHead( int socket )
 }
 
 //NB: add timeout error: 408
-std::string	HTTPrequest::readPlainBody( void )
+void	HTTPrequest::readPlainBody( void )
 {
     ssize_t 	readChar = -1;
     char        buffer[DEF_BUF_SIZE + 1];
@@ -54,11 +88,11 @@ std::string	HTTPrequest::readPlainBody( void )
 	}
 	if (body.size() > this->_contentLength)
 		throw(RequestException({"content body is longer than expected"}, 400));
-	return (body);
+	HTTPstruct::_setBody(body);
 }
 
 //NB: add timeout error: 408
-std::string	HTTPrequest::readChunkedBody( void )
+void	HTTPrequest::readChunkedBody( void )
 {
     ssize_t 	readChar = -1;
 	size_t		delimiter=0, countChars=0;
@@ -81,44 +115,8 @@ std::string	HTTPrequest::readChunkedBody( void )
 		body += buffer;
 		delimiter = std::string(buffer).find(HTTP_TERM);
 	} while (delimiter != std::string::npos);
-	body = _unchunkBody(body.substr(0, delimiter + HTTP_TERM.size()));
-	return (body);
-}
-
-void	HTTPrequest::parseHead( std::string const& strReq )
-{
-	std::string head, headers;
-	size_t		delimiter;
-
-	delimiter = strReq.find(HTTP_TERM);
-	if (delimiter == std::string::npos)
-		throw(RequestException({"no header terminator"}, 400));
-	head = strReq.substr(0, delimiter);
-	if (strReq.substr(delimiter) != HTTP_TERM)
-		throw(RequestException({"invalid request"}, 400));
-	delimiter = head.find(HTTP_NL);
-	if (delimiter != std::string::npos)
-	{
-		headers = head.substr(delimiter + HTTP_NL.size()) + HTTP_NL;
-		head = head.substr(0, delimiter);
-		_setHeaders(headers);
-	}
-	_setHead(head);
-}
-
-void	HTTPrequest::parseBody( size_t maxBodyLength )
-{
-	std::string body;
-
-	_checkBodyInfo(maxBodyLength);
-	if (this->_hasBody == false)
-		return ;
-	else if (this->_isChunked == true)
-		body = readChunkedBody();
-	else
-		body = readPlainBody();
+	_unchunkBody(body.substr(0, delimiter + HTTP_TERM.size()));
 	HTTPstruct::_setBody(body);
-	std::cout << toString();
 }
 
 // NB: needs to be refined
@@ -130,6 +128,11 @@ bool	HTTPrequest::isCGI( void ) const noexcept
 bool	HTTPrequest::isChunked( void ) const noexcept
 {
 	return (this->_isChunked);
+}
+
+bool	HTTPrequest::isFileUpload( void ) const noexcept
+{
+	return (this->_isFileUpload);
 }
 
 std::string	HTTPrequest::toString( void ) const noexcept
@@ -178,7 +181,7 @@ std::string	HTTPrequest::toString( void ) const noexcept
 	return (strReq);
 }
 
-HTTPmethod			HTTPrequest::getMethod( void ) const noexcept
+HTTPmethod		HTTPrequest::getMethod( void ) const noexcept
 {
 	return (this->_method);
 }
@@ -397,6 +400,7 @@ void	HTTPrequest::_setFragment( std::string const& strFragment)
 void	HTTPrequest::_checkBodyInfo( size_t maxBodyLength )
 {
 	this->_maxBodySize = maxBodyLength;
+	
 	try {
 		this->_headers.at("Content-Length");
 		try {
@@ -409,6 +413,13 @@ void	HTTPrequest::_checkBodyInfo( size_t maxBodyLength )
 			throw(RequestException({"Content-Length is longer than the maximum allowed"}, 413));
 		else if (this->_tmpBody.size() > this->_contentLength)
 			throw(RequestException({"body is longer than expected"}, 400));
+		try
+		{
+			if (this->_headers.at("Content-Type").find("multipart/form-data; boundary=-") == 0)
+				this->_isFileUpload = true;
+		}
+		catch(const std::exception& e) {}
+		
 	}
 	catch (const std::out_of_range& e1) {
 		try {
