@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/19 17:22:04 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/19 19:34:27 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 #include <sys/socket.h>       // send, recv
 
 #include "HTTPstruct.hpp"
+#define STD_CONTENT_TYPE "plain/text"
 
 class HTTPresponse : public HTTPstruct
 {

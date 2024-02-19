@@ -5,12 +5,8 @@
 /*                                                     +:+                    */
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
-/*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-<<<<<<< HEAD
-/*   Updated: 2024/02/19 17:08:42 by fra           ########   odam.nl         */
-=======
-/*   Updated: 2024/02/17 00:06:41 by fra           ########   odam.nl         */
->>>>>>> chr
+/*   Created: 2024/02/19 17:08:42 by fra           #+#    #+#                 */
+/*   Updated: 2024/02/19 19:34:17 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -105,7 +101,31 @@ std::string	HTTPresponse::getStatusStr( void ) const noexcept
 	return (this->_statusStr);
 }
 
-std::string	HTTPresponse::_mapStatusCode( int status) const
+void	HTTPresponse::_setHead( std::string const& strStatusCode)
+{
+	this->_version.scheme = HTTP_SCHEME;
+	this->_version.major = 1;
+	this->_version.minor = 1;
+	try {
+		this->_statusCode = std::stoi(strStatusCode);
+	}
+	catch(const std::exception& e) {
+		std::cout << e.what() << '\n';
+		this->_statusCode = 500;
+	}
+}
+
+void	HTTPresponse::_setBody( std::string const& strBody)
+{
+    if (strBody.empty())
+		return ;
+	_addHeader("Content-Length", std::to_string(strBody.size()));
+	_addHeader("Content-Type", std::string(STD_CONTENT_TYPE));	// NB: do I need other formats?
+	HTTPstruct::_setBody(strBody);
+}
+
+// NB: see RC 7231 for info about every specific error code
+std::string	HTTPresponse::_mapStatusCode( int status) const noexcept
 {
 	std::map<int, const char*> mapStatus = 
 	{
