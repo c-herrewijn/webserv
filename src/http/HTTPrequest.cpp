@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/18 03:24:14 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/19 19:24:44 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,59 +37,46 @@ void	HTTPrequest::readHead( int socket )
 }
 
 //NB: add timeout error: 408
-void	HTTPrequest::readPlainBody( size_t limitSize )
+void	HTTPrequest::readPlainBody( size_t ContentLength )
 {
-	size_t     	lenToRead=DEF_BUF_SIZE, count=0;
     ssize_t 	readChar = -1;
-    char        *buffer = nullptr;
+    char        buffer[DEF_BUF_SIZE + 1];
 	std::string	body = this->_tmpBody;
 
-	if (limitSize < this->_tmpBody.size())
-		throw(RequestException({"content body is longer than the maximum allowed"}, 413));
-	else if (limitSize < lenToRead)
-		lenToRead = limitSize;
-	buffer = new char[lenToRead + 1];
-	bzero(buffer, lenToRead + 1);
-	while (lenToRead)
+	while (body.size() < ContentLength)
 	{
-		readChar = recv(this->_socket, buffer, lenToRead, 0);
-		if (readChar < 0)
-			break;
-		lenToRead -= readChar;
-		count += readChar;
-		buffer += readChar;
+		bzero(buffer, DEF_BUF_SIZE + 1);
+		readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+		if (readChar <= 0)
+			continue;
+		body += buffer;
 	}
-	delete [] buffer;
-	if (readChar < 0)
-		throw(RequestException({"unavailable socket"}, 500));
-	body = std::string (buffer - count);
+	if (body.size() > ContentLength)
+		throw(RequestException({"content body is longer than expected"}, 400));
 	HTTPstruct::_setBody(body);
 }
 
 //NB: add timeout error: 408
-void	HTTPrequest::readChunkedBody( size_t limitSize )
+void	HTTPrequest::readChunkedBody( void )
 {
     ssize_t 	readChar=-1;
-    char    	buffer[DEF_BUF_SIZE];
+    char    	buffer[DEF_BUF_SIZE + 1];
 	size_t		delimiter=0, countChars=0;
-	std::string	data, body=this->_tmpBody;
+	std::string body=this->_tmpBody;
 
-	if (limitSize == 0)
-		limitSize = std::numeric_limits<std::size_t>::max();
-	else if (limitSize < body.size())
+	if ((this->_maxBodySize != 0) and (this->_maxBodySize < body.size()))
 		throw(RequestException({"content body is longer than the maximum allowed"}, 413));
 	do
 	{
 		bzero(buffer, DEF_BUF_SIZE + 1);
 		readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-		if (readChar < 0)
-			throw(RequestException({"unavailable socket"}, 500));
+		if (readChar <= 0)
+			continue;
 		countChars += readChar;
-		if (countChars > limitSize)
+		if ((this->_maxBodySize != 0) and (countChars > this->_maxBodySize))
 			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
-		data = buffer;
-		body += data;
-		delimiter = data.find(HTTP_TERM);
+		body += buffer;
+		delimiter = std::string(buffer).find(HTTP_TERM);
 	} while (delimiter != std::string::npos);
 	_unchunkBody(body.substr(0, delimiter + HTTP_TERM.size()));
 }
@@ -115,38 +102,30 @@ void	HTTPrequest::parseHead( std::string const& strReq )
 	_setHead(head);
 }
 
-void	HTTPrequest::parseBody( size_t limitBodySize )
+void	HTTPrequest::parseBody( void )
 {
 	size_t	bodySize = 0;
 	bool 	isChunked = false;
 
 	try {
-		this->_headers.at("Content-Type");
-		try {
-			bodySize = std::stoull(this->_headers.at("Content-Length"));
-		}
-		catch (const std::out_of_range& e1) {
-			isChunked = this->_headers["Transfer-Encoding"] == "chunked";
-		}
-		catch (const std::exception& e1) {
-			throw(RequestException({"invalid Content-Length"}, 400));
-		}
-		if ((limitBodySize > 0) and (bodySize > limitBodySize))
-			throw(RequestException({"Content-Length is longer than the maximum allowed"}, 413));
-		else if ((bodySize == 0) and (isChunked == false))
-			throw(RequestException({"missing or invalid Content-Length header"}, 400));
+		this->_headers.at("Content-Length");
 	}
-	catch (const std::out_of_range& e) {
-		try {
-			this->_headers.at("Content-Length");
-			throw(RequestException({"missing Content-Type header"}, 400));
-		}
-		catch (const std::out_of_range& e2) {	// no body headers, i.e. no body
-			return;
-		}
+	catch (const std::out_of_range& e1) {
+		if (this->_headers["Transfer-Encoding"] == "chunked")
+			isChunked = true;
+		else
+			return;		// no body
 	}
+	try {
+		bodySize = std::stoull(this->_headers["Content-Length"]);
+	}
+	catch (const std::exception& e1) {
+		throw(RequestException({"invalid Content-Length"}, 400));
+	}
+	if ((this->_maxBodySize > 0) and (bodySize > this->_maxBodySize))
+		throw(RequestException({"Content-Length is longer than the maximum allowed"}, 413));
 	if (isChunked == true)
-		readChunkedBody(limitBodySize);
+		readChunkedBody();
 	else
 		readPlainBody(bodySize);
 }
@@ -155,6 +134,11 @@ void	HTTPrequest::parseBody( size_t limitBodySize )
 bool	HTTPrequest::isCGI( void ) const noexcept
 {
 	return (this->_url.path.extension().generic_string() == ".cgi");
+}
+
+void	HTTPrequest::setMaxBodySize( size_t newSize) noexcept
+{
+	this->_maxBodySize = newSize;
 }
 
 std::string	HTTPrequest::toString( void ) const noexcept

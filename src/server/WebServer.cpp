@@ -204,7 +204,6 @@ HTTPresponse	WebServer::_handleRequest( int connfd ) const
 	try {
 		request.readHead(connfd);	
 		Executor executor(getHandler(request.getHost()), request);
-		std::cout << executor.getHandler().getPrimaryName() << '\n';
 		response = executor.execRequest();
 	}
 	catch (const HTTPexception& e) {

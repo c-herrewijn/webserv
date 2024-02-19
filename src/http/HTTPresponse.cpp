@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/18 03:33:52 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/19 19:06:15 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -95,7 +95,7 @@ int		HTTPresponse::getStatusCode( void ) const noexcept
 	return (this->_statusCode);
 }
 
-std::string const&	HTTPresponse::getStatusStr( void ) const noexcept
+std::string	HTTPresponse::getStatusStr( void ) const noexcept
 {
 	return (_mapStatusCode(this->_statusCode));
 }
@@ -124,6 +124,7 @@ void	HTTPresponse::_setBody( std::string const& strBody)
 	HTTPstruct::_setBody(strBody);
 }
 
+// NB: see RC 7231 for info about every specific error code
 std::string	HTTPresponse::_mapStatusCode( int status) const noexcept
 {
 	std::map<int, const char*> mapStatus = 

@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/18 03:20:25 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/19 18:53:15 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 #include <cstring>           // strerror
 #include <limits>
 #include <filesystem>
-#define DEF_BUF_SIZE 	1024						// max size of HTTP header
+#define DEF_BUF_SIZE 	8192						// max size of HTTP header
 
 typedef enum HTTPmethod_s
 {
@@ -42,15 +42,17 @@ typedef struct HTTPurl_f
 class HTTPrequest : public HTTPstruct
 {
 	public:
-		HTTPrequest( void ) : HTTPstruct() {};
+		HTTPrequest( void ) : HTTPstruct() , _maxBodySize(0) {};
 		virtual ~HTTPrequest( void ) override {};
 
 		void		readHead( int socket=-1 );
 		void		readPlainBody( size_t );
-		void		readChunkedBody( size_t );
+		void		readChunkedBody( void );
 		void		parseHead( std::string const& );
-		void		parseBody( size_t );
+		void		parseBody( void );
 		bool		isCGI( void ) const noexcept;
+		void		setMaxBodySize( size_t ) noexcept;
+
 		std::string	toString( void ) const noexcept override;
 
 		HTTPmethod		 	getMethod( void ) const noexcept;
@@ -64,6 +66,8 @@ class HTTPrequest : public HTTPstruct
 		HTTPmethod	_method;
 		HTTPurl		_url;
 		std::string	_tmpBody;
+
+		size_t		_maxBodySize;
 
 		void	_setHead( std::string const& ) override;
 		void	_setHeaders( std::string const& ) override;
