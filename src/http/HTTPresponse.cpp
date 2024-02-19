@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/19 19:06:15 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/19 19:45:08 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,8 +30,9 @@ void	HTTPresponse::parseFromCGI( int code, std::string const& CGIresp ) noexcept
 	delimiter = CGIresp.find(HTTP_TERM);
 	if (delimiter != std::string::npos)
 	{
+		delimiter += HTTP_NL.size();
 		body = CGIresp.substr(delimiter);
-		headers = CGIresp.substr(0, delimiter + HTTP_NL.size());
+		headers = CGIresp.substr(0, delimiter);
 	}
 	_setHeaders(headers);
 	_setBody(body);
@@ -68,7 +69,7 @@ std::string	HTTPresponse::toString( void ) const noexcept
 	strResp += HTTP_SP;
 	strResp += std::to_string(this->_statusCode);
 	strResp += HTTP_SP;
-	strResp += _mapStatusCode(this->_statusCode);
+	strResp += this->_statusStr;
 	strResp += HTTP_NL;
 	if (!this->_headers.empty())
 	{
@@ -95,11 +96,10 @@ int		HTTPresponse::getStatusCode( void ) const noexcept
 	return (this->_statusCode);
 }
 
-std::string	HTTPresponse::getStatusStr( void ) const noexcept
+std::string	HTTPresponse::getStatusStr( void ) const
 {
-	return (_mapStatusCode(this->_statusCode));
+	return (this->_statusStr);
 }
-
 
 void	HTTPresponse::_setHead( std::string const& strStatusCode)
 {
@@ -125,7 +125,7 @@ void	HTTPresponse::_setBody( std::string const& strBody)
 }
 
 // NB: see RC 7231 for info about every specific error code
-std::string	HTTPresponse::_mapStatusCode( int status) const noexcept
+std::string	HTTPresponse::_mapStatusCode( int status) const
 {
 	std::map<int, const char*> mapStatus = 
 	{
@@ -198,7 +198,14 @@ std::string	HTTPresponse::_mapStatusCode( int status) const noexcept
 		{510, "Not Extended"},						// Further extensions to the request are required for the server to fulfill it.
 		{511, "Network Authentication Required"},	// Indicates that the client needs to authenticate to gain network access.
 	};
-	return (std::string(mapStatus[status]));
+
+	try
+	{
+		return (std::string(mapStatus.at(status)));
+	}
+	catch(const std::out_of_range& e) {
+		throw(HTTPexception({"Unknown HTTP response code:", std::to_string(status)}, 500));
+	}
 }
 
 std::string	HTTPresponse::_getDateTime( void ) const noexcept

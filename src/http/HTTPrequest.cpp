@@ -6,13 +6,13 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/19 19:24:44 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/19 19:49:34 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPrequest.hpp"
 
-//NB: add timeout error: 408
+//NB: add timeout
 void	HTTPrequest::readHead( int socket )
 {
 	char		buffer[DEF_BUF_SIZE + 1];
@@ -78,7 +78,7 @@ void	HTTPrequest::readChunkedBody( void )
 		body += buffer;
 		delimiter = std::string(buffer).find(HTTP_TERM);
 	} while (delimiter != std::string::npos);
-	_unchunkBody(body.substr(0, delimiter + HTTP_TERM.size()));
+	_setChunkedBody(body.substr(0, delimiter + HTTP_TERM.size()));
 }
 
 void	HTTPrequest::parseHead( std::string const& strReq )
@@ -104,17 +104,16 @@ void	HTTPrequest::parseHead( std::string const& strReq )
 
 void	HTTPrequest::parseBody( void )
 {
-	size_t	bodySize = 0;
-	bool 	isChunked = false;
+	std::string	fullBody = this->_tmpBody;
+	size_t		bodySize = 0;
 
 	try {
 		this->_headers.at("Content-Length");
 	}
 	catch (const std::out_of_range& e1) {
-		if (this->_headers["Transfer-Encoding"] == "chunked")
-			isChunked = true;
-		else
-			return;		// no body
+		if (this->_headers["Transfer-Encoding"] == "chunked")	// otherwise there's no body
+			readChunkedBody();
+		return;
 	}
 	try {
 		bodySize = std::stoull(this->_headers["Content-Length"]);
@@ -124,10 +123,7 @@ void	HTTPrequest::parseBody( void )
 	}
 	if ((this->_maxBodySize > 0) and (bodySize > this->_maxBodySize))
 		throw(RequestException({"Content-Length is longer than the maximum allowed"}, 413));
-	if (isChunked == true)
-		readChunkedBody();
-	else
-		readPlainBody(bodySize);
+	readPlainBody(bodySize);
 }
 
 // NB: needs to be refined
@@ -222,6 +218,18 @@ std::string		HTTPrequest::getHost( void ) const noexcept
 	return (hostStr.substr(0, delim));
 }
 
+std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
+{
+	std::string boundary = "";
+	if (this->_headers.count("Content-Type") > 0)
+	{
+		std::string contentType = this->_headers.at("Content-Type");
+		size_t delim = contentType.find('=');
+		boundary = contentType.substr(delim + 1, contentType.length() - delim);
+	}
+	return (boundary);
+}
+
 std::string	const&	HTTPrequest::getBody( void ) const noexcept
 {
 	return (this->_body);
@@ -252,18 +260,33 @@ void	HTTPrequest::_setHeaders( std::string const& headers)
 {
 	HTTPstruct::_setHeaders(headers);
 
-	std::string currentHost;
-
 	try {
-		currentHost = this->_headers.at("Host");
+		std::string currentHost = this->_headers.at("Host");
+		if (this->_url.host == "")
+			_setHostPort(currentHost);
+		else if (this->_url.host != currentHost)
+			throw(RequestException({"hosts do not match"}, 400));
 	}
 	catch(std::out_of_range const& e) {
 		throw(RequestException({"no Host header"}, 400));
 	}
-	if (this->_url.host == "")
-		_setHostPort(currentHost);
-	else if (this->_url.host != currentHost)
-		throw(RequestException({"hosts do not match"}, 400));
+}
+
+void	HTTPrequest::_setBody( std::string const& strBody )
+{
+    std::string body = strBody;
+
+	try {
+		if (body.size() != std::stoul(this->_headers["Content-Length"]))
+			throw(RequestException({"body lengths do not match"}, 400));
+	}
+	catch(const std::invalid_argument& e ) {
+		throw(RequestException({"invalid Content-Length:", this->_headers["Content-Length"]}, 400));
+	}
+	catch(const std::out_of_range& e ) {
+		throw(RequestException({"missing or overflow Content-Length header"}, 400));
+	}
+	HTTPstruct::_setBody(body);
 }
 
 void    HTTPrequest::_setMethod( std::string const& strMethod )
@@ -305,31 +328,6 @@ void	HTTPrequest::_setURL( std::string const& strURL )
 		tmpURL = tmpURL.substr(delimiter);
 	}
 	_setPath(tmpURL);
-}
-
-void	HTTPrequest::_setVersion( std::string const& strVersion )
-{
-	size_t	del1, del2;
-
-	del1 = strVersion.find('/');
-	if (del1 == std::string::npos)
-		throw(RequestException({"invalid version:", strVersion}, 400));
-	this->_version.scheme = strVersion.substr(0, del1);
-	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::toupper);
-	if (this->_version.scheme != HTTP_SCHEME)
-		throw(RequestException({"invalid scheme:", strVersion}, 400));
-	del2 = strVersion.find('.');
-	if (del2 == std::string::npos)
-		throw(RequestException({"invalid version:", strVersion}, 400));
-	try {
-		this->_version.major = std::stoi(strVersion.substr(del1 + 1, del2 - del1 - 1));
-		this->_version.minor = std::stoi(strVersion.substr(del2 + 1));
-	}
-	catch (std::exception const& e) {
-		throw(RequestException({"invalid version numbers:", strVersion}, 400));
-	}
-	if (this->_version.major + this->_version.minor != 2)
-		throw(RequestException({"unsupported HTTP version:", strVersion}, 400));
 }
 
 void	HTTPrequest::_setScheme( std::string const& strScheme )
@@ -418,7 +416,7 @@ void	HTTPrequest::_setFragment( std::string const& strFragment)
 	this->_url.fragment = strFragment.substr(1);
 }
 
-void	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
+void	HTTPrequest::_setChunkedBody( std::string const& chunkedBody)
 {
 	size_t		sizeChunk=0, delimiter=0;
 	std::string	tmpChunkedBody = this->_tmpBody + chunkedBody;

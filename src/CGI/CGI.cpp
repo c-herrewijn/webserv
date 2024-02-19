@@ -1,5 +1,5 @@
 #include "CGI.hpp"
-// #include "HTTPrequest.hpp"
+#include "HTTPrequest.hpp"
 #include "Server.hpp"
 
 #include <string>
@@ -31,10 +31,8 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(const HTTPrequest &req,
 
     std::array<std::string, CGI_ENV_SIZE> CGIEnv {
         "AUTH_TYPE=",
-        // "CONTENT_LENGTH=" + std::to_string(this->_req.body.length()),
-        "CONTENT_LENGTH=229", // DUMMY value based on test string
-        "CONTENT_TYPE=multipart/form-data; boundary=---------------------------47207745632788886342367179802", // DUMMY
-        // "CONTENT_TYPE=multipart/form-data", // NOT working
+        "CONTENT_LENGTH=" + std::to_string(this->_req.getBody().length()),
+        "CONTENT_TYPE=multipart/form-data; boundary=" + this->_req.getContentTypeBoundary(),
         "GATEWAY_INTERFACE=CGI/1.1", // fixed
         "PATH_INFO=",
         "PATH_TRANSLATED=",
@@ -100,9 +98,6 @@ std::string CGI::getHTMLBody()
 	}
     // write body into pipe
     close(p2[0]);
-    std::cerr << C_RED << this->_req.getBody() << C_RESET << std::endl;
-
-    // write(p2[1], this->_req.body.c_str(), this->_req.body.length());
     write(p2[1], this->_req.getBody().c_str(), this->_req.getBody().length());
     close(p2[1]);
 

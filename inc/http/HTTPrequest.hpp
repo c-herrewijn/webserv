@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/19 18:53:15 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/19 19:40:17 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,6 +61,7 @@ class HTTPrequest : public HTTPstruct
 		std::string		 	getHost( void ) const noexcept;
 		std::string	const& 	getBody( void ) const noexcept;
 		std::string	const&	getQueryRaw( void ) const noexcept;
+		std::string			getContentTypeBoundary( void ) const noexcept;
 
 	protected:
 		HTTPmethod	_method;
@@ -71,10 +72,10 @@ class HTTPrequest : public HTTPstruct
 
 		void	_setHead( std::string const& ) override;
 		void	_setHeaders( std::string const& ) override;
+		void	_setBody( std::string const& ) override;
 
 		void	_setMethod( std::string const& );
 		void	_setURL( std::string const& );
-		void	_setVersion( std::string const& );
 
 		void	_setScheme( std::string const& );
 		void	_setHostPort( std::string const& );
@@ -82,5 +83,5 @@ class HTTPrequest : public HTTPstruct
 		void	_setQuery( std::string const& );
 		void	_setFragment( std::string const& );
 
-		void	_unchunkBody( std::string const& );
+		void	_setChunkedBody( std::string const& );
 };
