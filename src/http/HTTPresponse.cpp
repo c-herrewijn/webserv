@@ -6,7 +6,11 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
+<<<<<<< HEAD
 /*   Updated: 2024/02/19 17:08:42 by fra           ########   odam.nl         */
+=======
+/*   Updated: 2024/02/17 00:06:41 by fra           ########   odam.nl         */
+>>>>>>> chr
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,8 +34,9 @@ void	HTTPresponse::parseFromCGI( int code, std::string const& CGIresp ) noexcept
 	delimiter = CGIresp.find(HTTP_TERM);
 	if (delimiter != std::string::npos)
 	{
+		delimiter += HTTP_NL.size();
 		body = CGIresp.substr(delimiter);
-		headers = CGIresp.substr(0, delimiter + HTTP_NL.size());
+		headers = CGIresp.substr(0, delimiter);
 	}
 	_setHeaders(headers);
 	_setBody(body);
@@ -68,7 +73,7 @@ std::string	HTTPresponse::toString( void ) const noexcept
 	strResp += HTTP_SP;
 	strResp += std::to_string(this->_statusCode);
 	strResp += HTTP_SP;
-	strResp += _mapStatusCode(this->_statusCode);
+	strResp += this->_statusStr;
 	strResp += HTTP_NL;
 	if (!this->_headers.empty())
 	{
@@ -97,34 +102,10 @@ int		HTTPresponse::getStatusCode( void ) const noexcept
 
 std::string	HTTPresponse::getStatusStr( void ) const noexcept
 {
-	return (_mapStatusCode(this->_statusCode));
+	return (this->_statusStr);
 }
 
-
-void	HTTPresponse::_setHead( std::string const& strStatusCode)
-{
-	this->_version.scheme = HTTP_SCHEME;
-	this->_version.major = 1;
-	this->_version.minor = 1;
-	try {
-		this->_statusCode = std::stoi(strStatusCode);
-	}
-	catch(const std::exception& e) {
-		std::cout << e.what() << '\n';
-		this->_statusCode = 500;
-	}
-}
-
-void	HTTPresponse::_setBody( std::string const& strBody)
-{
-    if (strBody.empty())
-		return ;
-	_addHeader("Content-Length", std::to_string(strBody.size()));
-	_addHeader("Content-Type", std::string(STD_CONTENT_TYPE));	// NB: do I need other formats?
-	HTTPstruct::_setBody(strBody);
-}
-
-std::string	HTTPresponse::_mapStatusCode( int status) const noexcept
+std::string	HTTPresponse::_mapStatusCode( int status) const
 {
 	std::map<int, const char*> mapStatus = 
 	{
@@ -197,7 +178,39 @@ std::string	HTTPresponse::_mapStatusCode( int status) const noexcept
 		{510, "Not Extended"},						// Further extensions to the request are required for the server to fulfill it.
 		{511, "Network Authentication Required"},	// Indicates that the client needs to authenticate to gain network access.
 	};
-	return (std::string(mapStatus[status]));
+
+	try
+	{
+		return (std::string(mapStatus.at(status)));
+	}
+	catch(const std::out_of_range& e) {
+		throw(HTTPexception({"Unknown HTTP response code:", std::to_string(status)}, 500));
+	}
+}
+
+void	HTTPresponse::_setHead( std::string const& strStatusCode)
+{
+	this->_version.scheme = HTTP_SCHEME;
+	this->_version.major = 1;
+	this->_version.minor = 1;
+	try {
+		this->_statusCode = std::stoi(strStatusCode);
+		this->_statusStr = _mapStatusCode(this->_statusCode);
+	}
+	catch(const std::exception& e) {
+		std::cout << e.what() << '\n';
+		this->_statusCode = 500;
+		this->_statusStr = _mapStatusCode(500);
+	}
+}
+
+void	HTTPresponse::_setBody( std::string const& strBody)
+{
+    if (strBody.empty())
+		return ;
+	_addHeader("Content-Length", std::to_string(strBody.size()));
+	_addHeader("Content-Type", std::string("text/html; charset=utf-8"));	// NB: do I need other formats?
+	HTTPstruct::_setBody(strBody);
 }
 
 std::string	HTTPresponse::_getDateTime( void ) const noexcept

@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/18 03:20:25 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/17 17:14:07 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 #include <cstring>           // strerror
 #include <limits>
 #include <filesystem>
-#define DEF_BUF_SIZE 	1024						// max size of HTTP header
+#define HEADER_BUF_SIZE 	1024						// max size of HTTP header
 
 typedef enum HTTPmethod_s
 {
@@ -46,10 +46,9 @@ class HTTPrequest : public HTTPstruct
 		virtual ~HTTPrequest( void ) override {};
 
 		void		readHead( int socket=-1 );
-		void		readPlainBody( size_t );
-		void		readChunkedBody( size_t );
+		void		readBody( size_t );
 		void		parseHead( std::string const& );
-		void		parseBody( size_t );
+		void		parseBody( std::string const& strBody="" );
 		bool		isCGI( void ) const noexcept;
 		std::string	toString( void ) const noexcept override;
 
@@ -68,10 +67,10 @@ class HTTPrequest : public HTTPstruct
 
 		void	_setHead( std::string const& ) override;
 		void	_setHeaders( std::string const& ) override;
+		void	_setBody( std::string const& ) override;
 
 		void	_setMethod( std::string const& );
 		void	_setURL( std::string const& );
-		void	_setVersion( std::string const& );
 
 		void	_setScheme( std::string const& );
 		void	_setHostPort( std::string const& );
@@ -79,5 +78,5 @@ class HTTPrequest : public HTTPstruct
 		void	_setQuery( std::string const& );
 		void	_setFragment( std::string const& );
 
-		void	_unchunkBody( std::string const& );
+		void	_setChunkedBody( std::string const& );
 };
