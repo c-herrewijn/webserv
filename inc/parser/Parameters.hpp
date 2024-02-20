@@ -48,11 +48,6 @@ class Parameters
 		const std::unordered_map<size_t, std::string>& 	getReturns(void) const;
 		const bool& 									getAutoindex(void) const;
 		const std::string& 								getRoot(void) const;
-		/*
-			To Do:
-			setErrorPages
-			setReturns
-		*/
 
 	private:
 		size_t 									block_index;
