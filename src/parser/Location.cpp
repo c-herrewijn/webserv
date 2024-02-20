@@ -55,23 +55,23 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 	params.setBlockIndex(param.getBlockIndex());
 	block.erase(block.begin());
 	if (block.front()[0] != '/')
-		throw ErrorCatch("After 'location' expected a /URL");
+		throw ParserException({"after 'location' expected a /URL"});
 	URL = block.front();
 	block.erase(block.begin());
 	if (block.front() != "{")
-		throw ErrorCatch("After '/URL' expected a '{'");
+		throw ParserException({"after '/URL' expected a '{'"});
 	block.erase(block.begin());
 	while (block.front() != "}" && !block.empty())
 	{
 		if (block.front() == "allowMethods")
-			parseAllowedMethod(block);
+			_parseAllowedMethod(block);
 		else if (block.front() == "location")
 		{
 			index = block.begin();
 			while (index != block.end() && *index != "{")
 				index++;
 			if (index == block.end())
-				throw ErrorCatch("Error on location parsing");
+				throw ParserException({"Error on location parsing"});
 			index++;
 			size++;
 			while (size && index != block.end())
@@ -83,7 +83,7 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 				index++;
 			}
 			if (size)
-				throw ErrorCatch("Error on location parsing with brackets");
+				throw ParserException({"Error on location parsing with brackets"});
 			std::vector<std::string> subVector(block.begin(), index);
 			block.erase(block.begin(), index);
 			locationHolder.push_back(subVector);
@@ -93,7 +93,7 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 				block.front() == "error_page" || block.front() == "return")
 			params.fill(block);
 		else
-			throw ErrorCatch("\'" + block.front() + "\' is not a valid parameter in 'location' context");
+			throw ParserException({"'" + block.front() + "' is not a valid parameter in 'location' context"});
 	}
 	block.erase(block.begin());
 	for (std::vector<std::vector<std::string>>::iterator it = locationHolder.begin(); it != locationHolder.end(); it++)
@@ -104,7 +104,7 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 	}
 }
 
-void	Location::parseAllowedMethod(std::vector<std::string>& block)
+void	Location::_parseAllowedMethod(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	while (1)
@@ -127,7 +127,7 @@ void	Location::parseAllowedMethod(std::vector<std::string>& block)
 		else if (block.front() == ";")
 			break ;
 		else
-			throw ErrorCatch("'" + block.front() + "' is not a valid element in allowMethods parameters");
+			throw ParserException({"'" + block.front() + "' is not a valid element in allowMethods parameters"});
 	}
 	block.erase(block.begin());
 }
@@ -166,13 +166,13 @@ std::ostream& operator<<(std::ostream& os, const Location& location)
 {
     size_t indentation = location.getBlockIndex();
     // Print the opening line for the current location
-    os << std::string(indentation, '\t') << "location " << location.URL << " {\n";
+    os << std::string(indentation, '\t') << "location " << location.getURL() << " {\n";
 
     // Print allowMethods
     os << std::string(indentation + 1, '\t') << "allowMethods " << location.allowedMethods << ";\n";
 
     // Print location params
-    os << location.params;
+    os << location.getParams();
 
     // Print Nested Locations
     const auto& nestedLocations = location.getNested();

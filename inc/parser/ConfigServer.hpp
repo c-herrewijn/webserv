@@ -21,53 +21,48 @@
 # include "Parameters.hpp"
 # include "Location.hpp"
 # include "Listen.hpp"
+# include "Exceptions.hpp"
+# include "HTTPrequest.hpp"
 
-# define DEF_CONF "default/default.conf"
+# define DEF_CONF std::string("default/default.conf")
 
 class ConfigServer
 {
-	private:
-		std::vector<Listen> listens; // Listens
-		std::vector<std::string> names; // is the given "server_name".
-		Parameters	params; // Default parameters for whole server block
-		std::vector<Location>	locations; // declared Locations
-		std::string	cgi_directory;	// bin for cgi
-		std::string	cgi_extension;	// extention .py .sh
-		bool		cgi_allowed;	// Check for permissions
-		// Parsers
-		void	parseListen(std::vector<std::string>& block);
-		void	parseServerName(std::vector<std::string>& block);
-		void	parseLocation(std::vector<std::string>& block);
-		void	parseCgiDir(std::vector<std::string>& block);
-		void	parseCgiExtension(std::vector<std::string>& block);
-		void	parseCgiAllowed(std::vector<std::string>& block);
-		// Setup
-		void	fillServer(std::vector<std::string>& block);
 	public:
 		// Form
+		ConfigServer(void) {};
 		ConfigServer(const ConfigServer& copy);
 		ConfigServer&	operator=(const ConfigServer& assign);
-		ConfigServer(void);
 		virtual ~ConfigServer(void);
-		// Subject
-		void	parseBlock(std::vector<std::string>& block);
-		// Getters
+		
+		void			parseBlock(std::vector<std::string>& block);
+		int				validateRequest(HTTPrequest&) const;
 		const std::vector<Listen>& getListens(void) const;
 		const std::vector<std::string>& getNames(void) const;
-		const Parameters&	getParams(void) const;
+		const std::string&				getPrimaryName(void) const;
+		const Parameters&				getParams(void) const;
 		const std::vector<Location>&	getLocations(void) const;
-		const std::string& getCgiDir(void) const;
-		const std::string& getCgiExtension(void) const;
-		const bool& getCgiAllowed(void) const;
-		class ErrorCatch : public std::exception {
-			public:
-				ErrorCatch(const std::string& message) : errorMessage(message) {}
-				const char* what() const throw() override {
-					return errorMessage.c_str();
-				}
-			private:
-				std::string errorMessage;
-		};
+		const std::string& 				getCgiDir(void) const;
+		const std::string& 				getCgiExtension(void) const;
+		const bool& 					getCgiAllowed(void) const;
+
+	private:
+		std::vector<Listen> 		listens; // Listens
+		std::vector<std::string>	names; // is the given "server_name".
+		Parameters					params; // Default parameters for whole server block
+		std::vector<Location>		locations; // declared Locations
+		std::string					cgi_directory;	// bin for cgi
+		std::string					cgi_extension;	// extention .py .sh
+		bool						cgi_allowed;	// Check for permissions
+
+		void	_parseListen(std::vector<std::string>& block);
+		void	_parseServerName(std::vector<std::string>& block);
+		void	_parseLocation(std::vector<std::string>& block);
+		void	_parseCgiDir(std::vector<std::string>& block);
+		void	_parseCgiExtension(std::vector<std::string>& block);
+		void	_parseCgiAllowed(std::vector<std::string>& block);
+		void	_fillServer(std::vector<std::string>& block);
+
     friend std::ostream& operator<<(std::ostream& os, const ConfigServer& server);
 };
 

@@ -13,20 +13,15 @@
 #include "parser/Config.hpp"
 #include "server/WebServer.hpp"
 
-std::vector<ConfigServer>	parseServers(char **av)
+std::vector<ConfigServer>	parseServers(std::string const& fileName)
 {
 	Config *config;
 	config = new Config();
 	std::vector<ConfigServer> servers;
-	try
-	{
-		if (av[1])
-			config->fillConfig(av[1]);
-		else
-			config->fillConfig(DEF_CONF);
+	try {
+		config->fillConfig(fileName);
 	}
-	catch(const std::exception& e)
-	{
+	catch(const std::exception& e) {
 		std::cerr << e.what() << '\n';
 		delete config;
 		return (servers);
@@ -36,55 +31,56 @@ std::vector<ConfigServer>	parseServers(char **av)
 	for (size_t i = 0; i < separated.size(); i++)
 	{
 		ConfigServer tmp;
-		try
-		{
-			std::cout << "--Parsing ConfigServer index " C_GREEN << i << C_RESET "--\n";
+		std::cout << "--Parsing Server index " C_GREEN << i << C_RESET "--\n";
+		try {
 			tmp.parseBlock(separated[i]);
 			servers.push_back(tmp);
 		}
-		catch(const std::exception& e)
-		{
-			std::cerr << "Failure on ConfigServer index " C_RED << i << C_RESET "\n";
+		catch(const std::exception& e) {
+			std::cerr << "Failure on Server index " C_RED << i << C_RESET "\n";
 			std::cerr << C_RED << e.what() << C_RESET "\n";
 			std::cerr << C_YELLOW "Continuing with parsing other servers...\n" C_RESET;
 		}
-
 	}
-	std::cout << "Parsing Done with size " C_AZURE << servers.size() << C_RESET "\n";
-	// "servers" must contain valid servers
 	return (servers);
-}
-
-int runWebServer( void )
-{
-	try
-	{
-		WebServer webServ("HAL-9001");
-		webServ.listenTo("localhost","4242");
-		webServ.listenTo("localhost","4343");
-		webServ.listenTo("localhost","4444");
-		webServ.loop();
-		return (0);
-	}
-	catch(ServerException const& e)
-	{
-		std::cout << e.what() << "\n";
-		return (-1);
-	}
 }
 
 int main(int ac, char **av)
 {
-	if (ac > 2)
+	std::vector<ConfigServer> servers;
+
+	if (ac == 1)
 	{
-		std::cerr << "Wrong amount of arguments received\n\tValid usage: " << av[0] << " " << av[1] <<  "\n";
+		std::cout << "No argument provided, using default configuration in " C_GREEN << DEF_CONF << C_RESET "\n";
+		servers = parseServers(DEF_CONF);
 	}
-	std::vector<ConfigServer> servers = parseServers(av);
-	// for (size_t i = 0; i < servers.size(); i++)
-	// {
-	// 	std::cout << "---Printing ConfigServer index: "  C_GREEN << i << C_RESET "---\n";
-	// 	std::cout << servers[i];
-	// }
-	runWebServer();
-	return (0);
+	else if (ac == 2)
+	{
+		std::cout << "Using custom configuration in " C_GREEN << av[1] << C_RESET "\n";
+		servers = parseServers(av[1]);
+		if (servers.empty() == false)
+		{
+			std::cout << C_RED "No valid server configuration in " << av[1] << C_RESET "\nSwitching to default configuration in " C_GREEN << DEF_CONF << C_RESET "\n";
+			servers = parseServers(DEF_CONF);
+		}
+	}
+	else
+	{
+		std::cerr << C_RED "Wrong amount of arguments - valid usage: ./" << av[0] << " [config_file_path]\n";
+		return (EXIT_FAILURE);
+	}
+	std::cout << "Found " C_AZURE << servers.size() << C_RESET " available server\n";
+
+	WebServer	webserv(servers);
+	try
+	{
+		webserv.startListen();
+		webserv.loop();
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+		return (EXIT_FAILURE);
+	}
+	return (EXIT_SUCCESS);
 }

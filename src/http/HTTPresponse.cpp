@@ -1,48 +1,132 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        ::::::::            */
-/*   HTTPbuilder.cpp                                    :+:    :+:            */
+/*   HTTPresponse.cpp                                   :+:    :+:            */
 /*                                                     +:+                    */
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
-/*   Created: 2024/01/22 18:47:41 by fra           #+#    #+#                 */
-/*   Updated: 2024/01/29 18:16:43 by faru          ########   odam.nl         */
+/*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
+/*   Updated: 2024/02/19 22:30:38 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "HTTPbuilder.hpp"
+#include "HTTPresponse.hpp"
 
-HTTPresponse	HTTPbuilder::buildResponse( int statusCode, std::string& body )
+void	HTTPresponse::parseFromStatic( int code, std::string const& servName, std::string const& body ) noexcept
 {
-	HTTPresponse resp;
-
-	resp.head.version.scheme = HTTP_SCHEME;
-	resp.head.version.major = 1;
-	resp.head.version.minor = 1;
-	resp.head.exitCode = statusCode;
-	try
-	{
-		resp.head.status = _mapStatus(statusCode);
-	}
-	catch(const BuilderException& e) {
-		std::cout << e.what() << '\n';
-		resp.head.exitCode = 500;
-		resp.head.status = _mapStatus(500);
-	}
-	_addHeader(resp, "Date", _getDateTime());
-	// _addHeader(resp, "Server", "<server name>")
-	if (!body.empty())
-	{
-		_addHeader(resp, "Content-Length", std::to_string(body.size()));
-		_addHeader(resp, "Content-Type", std::string("text/html; charset=utf-8"));	// NB: do I need other formats?
-	}
-	resp.body = body;
-	return (resp);
+	_setHead(std::to_string(code));
+	_addHeader("Date", _getDateTime());
+	_addHeader("Server", servName);
+	_setBody(body);
 }
 
-std::string	HTTPbuilder::_mapStatus( int status)
+void	HTTPresponse::parseFromCGI( int code, std::string const& CGIresp ) noexcept
 {
-	std::map<int, std::string> mapStatus = 
+	std::string headers, body;
+	size_t		delimiter;
+
+	_setHead(std::to_string(code));
+	headers = CGIresp;
+	delimiter = CGIresp.find(HTTP_TERM);
+	if (delimiter != std::string::npos)
+	{
+		delimiter += HTTP_NL.size();
+		body = CGIresp.substr(delimiter);
+		headers = CGIresp.substr(0, delimiter);
+	}
+	_setHeaders(headers);
+	_setBody(body);
+}
+
+void		HTTPresponse::writeContent( int socket )
+{
+	std::string 	toWrite, fullContent=this->toString();
+	size_t			start=0, len=fullContent.size();
+	ssize_t 		written=0;
+	
+	_setSocket(socket);
+	while (start < fullContent.size())
+	{
+		toWrite = fullContent.substr(start, len);
+		written = send(this->_socket, toWrite.c_str(), len, 0);
+		if (written < -1)
+			throw(ServerException({"from writing: socket not available"}));
+		start += written;
+		len -= written;
+	}
+}
+
+std::string	HTTPresponse::toString( void ) const noexcept
+{
+	std::string	strResp;
+
+	strResp += this->_version.scheme;
+	strResp += "/";
+	strResp += std::to_string(this->_version.major);
+	strResp += ".";
+	strResp += std::to_string(this->_version.minor);
+	strResp += HTTP_SP;
+	strResp += std::to_string(this->_statusCode);
+	strResp += HTTP_SP;
+	strResp += this->_statusStr;
+	strResp += HTTP_NL;
+	if (!this->_headers.empty())
+	{
+		for (auto item : this->_headers)
+		{
+			strResp += item.first;
+			strResp += ":";
+			strResp += HTTP_SP;
+			strResp += item.second;
+			strResp += HTTP_NL;
+		}
+	}
+	strResp += HTTP_NL;
+	if (!this->_body.empty())
+	{
+		strResp += this->_body;
+		strResp += HTTP_TERM;
+	}
+	return (strResp);
+}
+
+int		HTTPresponse::getStatusCode( void ) const noexcept
+{
+	return (this->_statusCode);
+}
+
+std::string	HTTPresponse::getStatusStr( void ) const
+{
+	return (this->_statusStr);
+}
+
+void	HTTPresponse::_setHead( std::string const& strStatusCode)
+{
+	this->_version.scheme = HTTP_SCHEME;
+	this->_version.major = 1;
+	this->_version.minor = 1;
+	try {
+		this->_statusCode = std::stoi(strStatusCode);
+	}
+	catch(const std::exception& e) {
+		std::cout << e.what() << '\n';
+		this->_statusCode = 500;
+	}
+}
+
+void	HTTPresponse::_setBody( std::string const& strBody)
+{
+    if (strBody.empty())
+		return ;
+	_addHeader("Content-Length", std::to_string(strBody.size()));
+	_addHeader("Content-Type", std::string(STD_CONTENT_TYPE));	// NB: do I need other formats?
+	HTTPstruct::_setBody(strBody);
+}
+
+// NB: see RC 7231 for info about every specific error code
+std::string	HTTPresponse::_mapStatusCode( int status) const
+{
+	std::map<int, const char*> mapStatus = 
 	{
 		// Information responses
 		{100, "Continue"},				// This interim response indicates that the client should continue the request or ignore the response if the request is already finished.
@@ -119,16 +203,11 @@ std::string	HTTPbuilder::_mapStatus( int status)
 		return (std::string(mapStatus.at(status)));
 	}
 	catch(const std::out_of_range& e) {
-		throw(BuilderException({"Unknown HTTP response code:", std::to_string(status).c_str()}));
+		throw(HTTPexception({"Unknown HTTP response code:", std::to_string(status)}, 500));
 	}
 }
 
-void	HTTPbuilder::_addHeader(HTTPresponse& resp, std::string const& name, std::string const& content)
-{
-	resp.headers[name] = content;
-}
-
-std::string	HTTPbuilder::_getDateTime( void )
+std::string	HTTPresponse::_getDateTime( void ) const noexcept
 {
 	std::time_t rawtime;
     std::tm* timeinfo;
@@ -139,15 +218,3 @@ std::string	HTTPbuilder::_getDateTime( void )
     std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
 	return (std::string(buffer));
 }
-
-HTTPbuilder::HTTPbuilder( HTTPbuilder const& other ) noexcept
-{
-	(void) other;
-}
-
-HTTPbuilder& HTTPbuilder::operator=( HTTPbuilder const& other ) noexcept
-{
-	(void) other;
-	return (*this);
-}
-
