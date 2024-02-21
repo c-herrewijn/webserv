@@ -1,0 +1,46 @@
+poll loop
+    loop over server sockets: handleSocket()
+        -> add connections
+
+    loop over connections: handleConnection()
+        -> create request objects
+        -> read request (read all headers 8192 bytes)
+        -> parse request headers
+        CGI:
+            -> launch CGI
+            -> read body
+            -> write bodyto CGI
+            -> read from CGI
+        Static:
+            -> read from static file
+        -> write response
+        -> delete request object
+        -> close connection (if not Keep-Alive)
+
+
+Server obj;
+    struct PollItem serverSocket;
+    server config; (ip, port, etc)
+
+
+Connection obj;
+    - request Arr       # Pipelining means multiple requests can be active at the same time!
+    - struct PollItem connectionSocket;
+
+
+Request obj;
+    - parsed headers
+    - body_partial
+    - CGI obj
+    - struct PollItem staticFile;
+    - state:
+        READ_REQ_HEADERS,           # read
+        FOREWARD_REQ_BODY_TO_CGI,   # read + write
+        READ_FROM_CGI,              # read
+        READ_FROM_FILE,             # read
+        WRITE_RESPONSE              # write
+
+
+CGI obj;
+    struct PollItem CGIdataPipe;
+    struct PollItem CGIresponsePipe;
