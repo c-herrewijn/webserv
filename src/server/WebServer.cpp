@@ -75,6 +75,12 @@ void			WebServer::loop( void )
 		}
 		else if (nConn > 0)
 		{
+			// some notes:
+			//		1. update reading for chunked requests: it is possibile un unchunk 
+			// 			the body directly while reading, intstead of storing it in a variable
+			// 		2. because of fork, waitpid (no hang) should be checked here to terminate any child
+			//		3. also during signal (children have to be killed?)
+			//
 			// TODO:
 
 			// loop through the listener sockets
@@ -92,7 +98,7 @@ void			WebServer::loop( void )
 			// 							// CGI_DATA_PIPE (writing body POLLOUT)
 
 			// handleCGIResponse();
-			// 							// CGI_RESPONSE_PIPE (reading response) state: FOREWARD_CGI_RESPONSE
+			// 							// CGI_RESPONSE_PIPE (reading response) state: FORWARD_CGI_RESPONSE
 			// 							// CGI_RESPONSE_PIPE (reading POLLIN),
 			// 							// CLIENT_CONNECTION (writing POLLOUT)
 

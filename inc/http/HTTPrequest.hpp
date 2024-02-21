@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/19 22:31:24 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/21 23:24:54 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,17 +46,19 @@ class HTTPrequest : public HTTPstruct
 			_maxBodySize(0) ,
 			_contentLength(0) ,
 			_isChunked(false),
-			_isFileUpload(false) {};
+			_isFileUpload(false),
+			_endConn(false) {};
 		virtual ~HTTPrequest( void ) override {};
 
-		void		readHead( int );
-		void		readPlainBody( int );
-		void		readChunkedBody( int );
-		void		parseHead( std::string const& );
-		void		parseBody( int, size_t );
-		bool		isCGI( void ) const noexcept;
-		bool		isChunked( void ) const noexcept;
-		bool		isFileUpload( void ) const noexcept;
+		void	readHead( int );
+		void	readPlainBody( int );
+		void	readChunkedBody( int );
+		void	parseHead( std::string const& );
+		void	parseBody( int, size_t );
+		bool	isCGI( void ) const noexcept;
+		bool	isChunked( void ) const noexcept;
+		bool	isFileUpload( void ) const noexcept;
+		bool	isEndConn( void ) const noexcept;
 
 		std::string	toString( void ) const noexcept override;
 
@@ -74,7 +76,7 @@ class HTTPrequest : public HTTPstruct
 		std::string	_tmpBody;
 
 		size_t		_maxBodySize, _contentLength;
-		bool		_isChunked, _isFileUpload;
+		bool		_isChunked, _isFileUpload, _endConn;
 
 		void	_setHead( std::string const& ) override;
 		void	_setHeaders( std::string const& ) override;
@@ -87,6 +89,8 @@ class HTTPrequest : public HTTPstruct
 		void	_setPath( std::string const& );
 		void	_setQuery( std::string const& );
 		void	_setFragment( std::string const& );
+
+		void	_setVersion( std::string const& );
 
 		void		_checkBodyInfo( size_t );
 		std::string	_unchunkBody( std::string const& );

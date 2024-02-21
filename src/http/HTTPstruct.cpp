@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/19 21:49:21 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/21 22:39:41 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,13 +67,6 @@ bool	HTTPstruct::hasBody( void) const noexcept
 	return(this->_hasBody);
 }
 
-// void	HTTPstruct::_setSocket( int socket )
-// {
-// 	if (socket == -1)
-// 		throw(HTTPexception({"invalid socket"}, 500));
-// 	this->_socket = socket;
-// }
-
 void	HTTPstruct::_setHeaders( std::string const& headers )
 {
 	size_t 		del1, del2;
@@ -98,31 +91,6 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 void	HTTPstruct::_setBody( std::string const& strBody )
 {
     this->_body = strBody;
-}
-
-void	HTTPstruct::_setVersion( std::string const& strVersion )
-{
-	size_t	del1, del2;
-
-	del1 = strVersion.find('/');
-	if (del1 == std::string::npos)
-		throw(HTTPexception({"invalid version:", strVersion}, 400));
-	this->_version.scheme = strVersion.substr(0, del1);
-	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::toupper);
-	if (this->_version.scheme != HTTP_SCHEME)
-		throw(HTTPexception({"invalid scheme:", strVersion}, 400));
-	del2 = strVersion.find('.');
-	if (del2 == std::string::npos)
-		throw(HTTPexception({"invalid version:", strVersion}, 400));
-	try {
-		this->_version.major = std::stoi(strVersion.substr(del1 + 1, del2 - del1 - 1));
-		this->_version.minor = std::stoi(strVersion.substr(del2 + 1));
-	}
-	catch (std::exception const& e) {
-		throw(HTTPexception({"invalid version numbers:", strVersion}, 400));
-	}
-	if (this->_version.major + this->_version.minor != 2)
-		throw(HTTPexception({"unsupported HTTP version:", strVersion}, 400));
 }
 
 void	HTTPstruct::_addHeader(std::string const& name, std::string const& content) noexcept
