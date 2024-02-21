@@ -42,18 +42,18 @@ typedef struct HTTPurl_f
 class HTTPrequest : public HTTPstruct
 {
 	public:
-		HTTPrequest( void ) : HTTPstruct() , 
-			_maxBodySize(0) , 
-			_contentLength(0) , 
-			_isChunked(false), 
+		HTTPrequest( void ) : HTTPstruct() ,
+			_maxBodySize(0) ,
+			_contentLength(0) ,
+			_isChunked(false),
 			_isFileUpload(false) {};
 		virtual ~HTTPrequest( void ) override {};
 
 		void		readHead( int );
-		void		readPlainBody( void );
-		void		readChunkedBody( void );
+		void		readPlainBody( int );
+		void		readChunkedBody( int );
 		void		parseHead( std::string const& );
-		void		parseBody( size_t );
+		void		parseBody( int, size_t );
 		bool		isCGI( void ) const noexcept;
 		bool		isChunked( void ) const noexcept;
 		bool		isFileUpload( void ) const noexcept;

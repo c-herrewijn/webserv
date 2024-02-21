@@ -21,7 +21,7 @@
 #include "Exceptions.hpp"
 
 #define HTTP_DEF_PORT		80							// default port
-#define HTTP_SCHEME			std::string("HTTP")			// http scheme	
+#define HTTP_SCHEME			std::string("HTTP")			// http scheme
 #define HTTP_TERM			std::string("\r\n\r\n")		// http terminator
 #define HTTP_NL				std::string("\r\n")			// http delimiter
 #define HTTP_SP				std::string(" ")			// shortcut for space
@@ -40,22 +40,22 @@ typedef struct HTTPversion_f
 class HTTPstruct
 {
 	public:
-		HTTPstruct( void ) : _socket(-1) , _hasBody(true) {}
+		HTTPstruct( void ) : _hasBody(true) {}
 		virtual	~HTTPstruct( void ) {};
 
 		virtual std::string	toString( void ) const noexcept =0;
 
-		int		getSocket( void ) const noexcept;
+		// int		getSocket( void ) const noexcept;
 		bool	hasBody( void) const noexcept;
 
 	protected:
 		dict 		_headers;
 		std::string	_body;
     	HTTPversion	_version;
-		int			_socket;
+		// int			_socket;
 		bool		_hasBody;
 
-		void			_setSocket( int );
+		// void			_setSocket( int );
 		virtual void	_setHead( std::string const& )=0;
 		virtual void	_setHeaders( std::string const& );
 		virtual void	_setBody( std::string const& );

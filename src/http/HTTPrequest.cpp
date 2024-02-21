@@ -33,16 +33,16 @@ void	HTTPrequest::parseHead( std::string const& strReq )
 	_setHead(head);
 }
 
-void	HTTPrequest::parseBody( size_t maxBodyLength )
+void	HTTPrequest::parseBody( int socket, size_t maxBodyLength )
 {
 
 	_checkBodyInfo(maxBodyLength);
 	if (this->_hasBody == false)
 		return ;
 	else if (this->_isChunked == true)
-		readChunkedBody();
+		readChunkedBody(socket);
 	else
-		readPlainBody();
+		readPlainBody(socket);
 	// std::cout << toString();
 }
 
@@ -53,11 +53,11 @@ void	HTTPrequest::readHead( int socket )
 	std::string content;
 	size_t		httpTerm = std::string::npos;
 
-	_setSocket(socket);
+	// _setSocket(socket);
 	while (true)
 	{
 		bzero(buffer, DEF_BUF_SIZE + 1);
-		recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+		recv(socket, buffer, DEF_BUF_SIZE, 0);
 		content += std::string(buffer);
 		httpTerm = content.find(HTTP_TERM);
 		if ( httpTerm != std::string::npos)
@@ -70,18 +70,18 @@ void	HTTPrequest::readHead( int socket )
 }
 
 //NB: add timeout error: 408
-void	HTTPrequest::readPlainBody( void )
+void	HTTPrequest::readPlainBody( int socket )
 {
     ssize_t 	readChar = -1;
     char        buffer[DEF_BUF_SIZE + 1];
 	std::string	body = this->_tmpBody;
 
-	if (this->_socket == -1)
+	if (socket == -1)
 		throw(RequestException({"invalid socket"}, 500));
 	while (body.size() < this->_contentLength)
 	{
 		bzero(buffer, DEF_BUF_SIZE + 1);
-		readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+		readChar = recv(socket, buffer, DEF_BUF_SIZE, 0);
 		if (readChar <= 0)
 			continue;
 		body += buffer;
@@ -92,21 +92,21 @@ void	HTTPrequest::readPlainBody( void )
 }
 
 //NB: add timeout error: 408
-void	HTTPrequest::readChunkedBody( void )
+void	HTTPrequest::readChunkedBody( int socket )
 {
     ssize_t 	readChar = -1;
 	size_t		delimiter=0, countChars=0;
     char    	buffer[DEF_BUF_SIZE + 1];
 	std::string body = this->_tmpBody;
 
-	if (this->_socket == -1)
+	if (socket == -1)
 		throw(RequestException({"invalid socket"}, 500));
 	else if ((this->_maxBodySize != 0) and (this->_maxBodySize < body.size()))
 		throw(RequestException({"content body is longer than the maximum allowed"}, 413));
 	do
 	{
 		bzero(buffer, DEF_BUF_SIZE + 1);
-		readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+		readChar = recv(socket, buffer, DEF_BUF_SIZE, 0);
 		if (readChar <= 0)
 			continue;
 		countChars += readChar;
@@ -400,7 +400,7 @@ void	HTTPrequest::_setFragment( std::string const& strFragment)
 void	HTTPrequest::_checkBodyInfo( size_t maxBodyLength )
 {
 	this->_maxBodySize = maxBodyLength;
-	
+
 	try {
 		this->_headers.at("Content-Length");
 		try {
@@ -419,7 +419,7 @@ void	HTTPrequest::_checkBodyInfo( size_t maxBodyLength )
 				this->_isFileUpload = true;
 		}
 		catch(const std::exception& e) {}
-		
+
 	}
 	catch (const std::out_of_range& e1) {
 		try {

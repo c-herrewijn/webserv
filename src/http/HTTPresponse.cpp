@@ -43,12 +43,13 @@ void		HTTPresponse::writeContent( int socket )
 	std::string 	toWrite, fullContent=this->toString();
 	size_t			start=0, len=fullContent.size();
 	ssize_t 		written=0;
-	
-	_setSocket(socket);
+
+	if (socket == -1)
+		throw(ResponseException({"invalid socket"}, 500));
 	while (start < fullContent.size())
 	{
 		toWrite = fullContent.substr(start, len);
-		written = send(this->_socket, toWrite.c_str(), len, 0);
+		written = send(socket, toWrite.c_str(), len, 0);
 		if (written < -1)
 			throw(ServerException({"from writing: socket not available"}));
 		start += written;
@@ -126,7 +127,7 @@ void	HTTPresponse::_setBody( std::string const& strBody)
 // NB: see RC 7231 for info about every specific error code
 std::string	HTTPresponse::_mapStatusCode( int status) const
 {
-	std::map<int, const char*> mapStatus = 
+	std::map<int, const char*> mapStatus =
 	{
 		// Information responses
 		{100, "Continue"},				// This interim response indicates that the client should continue the request or ignore the response if the request is already finished.
@@ -144,7 +145,7 @@ std::string	HTTPresponse::_mapStatusCode( int status) const
 		{207, "Multi-Status"},					// Conveys information about multiple resources, for situations where multiple status codes might be appropriate.
 		{208, "Already Reported"},				// Used inside a <dav:propstat> response element to avoid repeatedly enumerating the internal members of multiple bindings to the same collection.
 		{226, "IM Used"},						// The server has fulfilled a GET request for the resource, and the response is a representation of the result of one or more instance-manipulations applied to the current instance.
-		// Redirection messages						
+		// Redirection messages
 		{300, "Multiple Choices"},		// The request has more than one possible response. The user agent or user should choose one of them. (There is no standardized way of choosing one of the responses, but HTML links to the possibilities are recommended so the user can pick.)
 		{301, "Moved Permanently"},		// The URL of the requested resource has been changed permanently. The new URL is given in the response.
 		{302, "Found"},					// This response code means that the URI of requested resource has been changed temporarily. Further changes in the URI might be made in the future. Therefore, this same URI should be used by the client in future requests.

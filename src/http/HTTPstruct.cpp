@@ -61,22 +61,18 @@
 // 	}
 // }
 
-int		HTTPstruct::getSocket( void ) const noexcept
-{
-	return (this->_socket);
-}
 
 bool	HTTPstruct::hasBody( void) const noexcept
 {
 	return(this->_hasBody);
 }
 
-void	HTTPstruct::_setSocket( int socket )
-{
-	if (socket == -1)
-		throw(HTTPexception({"invalid socket"}, 500));
-	this->_socket = socket;
-}
+// void	HTTPstruct::_setSocket( int socket )
+// {
+// 	if (socket == -1)
+// 		throw(HTTPexception({"invalid socket"}, 500));
+// 	this->_socket = socket;
+// }
 
 void	HTTPstruct::_setHeaders( std::string const& headers )
 {

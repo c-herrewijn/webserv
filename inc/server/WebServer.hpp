@@ -59,17 +59,20 @@ class WebServer
 		std::string		getAddress( const struct sockaddr_storage*) const noexcept ;
 		ConfigServer const&	getHandler( std::string const& ) const ;
 		ConfigServer const&	getDefaultServer( void ) const ;
+		// void addRequestIfNew( int );
 
 	private:
-		ConfigServer				_defaultServer;
-		std::vector<ConfigServer>	_servers;
-		std::vector<Listen>			_listenAddress;
-		std::vector<struct pollfd>	_pollfds;
-		std::set<int>				_listeners;
+		ConfigServer				 _defaultServer;
+		std::vector<ConfigServer>	 _servers;
+		std::vector<Listen>			 _listenAddress;
+		std::vector<struct pollfd>	 _pollfds;
+		std::set<int>				 _listeners;
+
+		std::vector<RequestExecutor> _requests;
 
 		void			_listenTo( std::string const&, std::string const& );
 		void			_acceptConnection( int ) ;
-		HTTPresponse	_handleRequest( int ) const ;
+		HTTPresponse	_handleRequest( int ) ;
 		bool			_isListener( int ) const ;
 		void			_addConn( int ) noexcept;
 		void			_dropConn( int socket = -1 ) noexcept;

@@ -55,6 +55,11 @@ void			WebServer::startListen( void )
 
 }
 
+// WebServer::addRequestIfNew(int socket)
+// {
+
+// }
+
 void			WebServer::loop( void )
 {
 	int				nConn = -1;
@@ -70,6 +75,36 @@ void			WebServer::loop( void )
 		}
 		else if (nConn > 0)
 		{
+			// TODO:
+
+			// loop through the listener sockets
+			// handleNewConnections();  	// SERVER_SOCKET (reading)
+
+
+			// // all functions should loop through the _requests, but only act on certain states
+			// handleNewClientConnections();  // state: READ_REQ_HEADERS
+			// 							// CLIENT_CONNECTION (reading header only: )
+			// 							// if CGI, run the program
+
+
+			// handleCGIRequest();			// state: FOREWARD_REQ_TO_CGI
+			// 							// CLIENT_CONNECTION (reading body POLLIN),
+			// 							// CGI_DATA_PIPE (writing body POLLOUT)
+
+			// handleCGIResponse();
+			// 							// CGI_RESPONSE_PIPE (reading response) state: FOREWARD_CGI_RESPONSE
+			// 							// CGI_RESPONSE_PIPE (reading POLLIN),
+			// 							// CLIENT_CONNECTION (writing POLLOUT)
+
+  			// countStaticFileLength(); 	// state: DETERMINE_STATIC_FILE_LENGTH
+			// 							// STATIC_FILE (reading file)
+
+			// forewardStaticFile()		// state: FOREWARD_STATIC_FILE
+			// 							// STATIC_FILE (read)
+			// 							// CLIENT_CONNECTION (write)
+
+
+			// assuming reading from client connections
 			for (size_t i=0; i<this->_pollfds.size(); i++)
 			{
 				try {
@@ -79,6 +114,10 @@ void			WebServer::loop( void )
 							_acceptConnection(this->_pollfds[i].fd);
 						else
 						{
+
+							// // TODO
+							// addRequestIfNew(_pollfds[i].fd);
+
 							response = _handleRequest(this->_pollfds[i].fd);
 							response.writeContent(this->_pollfds[i].fd);
 							if (response.getStatusCode() != 200)
@@ -196,14 +235,16 @@ void			WebServer::_acceptConnection( int listener )
 	this->_addConn(connfd);
 }
 
-HTTPresponse	WebServer::_handleRequest( int connfd ) const
+HTTPresponse	WebServer::_handleRequest( int connfd )
 {
 	HTTPrequest 	request;
 	HTTPresponse	response;
 
+	// this->_requests.push_back(executor);
+
 	try {
+		RequestExecutor executor(connfd);
 		request.readHead(connfd);
-		RequestExecutor executor(getHandler(request.getHost()), request);
 		response = executor.execRequest();
 	}
 	catch (const HTTPexception& e) {

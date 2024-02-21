@@ -26,7 +26,7 @@ class HTTPresponse : public HTTPstruct
 
 		void		parseFromStatic( int, std::string const&, std::string const& ) noexcept;
 		void		parseFromCGI( int, std::string const& ) noexcept;
-		void		writeContent( int socket=-1 ) ;
+		void		writeContent( int ) ;
 		std::string	toString( void ) const noexcept override;
 
 		int			getStatusCode( void ) const noexcept;
