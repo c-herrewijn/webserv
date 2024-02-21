@@ -62,7 +62,7 @@ void			WebServer::loop( void )
 
 	while (true)
 	{
-		nConn = poll(this->_connfds.data(), this->_connfds.size(), 0);
+		nConn = poll(this->_pollfds.data(), this->_pollfds.size(), 0);
 		if (nConn < 0)
 		{
 			if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
@@ -70,27 +70,27 @@ void			WebServer::loop( void )
 		}
 		else if (nConn > 0)
 		{
-			for (size_t i=0; i<this->_connfds.size(); i++)
+			for (size_t i=0; i<this->_pollfds.size(); i++)
 			{
 				try {
-					if (this->_connfds[i].revents & POLLIN)
+					if (this->_pollfds[i].revents & POLLIN)
 					{
-						if (_isListener(this->_connfds[i].fd) == true) // new connection
-							_acceptConnection(this->_connfds[i].fd);
+						if (_isListener(this->_pollfds[i].fd) == true) // new connection
+							_acceptConnection(this->_pollfds[i].fd);
 						else
 						{
-							response = _handleRequest(this->_connfds[i].fd);
-							response.writeContent(this->_connfds[i].fd);
+							response = _handleRequest(this->_pollfds[i].fd);
+							response.writeContent(this->_pollfds[i].fd);
 							if (response.getStatusCode() != 200)
-								_dropConn(this->_connfds[i--].fd);
+								_dropConn(this->_pollfds[i--].fd);
 						}
 					}
-					if (this->_connfds[i].revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
-						_dropConn(this->_connfds[i--].fd);
+					if (this->_pollfds[i].revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
+						_dropConn(this->_pollfds[i--].fd);
 				}
 				catch(const ServerException& e) {
 					std::cerr << e.what() << '\n';
-					_dropConn(this->_connfds[i--].fd);
+					_dropConn(this->_pollfds[i--].fd);
 				}
 			}
 		}
@@ -203,7 +203,7 @@ HTTPresponse	WebServer::_handleRequest( int connfd ) const
 
 	try {
 		request.readHead(connfd);
-		Executor executor(getHandler(request.getHost()), request);
+		RequestExecutor executor(getHandler(request.getHost()), request);
 		response = executor.execRequest();
 	}
 	catch (const HTTPexception& e) {
@@ -227,21 +227,21 @@ void			WebServer::_addConn( int newSocket ) noexcept
 		newfd.fd = newSocket;
 		newfd.events = POLLIN | POLLOUT;
 		newfd.revents = 0;
-		this->_connfds.push_back(newfd);
+		this->_pollfds.push_back(newfd);
 	}
 }
 
 void			WebServer::_dropConn(int toDrop) noexcept
 {
-	for (size_t i=0; i<this->_connfds.size(); i++)
+	for (size_t i=0; i<this->_pollfds.size(); i++)
 	{
-		if ((this->_connfds[i].fd == toDrop) or (toDrop == -1))
+		if ((this->_pollfds[i].fd == toDrop) or (toDrop == -1))
 		{
-			shutdown(this->_connfds[i].fd, SHUT_RDWR);
-			close(this->_connfds[i].fd);
-			this->_connfds.erase(this->_connfds.begin() + i);
-			if (this->_isListener(this->_connfds[i].fd) == true)
-				this->_listeners.erase(this->_connfds[i].fd);
+			shutdown(this->_pollfds[i].fd, SHUT_RDWR);
+			close(this->_pollfds[i].fd);
+			this->_pollfds.erase(this->_pollfds.begin() + i);
+			if (this->_isListener(this->_pollfds[i].fd) == true)
+				this->_listeners.erase(this->_pollfds[i].fd);
 			if (toDrop != -1)
 				break;
 			i--;

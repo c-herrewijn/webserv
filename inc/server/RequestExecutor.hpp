@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        ::::::::            */
-/*   Executor.hpp                                       :+:    :+:            */
+/*   RequestExecutor.hpp                                       :+:    :+:            */
 /*                                                     +:+                    */
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
@@ -30,11 +30,11 @@
 #include "HTTPresponse.hpp"
 #include "ConfigServer.hpp"
 
-class Executor
+class RequestExecutor
 {
 	public:
-		Executor( ConfigServer const&, HTTPrequest& ) noexcept;
-		~Executor( void ) noexcept {};
+		RequestExecutor( ConfigServer const&, HTTPrequest& ) noexcept;
+		~RequestExecutor( void ) noexcept {};
 		HTTPresponse	execRequest( void ) noexcept;
 		HTTPresponse	createResponse( int, std::string const&) noexcept;
 

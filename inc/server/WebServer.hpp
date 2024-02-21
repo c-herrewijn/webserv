@@ -40,7 +40,7 @@
 
 #include "HTTPrequest.hpp"
 #include "HTTPresponse.hpp"
-#include "Executor.hpp"
+#include "RequestExecutor.hpp"
 #include "Exceptions.hpp"
 #include "ConfigServer.hpp"
 #define BACKLOG 			10				        	// max pending connection queued up
@@ -64,7 +64,7 @@ class WebServer
 		ConfigServer				_defaultServer;
 		std::vector<ConfigServer>	_servers;
 		std::vector<Listen>			_listenAddress;
-		std::vector<struct pollfd>	_connfds;
+		std::vector<struct pollfd>	_pollfds;
 		std::set<int>				_listeners;
 
 		void			_listenTo( std::string const&, std::string const& );

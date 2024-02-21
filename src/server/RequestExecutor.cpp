@@ -1,7 +1,7 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        ::::::::            */
-/*   Executor.cpp                                       :+:    :+:            */
+/*   RequestExecutor.cpp                                       :+:    :+:            */
 /*                                                     +:+                    */
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
@@ -10,15 +10,15 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Executor.hpp"
+#include "RequestExecutor.hpp"
 #include "CGI.hpp"
 
-Executor::Executor( ConfigServer const& config, HTTPrequest& req) noexcept : _configServer(config) , _request(req)
+RequestExecutor::RequestExecutor( ConfigServer const& config, HTTPrequest& req) noexcept : _configServer(config) , _request(req)
 {
     this->_servName = config.getPrimaryName();
 }
 
-HTTPresponse	Executor::execRequest( void ) noexcept
+HTTPresponse	RequestExecutor::execRequest( void ) noexcept
 {
     int             status = 200;
     HTTPresponse    response;
@@ -41,7 +41,7 @@ HTTPresponse	Executor::execRequest( void ) noexcept
     return (response);
 }
 
-HTTPresponse	Executor::createResponse( int status, std::string const& bodyResp ) noexcept
+HTTPresponse	RequestExecutor::createResponse( int status, std::string const& bodyResp ) noexcept
 {
 	HTTPresponse response;
 
@@ -49,22 +49,22 @@ HTTPresponse	Executor::createResponse( int status, std::string const& bodyResp )
 	return (response);
 }
 
-ConfigServer const&		Executor::getHandler( void ) const noexcept
+ConfigServer const&		RequestExecutor::getHandler( void ) const noexcept
 {
     return (this->_configServer);
 }
 
-void				Executor::setRequest( HTTPrequest& req) noexcept
+void				RequestExecutor::setRequest( HTTPrequest& req) noexcept
 {
 	this->_request = req;
 }
 
-HTTPrequest const&	Executor::getRequest( void ) const noexcept
+HTTPrequest const&	RequestExecutor::getRequest( void ) const noexcept
 {
 	return(this->_request);
 }
 
-std::string	Executor::_runHTTPmethod( void )
+std::string	RequestExecutor::_runHTTPmethod( void )
 {
     std::string	body;
 
@@ -98,7 +98,7 @@ std::string	Executor::_runHTTPmethod( void )
 	return (body);
 }
 
-std::string	Executor::_execGET( void )
+std::string	RequestExecutor::_execGET( void )
 {
 	std::string pathReq = this->_request.getPath();
 	std::string htmlBody;
@@ -128,7 +128,7 @@ std::string	Executor::_execGET( void )
 	return (htmlBody);
 }
 
-std::string	Executor::_execPOST( void )
+std::string	RequestExecutor::_execPOST( void )
 {
 	std::string pathReq = this->_request.getPath();
 	std::string htmlBody;
@@ -156,12 +156,12 @@ std::string	Executor::_execPOST( void )
 	return (htmlBody);
 }
 
-std::string	Executor::_execDELETE( void )
+std::string	RequestExecutor::_execDELETE( void )
 {
 	return ("");
 }
 
-std::string	Executor::_readContent(std::string const& pathReq)
+std::string	RequestExecutor::_readContent(std::string const& pathReq)
 {
 	std::fstream	fd(pathReq.c_str());
 	std::string		body, line;
