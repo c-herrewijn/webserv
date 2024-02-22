@@ -76,7 +76,7 @@ void			WebServer::loop( void )
 		else if (nConn > 0)
 		{
 			// some notes:
-			//		1. update reading for chunked requests: it is possibile un unchunk 
+			//		1. update reading for chunked requests: it is possibile un unchunk
 			// 			the body directly while reading, intstead of storing it in a variable
 			// 		2. because of fork, waitpid (no hang) should be checked here to terminate any child
 			//		3. also during signal (children have to be killed?)
@@ -84,8 +84,15 @@ void			WebServer::loop( void )
 			// TODO:
 
 			// loop through the listener sockets
-			// handleNewConnections();  	// SERVER_SOCKET (reading)
+			handleNewConnections(this->_pollitems, this->_pollfds);  	// SERVER_SOCKET (reading)
 
+			readRequestHeaders(this->_pollitems, this->_pollfds);
+			readStaticFiles(this->_pollitems, this->_pollfds);
+			forwardRequestBodyToCGI(this->_pollitems, this->_pollfds);
+			readCGIResponses(this->_pollitems, this->_pollfds);
+			writeToClients(this->_pollitems, this->_pollfds);
+
+			// markAllPollItemsAsActionable();
 
 			// // all functions should loop through the _requests, but only act on certain states
 			// handleNewClientConnections();  // state: READ_REQ_HEADERS
@@ -294,4 +301,40 @@ void			WebServer::_dropConn(int toDrop) noexcept
 			i--;
 		}
 	}
+}
+
+void	WebServer::handleNewConnections(std::vector<t_PollItem> &pollitems, std::vector<struct pollfd> &pollfds) {
+	(void)pollitems;
+	(void)pollfds;
+	; // todo
+}
+
+void	WebServer::readRequestHeaders(std::vector<t_PollItem> &pollitems, std::vector<struct pollfd> &pollfds) {
+	(void)pollitems;
+	(void)pollfds;
+	; // todo
+}
+
+void	WebServer::readStaticFiles(std::vector<t_PollItem> &pollitems, std::vector<struct pollfd> &pollfds) {
+	(void)pollitems;
+	(void)pollfds;
+	; // todo
+}
+
+void	WebServer::forwardRequestBodyToCGI(std::vector<t_PollItem> &pollitems, std::vector<struct pollfd> &pollfds) {
+	(void)pollitems;
+	(void)pollfds;
+	; // todo
+}
+
+void	WebServer::readCGIResponses(std::vector<t_PollItem> &pollitems, std::vector<struct pollfd> &pollfds) {
+	(void)pollitems;
+	(void)pollfds;
+	; // todo
+}
+
+void	WebServer::writeToClients(std::vector<t_PollItem> &pollitems, std::vector<struct pollfd> &pollfds) {
+	(void)pollitems;
+	(void)pollfds;
+	; // todo
 }

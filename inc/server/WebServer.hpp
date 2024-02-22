@@ -45,6 +45,33 @@
 #include "ConfigServer.hpp"
 #define BACKLOG 			10				        	// max pending connection queued up
 
+enum fdType
+{
+    SERVER_SOCKET,
+    CLIENT_CONNECTION,
+    CGI_DATA_PIPE,
+    CGI_RESPONSE_PIPE,
+    STATIC_FILE
+};
+
+enum fdState
+{
+	READ_REQ_HEADER,				// CLIENT_CONNECTION (read)
+	READ_STATIC_FILE,				// STATIC_FILE (read)
+	FORWARD_REQ_BODY_TO_CGI,		// CLIENT_CONNECTION (read), CGI_DATA_PIPE (write)
+	READ_CGI_RESPONSE,				// CGI_RESPONSE_PIPE (read)
+	WRITE_TO_CLIENT					// CLIENT_CONNECTION (write)
+};
+
+typedef struct PollItem
+{
+    bool			actionHappened;
+	fdType          pollType;
+    fdState         state;
+    struct pollfd   &_fd;
+} t_PollItem;
+
+
 // NB: non-blocking waitpid
 // NB: in case of terminating error child process must be killed with signals
 class WebServer
@@ -66,8 +93,9 @@ class WebServer
 		std::vector<ConfigServer>	 _servers;
 		std::vector<Listen>			 _listenAddress;
 		std::vector<struct pollfd>	 _pollfds;
-		std::set<int>				 _listeners;
+		std::vector<t_PollItem>	 	 _pollitems;
 
+		std::set<int>				 _listeners;
 		std::vector<RequestExecutor> _requests;
 
 		void			_listenTo( std::string const&, std::string const& );
@@ -76,4 +104,11 @@ class WebServer
 		bool			_isListener( int ) const ;
 		void			_addConn( int ) noexcept;
 		void			_dropConn( int socket = -1 ) noexcept;
+
+		void			handleNewConnections(std::vector<t_PollItem> &, std::vector<struct pollfd> &);
+		void			readRequestHeaders(std::vector<t_PollItem> &, std::vector<struct pollfd> &);
+		void			readStaticFiles(std::vector<t_PollItem> &, std::vector<struct pollfd> &);
+		void			forwardRequestBodyToCGI(std::vector<t_PollItem> &, std::vector<struct pollfd> &);
+		void			readCGIResponses(std::vector<t_PollItem> &, std::vector<struct pollfd> &);
+		void			writeToClients(std::vector<t_PollItem> &, std::vector<struct pollfd> &);
 };
