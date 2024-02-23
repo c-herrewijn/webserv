@@ -30,6 +30,7 @@
 #include "HTTPresponse.hpp"
 #include "ConfigServer.hpp"
 
+// NB: change name getHandler --> getConfigServer
 class RequestExecutor
 {
 	public:

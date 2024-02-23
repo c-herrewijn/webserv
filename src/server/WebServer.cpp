@@ -254,10 +254,11 @@ HTTPresponse	WebServer::_handleRequest( int connfd )
 	HTTPresponse	response;
 
 	// this->_requests.push_back(executor);
-
 	try {
 		RequestExecutor executor(connfd);
 		request.readHead(connfd);
+		executor.setConfigServer(&this->getHandler(request.getHost()));
+		executor.setRequest(&request);
 		response = executor.execRequest();
 	}
 	catch (const HTTPexception& e) {

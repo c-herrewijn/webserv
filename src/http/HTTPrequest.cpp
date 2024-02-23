@@ -18,7 +18,7 @@ void	HTTPrequest::parseHead( std::string const& strReq )
 	size_t		delimiter;
 
 	delimiter = strReq.find(HTTP_TERM);
-	if (delimiter != strReq.size() - 1 - HTTP_TERM.size())
+	if (delimiter != strReq.size() - HTTP_TERM.size())
 		throw(RequestException({"no header terminator"}, 400));
 	head = strReq.substr(0, delimiter);;
 	delimiter = head.find(HTTP_NL);
@@ -462,7 +462,7 @@ void	HTTPrequest::_checkBodyInfo( size_t maxBodyLength )
 			}
 		}
 		catch(const std::out_of_range& e2) {
-			this->_hasBody = false;	
+			this->_hasBody = false;
 		}
 	}
 }
