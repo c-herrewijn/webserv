@@ -124,7 +124,8 @@ void			WebServer::loop( void )
 					if (this->_pollfds[i].revents & POLLIN)
 					{
 						if (_isListener(this->_pollfds[i].fd) == true) // new connection
-							_acceptConnection(this->_pollfds[i].fd);
+							// _acceptConnection(this->_pollfds[i].fd);
+							;
 						else
 						{
 
@@ -230,23 +231,24 @@ void			WebServer::_listenTo( std::string const& hostname, std::string const& por
 		throw(ServerException({"failed listen on", this->getAddress(&hostIP)}));
 	}
 	std::cout << "listening on: " << this->getAddress(&hostIP) << "\n";
-	this->_addConn(listenSocket);
+	this->_addConn(listenSocket, SERVER_SOCKET, WAITING_FOR_CONNECTION);
 	this->_listeners.insert(listenSocket);
 }
 
-void			WebServer::_acceptConnection( int listener )
-{
-	struct sockaddr_storage client;
-	unsigned int 			sizeAddr = sizeof(client);
-	int						connfd = -1;
+// void			WebServer::_acceptConnection( int listener )
+// {
+// 	struct sockaddr_storage client;
+// 	unsigned int 			sizeAddr = sizeof(client);
+// 	int						connfd = -1;
 
-	connfd = accept(listener, (struct sockaddr *) &client, &sizeAddr);
-	if (connfd == -1)
-		throw(ServerException({"connection with", this->getAddress(&client), "failed"}));
-	fcntl(connfd, F_SETFL, O_NONBLOCK);
-	std::cout << "connected to " << this->getAddress(&client) << '\n';
-	this->_addConn(connfd);
-}
+// 	connfd = accept(listener, (struct sockaddr *) &client, &sizeAddr);
+// 	if (connfd == -1)
+// 		throw(ServerException({"connection with", this->getAddress(&client), "failed"}));
+// 	fcntl(connfd, F_SETFL, O_NONBLOCK);
+
+// 	std::cout << "connected to " << this->getAddress(&client) << '\n';
+// 	this->_addConn(connfd, CLIENT_CONNECTION, READ_REQ_HEADER);
+// }
 
 HTTPresponse	WebServer::_handleRequest( int connfd )
 {
@@ -273,16 +275,45 @@ bool			WebServer::_isListener( int socket ) const
 	return (this->_listeners.find(socket) != this->_listeners.end());
 }
 
-void			WebServer::_addConn( int newSocket ) noexcept
-{
-	struct pollfd	newfd;
+// typedef struct PollItem2
+// {
+//     // struct pollfd   &pollfd;
+// 	fdType          pollType;
+//     fdState         pollState;
+//     bool			actionHappened;
+// } t_PollItem2;
 
+
+void			WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePollItem) noexcept
+{
+	// struct pollfd	*newfd, tmp;
+
+	// newfd = new struct pollfd;
 	if (newSocket != -1)
 	{
-		newfd.fd = newSocket;
-		newfd.events = POLLIN | POLLOUT;
-		newfd.revents = 0;
-		this->_pollfds.push_back(newfd);
+		struct pollfd newPollFd{newSocket, POLLIN | POLLOUT, 0};
+		this->_pollfds.push_back(newPollFd);
+
+
+		t_PollItem p;
+		p.actionHappened = false;
+		p.pollfd = &this->_pollfds.back();
+		p.pollState = statePollItem;
+		p.pollType = typePollItem;
+
+		// tmp = this->_pollfds.back();
+		// tmp.fd = newSocket;
+		// tmp.events = POLLIN | POLLOUT;
+		// tmp.revents = 0;
+
+		// PollItem	newPollitem{};
+
+		this->_pollitems.push_back(p);
+
+		std::cout << "pointer: " << this->_pollitems.back().pollfd << std::endl;
+		std::cout << "fd: " << this->_pollitems.back().pollfd->fd << std::endl;
+
+		// this->_pollitems.emplace_back(&this->_pollfds.back(), typePollItem, statePollItem, false);
 	}
 }
 
@@ -305,6 +336,61 @@ void			WebServer::_dropConn(int toDrop) noexcept
 }
 
 void	WebServer::handleNewConnections(std::vector<t_PollItem> &pollitems, std::vector<struct pollfd> &pollfds) {
+
+
+
+	size_t i = 0;
+	while (i < this->_pollitems.size())
+	{
+		if (this->_pollitems[i].pollType == SERVER_SOCKET)
+		{
+			if (this->_pollitems[0])
+			{
+				std::cout << "if statement works\n";
+			}
+
+
+
+			std::cout << "fd b: " << this->_pollitems[0].pollfd->fd << std::endl;
+			std::cout << "fd a: " << this->_pollitems.back().pollfd->fd << std::endl;
+
+			// if (this->_pollitems[i].pollfd->revents)
+			// {
+
+			// 	std::cout << "fd: " << this->_pollitems[i].pollfd->fd << std::endl;
+			// 	std::cout << "revents: " << this->_pollitems[i].pollfd->revents << std::endl;
+			// }
+		}
+		i++;
+	}
+
+
+	// for (t_PollItem &pollitem : this->_pollitems)
+	// {
+	// 	if (pollitem.pollType == SERVER_SOCKET)
+	// 	{
+			// std::cout << "fd: " << this->_pollitems.back().pollfd->fd << std::endl;
+	// 		std::cout << "revents: " << this->_pollitems.back().pollfd->revents << std::endl;
+
+	// 		if (pollitem.pollfd->revents & POLLIN)
+	// 		{
+	// 			std::cout << "len: " << pollitems.size() << std::endl;
+	// 			std::cout << "test: " << pollitem.pollfd->fd << std::endl;
+
+	// 			struct sockaddr_storage client;
+	// 			unsigned int 			sizeAddr = sizeof(client);
+
+	// 			int connfd = accept(pollitem.pollfd->fd, (struct sockaddr *) &client, &sizeAddr);
+	// 			if (connfd == -1)
+	// 				throw(ServerException({"connection with", this->getAddress(&client), "failed"}));
+	// 			fcntl(connfd, F_SETFL, O_NONBLOCK);
+
+	// 			std::cout << "connected to " << this->getAddress(&client) << '\n';
+	// 			this->_addConn(connfd, CLIENT_CONNECTION, READ_REQ_HEADER);
+	// 		}
+	// 	}
+	// }
+
 	(void)pollitems;
 	(void)pollfds;
 	; // todo

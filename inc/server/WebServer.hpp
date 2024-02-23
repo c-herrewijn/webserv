@@ -56,6 +56,7 @@ enum fdType
 
 enum fdState
 {
+	WAITING_FOR_CONNECTION,			// SERVER_SOCKET (read)
 	READ_REQ_HEADER,				// CLIENT_CONNECTION (read)
 	READ_STATIC_FILE,				// STATIC_FILE (read)
 	FORWARD_REQ_BODY_TO_CGI,		// CLIENT_CONNECTION (read), CGI_DATA_PIPE (write)
@@ -65,10 +66,10 @@ enum fdState
 
 typedef struct PollItem
 {
-    bool			actionHappened;
+    struct pollfd   *pollfd;
 	fdType          pollType;
-    fdState         state;
-    struct pollfd   &_fd;
+    fdState         pollState;
+    bool			actionHappened;
 } t_PollItem;
 
 
@@ -99,10 +100,10 @@ class WebServer
 		std::vector<RequestExecutor> _requests;
 
 		void			_listenTo( std::string const&, std::string const& );
-		void			_acceptConnection( int ) ;
+		// void			_acceptConnection( int ) ;
 		HTTPresponse	_handleRequest( int ) ;
 		bool			_isListener( int ) const ;
-		void			_addConn( int ) noexcept;
+		void			_addConn( int , fdType , fdState ) noexcept;
 		void			_dropConn( int socket = -1 ) noexcept;
 
 		void			handleNewConnections(std::vector<t_PollItem> &, std::vector<struct pollfd> &);
