@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/21 23:42:27 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/23 18:31:22 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,7 +41,6 @@ void	HTTPrequest::parseBody( int socket, size_t maxBodyLength )
 		readChunkedBody(socket);
 	else
 		readPlainBody(socket);
-	// std::cout << toString();
 }
 
 //NB: add timeout
@@ -461,10 +460,11 @@ void	HTTPrequest::_checkBodyInfo( size_t maxBodyLength )
 				this->_contentLength = this->_maxBodySize;
 			}
 		}
-		catch(const std::out_of_range& e2) {
-			this->_hasBody = false;
+		catch(const std::out_of_range& e2) {		// no body
+			return;
 		}
 	}
+	this->_body = true;
 }
 
 std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)

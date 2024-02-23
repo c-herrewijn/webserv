@@ -40,7 +40,7 @@ typedef struct HTTPversion_f
 class HTTPstruct
 {
 	public:
-		HTTPstruct( void ) : _hasBody(true) {}
+		HTTPstruct( void ) : _hasBody(false) {}
 		virtual	~HTTPstruct( void ) {};
 
 		virtual std::string	toString( void ) const noexcept =0;

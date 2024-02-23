@@ -30,26 +30,24 @@
 #include "HTTPresponse.hpp"
 #include "ConfigServer.hpp"
 
-// NB: change name getHandler --> getConfigServer
 class RequestExecutor
 {
 	public:
 		RequestExecutor( int );
-		// RequestExecutor( ConfigServer const&, HTTPrequest& ) noexcept;
 		~RequestExecutor( void ) noexcept {};
 		HTTPresponse	execRequest( void ) noexcept;
 		HTTPresponse	createResponse( int, std::string const&) noexcept;
 
-		ConfigServer const&	getHandler( void ) const noexcept;
-		void				setRequest( HTTPrequest* ) noexcept;
-		HTTPrequest const&	getRequest( void ) const noexcept;
 		int					getSocket( void ) const noexcept;
-		void 	setConfigServer(ConfigServer const* config) noexcept;
+		HTTPrequest const&	getRequest( void ) const noexcept;
+		ConfigServer const&	getConfigServer( void ) const noexcept;
+		void				setRequest( HTTPrequest* ) noexcept;
+		void 				setConfigServer(ConfigServer const* config) noexcept;
 
 	private:
-		ConfigServer const*		_configServer;
+		ConfigServer const*	_configServer;
 		std::string 		_servName;
-		HTTPrequest*		_request; // or a pointer
+		HTTPrequest*		_request;
 		int					_socket;
 
 		std::string	_runHTTPmethod( void );

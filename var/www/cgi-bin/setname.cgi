@@ -19,9 +19,8 @@ html_content = f'''<html><body>
                 <a href="/">go home</a>
                 </body></html>'''
 
-print("Status: 200 OK")
-print("Content-type: text/html")
-print(f"Content-Length: {len(html_content)}")
-print(f"Server: {environ['SERVER_NAME']}")
-print("") # blank line separating headers and html content
+print("Status: 200 OK", end='\r\n')
+print("Content-type: text/html", end='\r\n')
+print(f"Content-Length: {len(html_content)}", end='\r\n')
+print(f"Server: {environ['SERVER_NAME']}", end='\r\n\r\n')
 print(html_content)

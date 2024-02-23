@@ -13,11 +13,6 @@
 #include "RequestExecutor.hpp"
 #include "CGI.hpp"
 
-// RequestExecutor::RequestExecutor( ConfigServer const& config, HTTPrequest& req) noexcept : _configServer(config) , _request(req)
-// {
-//     this->_servName = config.getPrimaryName();
-// }
-
 RequestExecutor::RequestExecutor( int socket )
 {
 	if (socket == -1)
@@ -27,12 +22,10 @@ RequestExecutor::RequestExecutor( int socket )
 	this->_request = nullptr;
 };
 
-void 	RequestExecutor::setConfigServer(ConfigServer const* config) noexcept
-{
-	this->_configServer = config;
-	this->_servName = config->getPrimaryName();
-}
 
+// NB: handle it better in case of error
+// NB: incase of errors in CGI(python) they has to treated accordingly,
+//	otherwise the python trace will be written in the body of the CGI response
 HTTPresponse	RequestExecutor::execRequest( void ) noexcept
 {
     int             status = 200;
@@ -56,22 +49,30 @@ HTTPresponse	RequestExecutor::execRequest( void ) noexcept
     return (response);
 }
 
+// NB: handle it better in case of error
 HTTPresponse	RequestExecutor::createResponse( int status, std::string const& bodyResp ) noexcept
 {
 	HTTPresponse response;
 
-    response.parseFromStatic(status, this->_configServer->getPrimaryName(), bodyResp);
+	if (this->_request->isCGI())
+	{
+		try {
+			std::cout <<"|" << bodyResp << "|\n";
+			response.parseFromCGI(bodyResp);
+		}
+		catch(const ResponseException& e) {
+			std::cerr << e.what() << '\n';
+			response.parseFromStatic(e.getStatus(), this->_configServer->getPrimaryName(), "");
+		}
+	}
+	else
+	    response.parseFromStatic(status, this->_configServer->getPrimaryName(), bodyResp);
 	return (response);
 }
 
-ConfigServer const&		RequestExecutor::getHandler( void ) const noexcept
+int		RequestExecutor::getSocket( void ) const noexcept
 {
-    return (*(this->_configServer));
-}
-
-void				RequestExecutor::setRequest( HTTPrequest *req) noexcept
-{
-	this->_request = req;
+	return (this->_socket);
 }
 
 HTTPrequest const&	RequestExecutor::getRequest( void ) const noexcept
@@ -79,9 +80,20 @@ HTTPrequest const&	RequestExecutor::getRequest( void ) const noexcept
 	return(*(this->_request));
 }
 
-int		RequestExecutor::getSocket( void ) const noexcept
+ConfigServer const&		RequestExecutor::getConfigServer( void ) const noexcept
 {
-	return (this->_socket);
+    return (*(this->_configServer));
+}
+
+void	RequestExecutor::setRequest( HTTPrequest *req) noexcept
+{
+	this->_request = req;
+}
+
+void 	RequestExecutor::setConfigServer(ConfigServer const* config) noexcept
+{
+	this->_configServer = config;
+	this->_servName = config->getPrimaryName();
 }
 
 std::string	RequestExecutor::_runHTTPmethod( void )
@@ -125,26 +137,6 @@ std::string	RequestExecutor::_execGET( void )
 
 	if (pathReq == "/")
 		htmlBody = _readContent("./var/www/test.html");
-	// try
-	// {
-	// 	status = _checkPath(pathReq, R_OK);
-	// 	if (status != 200)
-	// 		return ("");
-	// 	else if (_isCGI(pathReq))
-	// 	{
-	// 		std::cout << "CGI\n";
-	// 		// fork and do CGI
-	// 	}
-	// 	else
-	// 	{
-			// htmlBody = _readContent(pathReq);
-	// 	}
-	// 	status = 200;
-	// }
-	// catch (ExecException const& e) {
-	// 	std::cerr << e.what() << '\n';
-	// 	status = 500;
-	// }
 	return (htmlBody);
 }
 
@@ -153,26 +145,6 @@ std::string	RequestExecutor::_execPOST( void )
 	std::string pathReq = this->_request->getPath();
 	std::string htmlBody;
 
-	// try
-	// {
-	// 	status = _checkPath(pathReq, W_OK);
-	// 	if (status != 200)
-	// 		return ("");
-	// 	else if (_isCGI(pathReq))
-	// 	{
-	// 		std::cout << "CGI\n";
-	// 		// fork and do CGI
-	// 	}
-	// 	else
-	// 	{
-	// 		htmlBody = "";
-	// 	}
-	// 	status = 200;
-	// }
-	// catch (ExecException const& e) {
-	// 	std::cerr << e.what() << '\n';
-	// 	status = 500;
-	// }
 	return (htmlBody);
 }
 

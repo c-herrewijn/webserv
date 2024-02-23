@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/21 22:39:41 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/23 18:29:14 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,6 +90,9 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 
 void	HTTPstruct::_setBody( std::string const& strBody )
 {
+    if (strBody.empty())
+		return ;
+	this->_hasBody = true;
     this->_body = strBody;
 }
 

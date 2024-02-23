@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/23 12:22:20 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/23 19:13:12 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,25 +17,28 @@ void	HTTPresponse::parseFromStatic( int code, std::string const& servName, std::
 	_setHead(std::to_string(code));
 	_addHeader("Date", _getDateTime());
 	_addHeader("Server", servName);
-	_setBody(body);
+	if (body.empty() == false)
+	{
+		_addHeader("Content-Length", std::to_string(body.size()));
+		_addHeader("Content-Type", std::string(STD_CONTENT_TYPE));	// NB: do I need other formats?
+		HTTPstruct::_setBody(body);
+	}
 }
 
-void	HTTPresponse::parseFromCGI( int code, std::string const& CGIresp ) noexcept
+void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 {
 	std::string headers, body;
 	size_t		delimiter;
 
-	_setHead(std::to_string(code));
-	headers = CGIresp;
 	delimiter = CGIresp.find(HTTP_TERM);
-	if (delimiter != std::string::npos)
-	{
-		delimiter += HTTP_NL.size();
-		body = CGIresp.substr(delimiter);
-		headers = CGIresp.substr(0, delimiter);
-	}
+	if (delimiter == std::string::npos)
+		throw(ResponseException({"no headers terminator in CGI response"}, 500));
+	delimiter += HTTP_TERM.size();
+	headers = CGIresp.substr(0, delimiter - HTTP_NL.size());
+	body = CGIresp.substr(delimiter);
+	HTTPstruct::_setBody(body);
 	_setHeaders(headers);
-	_setBody(body);
+	_setHead(_getStatusFromHeader());
 }
 
 void		HTTPresponse::writeContent( int socket )
@@ -69,7 +72,7 @@ std::string	HTTPresponse::toString( void ) const noexcept
 	strResp += HTTP_SP;
 	strResp += std::to_string(this->_statusCode);
 	strResp += HTTP_SP;
-	strResp += this->_statusStr;
+	strResp += this->_mapStatusCode(this->_statusCode);
 	strResp += HTTP_NL;
 	if (!this->_headers.empty())
 	{
@@ -96,11 +99,6 @@ int		HTTPresponse::getStatusCode( void ) const noexcept
 	return (this->_statusCode);
 }
 
-std::string	HTTPresponse::getStatusStr( void ) const
-{
-	return (this->_statusStr);
-}
-
 void	HTTPresponse::_setHead( std::string const& strStatusCode)
 {
 	this->_version.scheme = HTTP_SCHEME;
@@ -115,13 +113,23 @@ void	HTTPresponse::_setHead( std::string const& strStatusCode)
 	}
 }
 
-void	HTTPresponse::_setBody( std::string const& strBody)
+void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 {
-    if (strBody.empty())
-		return ;
-	_addHeader("Content-Length", std::to_string(strBody.size()));
-	_addHeader("Content-Type", std::string(STD_CONTENT_TYPE));	// NB: do I need other formats?
-	HTTPstruct::_setBody(strBody);
+	HTTPstruct::_setHeaders(strHeaders);
+
+	try
+	{
+		this->_headers.at("Status");
+		this->_headers.at("Server");
+		if (this->_hasBody == true)
+		{
+			this->_headers.at("Content-type");
+			this->_headers.at("Content-Length");
+		}
+	}
+	catch(const std::out_of_range& e) {
+		throw(RequestException({"missing mandatory header(s) in CGI response"}, 500));
+	}
 }
 
 // NB: see RFC 7231 for info about every specific error code
@@ -218,4 +226,11 @@ std::string	HTTPresponse::_getDateTime( void ) const noexcept
     timeinfo = std::gmtime(&rawtime);
     std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
 	return (std::string(buffer));
+}
+
+std::string	HTTPresponse::_getStatusFromHeader( void ) const
+{
+	std::string	strStatus = this->_headers.at("Status");
+	size_t		delimiter = strStatus.find(HTTP_SP);
+	return (strStatus.substr(0, delimiter));
 }

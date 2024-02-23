@@ -45,11 +45,10 @@ html_content = f'''<html><body>
 
 # print("HTTP/1.0 200 OK")  # start line
 # print(f"Server: {environ['SERVER_NAME']}")
-print("Status: 201 Created")
-print("Content-type: text/html")
-print(f"Content-Length: {len(html_content)}")
-print(f"Server: {environ['SERVER_NAME']}")
-print("") # blank line separating headers and html content
+print("Status: 201 Created", end='\r\n')
+print("Content-type: text/html", end='\r\n')
+print(f"Content-Length: {len(html_content)}", end='\r\n')
+print(f"Server: {environ['SERVER_NAME']}", end='\r\n\r\n')
 print(html_content)
 
 # cgi.print_environ()

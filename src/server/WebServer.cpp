@@ -117,7 +117,6 @@ void			WebServer::loop( void )
 						else
 						{
 							response = _handleRequest(this->_pollfds[i].fd);
-							std::cout << response.toString() << '\n';
 							response.writeContent(this->_pollfds[i].fd);
 							if (response.getStatusCode() != 200)
 								_dropConn(this->_pollfds[i--].fd);
