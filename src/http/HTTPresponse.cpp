@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/19 22:30:38 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/23 12:22:20 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -124,7 +124,7 @@ void	HTTPresponse::_setBody( std::string const& strBody)
 	HTTPstruct::_setBody(strBody);
 }
 
-// NB: see RC 7231 for info about every specific error code
+// NB: see RFC 7231 for info about every specific error code
 std::string	HTTPresponse::_mapStatusCode( int status) const
 {
 	std::map<int, const char*> mapStatus =

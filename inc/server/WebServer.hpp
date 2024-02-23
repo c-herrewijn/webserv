@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/20 16:04:03 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/23 17:52:59 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,7 @@ enum fdState
 
 typedef struct PollItem
 {
-    struct pollfd   *pollfd;
+	int				fd;
 	fdType          pollType;
     fdState         pollState;
     bool			actionHappened;
@@ -96,20 +96,18 @@ class WebServer
 		std::vector<struct pollfd>	 _pollfds;
 		std::vector<t_PollItem>	 	 _pollitems;
 
-		std::set<int>				 _listeners;
 		std::vector<RequestExecutor> _requests;
 
 		void			_listenTo( std::string const&, std::string const& );
-		// void			_acceptConnection( int ) ;
 		HTTPresponse	_handleRequest( int ) ;
-		bool			_isListener( int ) const ;
 		void			_addConn( int , fdType , fdState ) noexcept;
 		void			_dropConn( int socket = -1 ) noexcept;
+		t_PollItem&		_getPollItem( int );
 
-		void			handleNewConnections(std::vector<t_PollItem> &, std::vector<struct pollfd> &);
-		void			readRequestHeaders(std::vector<t_PollItem> &, std::vector<struct pollfd> &);
-		void			readStaticFiles(std::vector<t_PollItem> &, std::vector<struct pollfd> &);
-		void			forwardRequestBodyToCGI(std::vector<t_PollItem> &, std::vector<struct pollfd> &);
-		void			readCGIResponses(std::vector<t_PollItem> &, std::vector<struct pollfd> &);
-		void			writeToClients(std::vector<t_PollItem> &, std::vector<struct pollfd> &);
+		void			handleNewConnections( PollItem& );
+		void			readRequestHeaders( PollItem& );
+		void			readStaticFiles( PollItem& );
+		void			forwardRequestBodyToCGI( PollItem& );
+		void			readCGIResponses( PollItem& );
+		void			writeToClients( PollItem& );
 };

@@ -63,7 +63,7 @@ void			WebServer::startListen( void )
 void			WebServer::loop( void )
 {
 	int				nConn = -1;
-	HTTPresponse 	response;
+	HTTPresponse	response;
 
 	while (true)
 	{
@@ -81,65 +81,62 @@ void			WebServer::loop( void )
 			// 		2. because of fork, waitpid (no hang) should be checked here to terminate any child
 			//		3. also during signal (children have to be killed?)
 			//
-			// TODO:
-
-			// loop through the listener sockets
-			handleNewConnections(this->_pollitems, this->_pollfds);  	// SERVER_SOCKET (reading)
-
-			readRequestHeaders(this->_pollitems, this->_pollfds);
-			readStaticFiles(this->_pollitems, this->_pollfds);
-			forwardRequestBodyToCGI(this->_pollitems, this->_pollfds);
-			readCGIResponses(this->_pollitems, this->_pollfds);
-			writeToClients(this->_pollitems, this->_pollfds);
-
 			// markAllPollItemsAsActionable();
-
-			// // all functions should loop through the _requests, but only act on certain states
+			// 
+			// all functions should loop through the _requests, but only act on certain states
 			// handleNewClientConnections();  // state: READ_REQ_HEADERS
 			// 							// CLIENT_CONNECTION (reading header only: )
 			// 							// if CGI, run the program
-
-
+			//
 			// handleCGIRequest();			// state: FOREWARD_REQ_TO_CGI
 			// 							// CLIENT_CONNECTION (reading body POLLIN),
 			// 							// CGI_DATA_PIPE (writing body POLLOUT)
-
+			//
 			// handleCGIResponse();
 			// 							// CGI_RESPONSE_PIPE (reading response) state: FORWARD_CGI_RESPONSE
 			// 							// CGI_RESPONSE_PIPE (reading POLLIN),
 			// 							// CLIENT_CONNECTION (writing POLLOUT)
-
+			//
   			// countStaticFileLength(); 	// state: DETERMINE_STATIC_FILE_LENGTH
 			// 							// STATIC_FILE (reading file)
-
+			//
 			// forewardStaticFile()		// state: FOREWARD_STATIC_FILE
 			// 							// STATIC_FILE (read)
 			// 							// CLIENT_CONNECTION (write)
 
-
-			// assuming reading from client connections
 			for (size_t i=0; i<this->_pollfds.size(); i++)
 			{
+				if (nConn == 0)
+					break ;
 				try {
 					if (this->_pollfds[i].revents & POLLIN)
 					{
-						if (_isListener(this->_pollfds[i].fd) == true) // new connection
-							// _acceptConnection(this->_pollfds[i].fd);
-							;
+						t_PollItem &current = _getPollItem(this->_pollfds[i].fd);
+						if (current.pollType == SERVER_SOCKET)
+							handleNewConnections(current);
 						else
 						{
-
-							// // TODO
-							// addRequestIfNew(_pollfds[i].fd);
-
 							response = _handleRequest(this->_pollfds[i].fd);
+							std::cout << response.toString() << '\n';
 							response.writeContent(this->_pollfds[i].fd);
 							if (response.getStatusCode() != 200)
 								_dropConn(this->_pollfds[i--].fd);
 						}
+						nConn--;
 					}
-					if (this->_pollfds[i].revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
-						_dropConn(this->_pollfds[i--].fd);
+					if (this->_pollfds[i].revents & POLLOUT)
+					{
+						// ...
+						nConn--;
+					}
+					// if (this->_pollfds[i].revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
+					// 	_dropConn(this->_pollfds[i--].fd);
+
+					// 	readRequestHeaders(current);
+					// 	readStaticFiles(current);
+					// 	forwardRequestBodyToCGI(current);
+					// 	readCGIResponses(current);
+					// 	writeToClients(current);
 				}
 				catch(const ServerException& e) {
 					std::cerr << e.what() << '\n';
@@ -232,23 +229,7 @@ void			WebServer::_listenTo( std::string const& hostname, std::string const& por
 	}
 	std::cout << "listening on: " << this->getAddress(&hostIP) << "\n";
 	this->_addConn(listenSocket, SERVER_SOCKET, WAITING_FOR_CONNECTION);
-	this->_listeners.insert(listenSocket);
 }
-
-// void			WebServer::_acceptConnection( int listener )
-// {
-// 	struct sockaddr_storage client;
-// 	unsigned int 			sizeAddr = sizeof(client);
-// 	int						connfd = -1;
-
-// 	connfd = accept(listener, (struct sockaddr *) &client, &sizeAddr);
-// 	if (connfd == -1)
-// 		throw(ServerException({"connection with", this->getAddress(&client), "failed"}));
-// 	fcntl(connfd, F_SETFL, O_NONBLOCK);
-
-// 	std::cout << "connected to " << this->getAddress(&client) << '\n';
-// 	this->_addConn(connfd, CLIENT_CONNECTION, READ_REQ_HEADER);
-// }
 
 HTTPresponse	WebServer::_handleRequest( int connfd )
 {
@@ -270,50 +251,12 @@ HTTPresponse	WebServer::_handleRequest( int connfd )
 	return (response);
 }
 
-bool			WebServer::_isListener( int socket ) const
+void			WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePollItem ) noexcept
 {
-	return (this->_listeners.find(socket) != this->_listeners.end());
-}
-
-// typedef struct PollItem2
-// {
-//     // struct pollfd   &pollfd;
-// 	fdType          pollType;
-//     fdState         pollState;
-//     bool			actionHappened;
-// } t_PollItem2;
-
-
-void			WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePollItem) noexcept
-{
-	// struct pollfd	*newfd, tmp;
-
-	// newfd = new struct pollfd;
 	if (newSocket != -1)
 	{
-		struct pollfd newPollFd{newSocket, POLLIN | POLLOUT, 0};
-		this->_pollfds.push_back(newPollFd);
-
-
-		t_PollItem p;
-		p.actionHappened = false;
-		p.pollfd = &this->_pollfds.back();
-		p.pollState = statePollItem;
-		p.pollType = typePollItem;
-
-		// tmp = this->_pollfds.back();
-		// tmp.fd = newSocket;
-		// tmp.events = POLLIN | POLLOUT;
-		// tmp.revents = 0;
-
-		// PollItem	newPollitem{};
-
-		this->_pollitems.push_back(p);
-
-		std::cout << "pointer: " << this->_pollitems.back().pollfd << std::endl;
-		std::cout << "fd: " << this->_pollitems.back().pollfd->fd << std::endl;
-
-		// this->_pollitems.emplace_back(&this->_pollfds.back(), typePollItem, statePollItem, false);
+		this->_pollfds.push_back({newSocket, POLLIN | POLLOUT, 0});
+		this->_pollitems.push_back({newSocket, typePollItem, statePollItem, false});
 	}
 }
 
@@ -326,8 +269,6 @@ void			WebServer::_dropConn(int toDrop) noexcept
 			shutdown(this->_pollfds[i].fd, SHUT_RDWR);
 			close(this->_pollfds[i].fd);
 			this->_pollfds.erase(this->_pollfds.begin() + i);
-			if (this->_isListener(this->_pollfds[i].fd) == true)
-				this->_listeners.erase(this->_pollfds[i].fd);
 			if (toDrop != -1)
 				break;
 			i--;
@@ -335,93 +276,56 @@ void			WebServer::_dropConn(int toDrop) noexcept
 	}
 }
 
-void	WebServer::handleNewConnections(std::vector<t_PollItem> &pollitems, std::vector<struct pollfd> &pollfds) {
-
-
-
-	size_t i = 0;
-	while (i < this->_pollitems.size())
+t_PollItem&	WebServer::_getPollItem( int value )
+{
+	for (auto &item : this->_pollitems)
 	{
-		if (this->_pollitems[i].pollType == SERVER_SOCKET)
-		{
-			if (this->_pollitems[0])
-			{
-				std::cout << "if statement works\n";
-			}
-
-
-
-			std::cout << "fd b: " << this->_pollitems[0].pollfd->fd << std::endl;
-			std::cout << "fd a: " << this->_pollitems.back().pollfd->fd << std::endl;
-
-			// if (this->_pollitems[i].pollfd->revents)
-			// {
-
-			// 	std::cout << "fd: " << this->_pollitems[i].pollfd->fd << std::endl;
-			// 	std::cout << "revents: " << this->_pollitems[i].pollfd->revents << std::endl;
-			// }
-		}
-		i++;
+		if (item.fd == value)
+			return (item);
 	}
+	throw(ServerException({"socket not found (this should not happen)"}));
+}
 
+void	WebServer::handleNewConnections( PollItem& item )
+{
+	struct sockaddr_storage client;
+	unsigned int 			sizeAddr = sizeof(client);
+	int 					connfd = -1;
 
-	// for (t_PollItem &pollitem : this->_pollitems)
-	// {
-	// 	if (pollitem.pollType == SERVER_SOCKET)
-	// 	{
-			// std::cout << "fd: " << this->_pollitems.back().pollfd->fd << std::endl;
-	// 		std::cout << "revents: " << this->_pollitems.back().pollfd->revents << std::endl;
+	connfd = accept(item.fd, (struct sockaddr *) &client, &sizeAddr);
+	if (connfd == -1)
+		throw(ServerException({"connection with", this->getAddress(&client), "failed"}));
+	fcntl(connfd, F_SETFL, O_NONBLOCK);
+	std::cout << "connected to " << this->getAddress(&client) << '\n';
+	this->_addConn(connfd, CLIENT_CONNECTION, READ_REQ_HEADER);
+}
 
-	// 		if (pollitem.pollfd->revents & POLLIN)
-	// 		{
-	// 			std::cout << "len: " << pollitems.size() << std::endl;
-	// 			std::cout << "test: " << pollitem.pollfd->fd << std::endl;
-
-	// 			struct sockaddr_storage client;
-	// 			unsigned int 			sizeAddr = sizeof(client);
-
-	// 			int connfd = accept(pollitem.pollfd->fd, (struct sockaddr *) &client, &sizeAddr);
-	// 			if (connfd == -1)
-	// 				throw(ServerException({"connection with", this->getAddress(&client), "failed"}));
-	// 			fcntl(connfd, F_SETFL, O_NONBLOCK);
-
-	// 			std::cout << "connected to " << this->getAddress(&client) << '\n';
-	// 			this->_addConn(connfd, CLIENT_CONNECTION, READ_REQ_HEADER);
-	// 		}
-	// 	}
-	// }
-
-	(void)pollitems;
-	(void)pollfds;
+void	WebServer::readRequestHeaders( PollItem& item ) 
+{
+	(void) item ;
 	; // todo
 }
 
-void	WebServer::readRequestHeaders(std::vector<t_PollItem> &pollitems, std::vector<struct pollfd> &pollfds) {
-	(void)pollitems;
-	(void)pollfds;
+void	WebServer::readStaticFiles( PollItem& item ) 
+{
+	(void) item ;
 	; // todo
 }
 
-void	WebServer::readStaticFiles(std::vector<t_PollItem> &pollitems, std::vector<struct pollfd> &pollfds) {
-	(void)pollitems;
-	(void)pollfds;
+void	WebServer::forwardRequestBodyToCGI( PollItem& item ) 
+{
+	(void) item ;
 	; // todo
 }
 
-void	WebServer::forwardRequestBodyToCGI(std::vector<t_PollItem> &pollitems, std::vector<struct pollfd> &pollfds) {
-	(void)pollitems;
-	(void)pollfds;
+void	WebServer::readCGIResponses( PollItem& item ) 
+{
+	(void) item ;
 	; // todo
 }
 
-void	WebServer::readCGIResponses(std::vector<t_PollItem> &pollitems, std::vector<struct pollfd> &pollfds) {
-	(void)pollitems;
-	(void)pollfds;
-	; // todo
-}
-
-void	WebServer::writeToClients(std::vector<t_PollItem> &pollitems, std::vector<struct pollfd> &pollfds) {
-	(void)pollitems;
-	(void)pollfds;
+void	WebServer::writeToClients( PollItem& item ) 
+{
+	(void) item ;
 	; // todo
 }
