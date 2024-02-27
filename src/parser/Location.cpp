@@ -15,6 +15,8 @@
 Location::Location(void)
 {
 	block_index = 0;
+	for (int tmp = 0; tmp < M_SIZE; tmp++)
+		allowedMethods[tmp] = 0;
 }
 
 Location::~Location(void)
@@ -24,7 +26,7 @@ Location::~Location(void)
 
 Location::Location(const Location& copy) :
 	block_index(copy.block_index),
-	filesystem(copy.filesystem),
+	allowedMethods(copy.allowedMethods),
 	URL(copy.URL),
 	params(copy.params),
 	nested(copy.nested)
@@ -35,7 +37,7 @@ Location::Location(const Location& copy) :
 Location&	Location::operator=(const Location& assign)
 {
 	block_index = assign.block_index;
-	this->filesystem = assign.filesystem;
+	allowedMethods = assign.allowedMethods;
 	URL = assign.URL;
 	params = assign.params;
 	nested.clear();
@@ -61,7 +63,9 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 	block.erase(block.begin());
 	while (block.front() != "}" && !block.empty())
 	{
-		if (block.front() == "location")
+		if (block.front() == "allowMethods")
+			_parseAllowedMethod(block);
+		else if (block.front() == "location")
 		{
 			index = block.begin();
 			while (index != block.end() && *index != "{")
@@ -86,8 +90,7 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 		}
 		else if (block.front() == "root" || block.front() == "client_max_body_size" ||
 				block.front() == "autoindex" || block.front() == "index" ||
-				block.front() == "error_page" || block.front() == "return" ||
-				block.front() == "allowMethods")
+				block.front() == "error_page" || block.front() == "return")
 			params.fill(block);
 		else
 			throw ParserException({"'" + block.front() + "' is not a valid parameter in 'location' context"});
@@ -99,7 +102,34 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 		local.setBlockIndex(this->block_index);
 		nested.push_back(local);
 	}
-	this->filesystem = URL;
+}
+
+void	Location::_parseAllowedMethod(std::vector<std::string>& block)
+{
+	block.erase(block.begin());
+	while (1)
+	{
+		if (block.front() == "GET")
+		{
+			allowedMethods[M_GET] = 1;
+			block.erase(block.begin());
+		}
+		else if (block.front() == "POST")
+		{
+			allowedMethods[M_POST] = 1;
+			block.erase(block.begin());
+		}
+		else if (block.front() == "DELETE")
+		{
+			allowedMethods[M_DELETE] = 1;
+			block.erase(block.begin());
+		}
+		else if (block.front() == ";")
+			break ;
+		else
+			throw ParserException({"'" + block.front() + "' is not a valid element in allowMethods parameters"});
+	}
+	block.erase(block.begin());
 }
 
 const std::vector<Location>& Location::getNested(void) const
@@ -112,9 +142,9 @@ const Parameters&	Location::getParams(void) const
 	return (params);
 }
 
-const std::filesystem::path& Location::getFilesystem(void) const
+const std::bitset<M_SIZE>&	Location::getAllowedMethods(void) const
 {
-	return (this->filesystem);
+	return (allowedMethods);
 }
 
 const std::string& Location::getURL(void) const
@@ -137,6 +167,9 @@ std::ostream& operator<<(std::ostream& os, const Location& location)
     size_t indentation = location.getBlockIndex();
     // Print the opening line for the current location
     os << std::string(indentation, '\t') << "location " << location.getURL() << " {\n";
+
+    // Print allowMethods
+    os << std::string(indentation + 1, '\t') << "allowMethods " << location.allowedMethods << ";\n";
 
     // Print location params
     os << location.getParams();

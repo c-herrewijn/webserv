@@ -201,11 +201,6 @@ std::string 	HTTPrequest::getStrMethod( void ) const noexcept
 	}
 }
 
-HTTPurl const&	HTTPrequest::getUrl( void ) const noexcept
-{
-	return (this->_url);
-}
-
 std::string		HTTPrequest::getPath( void ) const noexcept
 {
 	return (this->_url.path.generic_string());
@@ -241,31 +236,6 @@ std::string	const&	HTTPrequest::getBody( void ) const noexcept
 std::string	const&	HTTPrequest::getQueryRaw( void ) const noexcept
 {
 	return (this->_url.queryRaw);
-}
-
-Parameters	const*	HTTPrequest::getRelatedParams( void ) const noexcept
-{
-	return (this->_relatedParams);
-}
-
-
-int const&	HTTPrequest::getStatus( void ) const noexcept
-{
-	return (this->_status);
-}
-
-//get path
-
-//set path
-
-void	HTTPrequest::setRelatedParams(Parameters* param) noexcept
-{
-	this->_relatedParams = param;
-}
-
-void	HTTPrequest::setStatus( int val ) noexcept
-{
-	this->_status = val;
 }
 
 void	HTTPrequest::_setHead( std::string const& header )

@@ -12,13 +12,17 @@
 
 #ifndef LOCATION_HPP
 # define LOCATION_HPP
+# include <bitset>
 # include <string>
 # include <vector>
-# include <filesystem>
 
 # include "Parameters.hpp"
 # include "Exceptions.hpp"
 
+# define M_GET 0
+# define M_POST 1
+# define M_DELETE 2
+# define M_SIZE 3 // amount of methodes used in our program
 
 class Location
 {
@@ -33,16 +37,17 @@ class Location
 		const size_t& 					getBlockIndex(void) const;
 		const std::vector<Location>&	getNested(void) const;
 		const Parameters&				getParams(void) const;
-		const std::filesystem::path&	getFilesystem(void) const;
+		const std::bitset<M_SIZE>&		getAllowedMethods(void) const;
 		const std::string& 				getURL(void) const;
 
 	private:
 		size_t 					block_index;
-		std::filesystem::path	filesystem; // For easier handling of URL
+		std::bitset<M_SIZE> 	allowedMethods;	// Allowed methods
 		std::string				URL; // Default "location" param
 		Parameters				params; // Local values to use. If default it will be a copy of "server" context
 		std::vector<Location> 	nested; // Possible nested locations
-
+	
+		void	_parseAllowedMethod(std::vector<std::string>& block);
 		void	_parseAlias(std::vector<std::string>& block);
 
     friend std::ostream& operator<<(std::ostream& os, const Location& location);

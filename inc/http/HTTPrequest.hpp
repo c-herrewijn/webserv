@@ -13,7 +13,6 @@
 #pragma once
 
 #include "HTTPstruct.hpp"
-#include "Parameters.hpp"
 #include <sys/types.h>        // send, recv
 #include <sys/socket.h>       // send, recv
 #include <cstring>           // strerror
@@ -43,12 +42,10 @@ typedef struct HTTPurl_f
 class HTTPrequest : public HTTPstruct
 {
 	public:
-		HTTPrequest( void ) : HTTPstruct() ,
-			_relatedParams(NULL),
-			_status(0),
-			_maxBodySize(0),
-			_contentLength(0), 
-			_isChunked(false),
+		HTTPrequest( void ) : HTTPstruct() , 
+			_maxBodySize(0) , 
+			_contentLength(0) , 
+			_isChunked(false), 
 			_isFileUpload(false) {};
 		virtual ~HTTPrequest( void ) override {};
 
@@ -62,7 +59,7 @@ class HTTPrequest : public HTTPstruct
 		bool		isFileUpload( void ) const noexcept;
 
 		std::string	toString( void ) const noexcept override;
-		HTTPurl const&		getUrl( void ) const noexcept;
+
 		HTTPmethod		 	getMethod( void ) const noexcept;
 		std::string		 	getStrMethod( void ) const noexcept;
 		std::string		 	getPath( void ) const noexcept;
@@ -70,18 +67,12 @@ class HTTPrequest : public HTTPstruct
 		std::string	const& 	getBody( void ) const noexcept;
 		std::string	const&	getQueryRaw( void ) const noexcept;
 		std::string			getContentTypeBoundary( void ) const noexcept;
-		int const&			getStatus( void ) const noexcept;
-		Parameters	const*	getRelatedParams( void ) const noexcept;	
 
-		void				setStatus( int ) noexcept;
-		void				setRelatedParams(Parameters* param) noexcept;
 	protected:
 		HTTPmethod	_method;
 		HTTPurl		_url;
 		std::string	_tmpBody;
-		Parameters*	_relatedParams;
 
-		int			_status;
 		size_t		_maxBodySize, _contentLength;
 		bool		_isChunked, _isFileUpload;
 
