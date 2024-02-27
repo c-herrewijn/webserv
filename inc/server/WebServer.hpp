@@ -40,7 +40,7 @@
 
 #include "HTTPrequest.hpp"
 #include "HTTPresponse.hpp"
-#include "RequestExecutor.hpp"
+// #include "RequestExecutor.hpp"
 #include "Exceptions.hpp"
 #include "ConfigServer.hpp"
 #define BACKLOG 			10				        	// max pending connection queued up
@@ -87,16 +87,15 @@ class WebServer
 		std::string		getAddress( const struct sockaddr_storage*) const noexcept ;
 		ConfigServer const&	getHandler( std::string const& ) const ;
 		ConfigServer const&	getDefaultServer( void ) const ;
-		// void addRequestIfNew( int );
 
 	private:
 		ConfigServer				 _defaultServer;
 		std::vector<ConfigServer>	 _servers;
 		std::vector<Listen>			 _listenAddress;
 		std::vector<struct pollfd>	 _pollfds;
-		std::vector<t_PollItem>	 	 _pollitems;
+		std::vector<t_PollItem>	 _pollitems;
 
-		std::vector<RequestExecutor> _requests;
+		std::vector<HTTPrequest*> _requests;
 
 		void			_listenTo( std::string const&, std::string const& );
 		HTTPresponse	_handleRequest( int ) ;
@@ -104,10 +103,10 @@ class WebServer
 		void			_dropConn( int socket = -1 ) noexcept;
 		t_PollItem&		_getPollItem( int );
 
-		void			handleNewConnections( PollItem& );
-		void			readRequestHeaders( PollItem& );
-		void			readStaticFiles( PollItem& );
-		void			forwardRequestBodyToCGI( PollItem& );
-		void			readCGIResponses( PollItem& );
+		void			handleNewConnections( PollItem& ); // keep - DONE
+		void			readRequestHeaders( PollItem& ); // keep / rework
+		void			readStaticFiles( PollItem& ); // keep / rework
+		void			forwardRequestBodyToCGI( PollItem& ); // split into: 'readRequestBody()' and 'writeRequestBodyToCGI()'
+		void			readCGIResponses( PollItem& ); // keep / rework
 		void			writeToClients( PollItem& );
 };

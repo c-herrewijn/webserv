@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "HTTPrequest.hpp"
+#include "CGI.hpp"
 
 void	HTTPrequest::parseHead( std::string const& strReq )
 {
@@ -31,16 +32,14 @@ void	HTTPrequest::parseHead( std::string const& strReq )
 	_setHead(head);
 }
 
-void	HTTPrequest::parseBody( int socket, size_t maxBodyLength )
+void	HTTPrequest::parseBody( void )
 {
-
-	_checkBodyInfo(maxBodyLength);
 	if (this->_hasBody == false)
 		return ;
 	else if (this->_isChunked == true)
-		readChunkedBody(socket);
+		readChunkedBody();
 	else
-		readPlainBody(socket);
+		readPlainBody();
 }
 
 //NB: add timeout
@@ -50,11 +49,11 @@ void	HTTPrequest::readHead( int socket )
 	std::string content;
 	size_t		httpTerm = std::string::npos;
 
-	// _setSocket(socket);
+	_setSocket(socket);
 	while (true)
 	{
 		bzero(buffer, DEF_BUF_SIZE + 1);
-		recv(socket, buffer, DEF_BUF_SIZE, 0);
+		recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
 		content += std::string(buffer);
 		httpTerm = content.find(HTTP_TERM);
 		if ( httpTerm != std::string::npos)
@@ -67,19 +66,19 @@ void	HTTPrequest::readHead( int socket )
 }
 
 //NB: add timeout error: 408
-void	HTTPrequest::readPlainBody( int socket )
+void	HTTPrequest::readPlainBody( void )
 {
     ssize_t 	readChar = -1;
     char        buffer[DEF_BUF_SIZE + 1];
 	std::string	body = this->_tmpBody;
 	size_t		countChars = this->_tmpBody.length();
 
-	if (socket == -1)
-		throw(RequestException({"invalid socket"}, 500));
+	// if (socket == -1)
+	// 	throw(RequestException({"invalid socket"}, 500));
 	while (countChars < this->_contentLength)
 	{
 		bzero(buffer, DEF_BUF_SIZE + 1);
-		readChar = recv(socket, buffer, DEF_BUF_SIZE, 0);
+		readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
 		if (readChar <= 0)
 			continue;
 		countChars += readChar;
@@ -91,19 +90,19 @@ void	HTTPrequest::readPlainBody( int socket )
 }
 
 //NB: add timeout error: 408
-void	HTTPrequest::readChunkedBody( int socket )
+void	HTTPrequest::readChunkedBody( void )
 {
     ssize_t 	readChar = -1;
     char    	buffer[DEF_BUF_SIZE + 1];
 	std::string body = this->_tmpBody;
 	size_t		delimiter=0, countChars=this->_tmpBody.length();
 
-	if (socket == -1)
-		throw(RequestException({"invalid socket"}, 500));
+	// if (socket == -1)
+	// 	throw(RequestException({"invalid socket"}, 500));
 	do
 	{
 		bzero(buffer, DEF_BUF_SIZE + 1);
-		readChar = recv(socket, buffer, DEF_BUF_SIZE, 0);
+		readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
 		if (readChar <= 0)
 			continue;
 		countChars += readChar;
@@ -178,6 +177,56 @@ std::string	HTTPrequest::toString( void ) const noexcept
 	return (strReq);
 }
 
+HTTPresponse	HTTPrequest::execRequest( void ) noexcept
+{
+    int             status = 200;
+    HTTPresponse    response;
+    std::string     responseBody;
+
+    try
+    {
+        status = this->_configServer->validateRequest(*this);
+        if (status != 200)
+			throw(ExecException({"request validation failed with code:", std::to_string(status)}, status));
+		checkHeaders(1000000);
+		parseBody();	// NB: this needs to be dynamic depending on the location
+		if (isCGI() == true)
+		{
+			// CGI
+			CGI CGIrequest(*this);
+			responseBody = CGIrequest.getHTMLBody();
+		}
+		// else {
+		// 	// non-CGI
+		// 	switch (this->_request->getMethod())
+		// 	{
+		// 		case HTTP_GET:
+		// 		{
+		// 			responseBody = _execGET();
+		// 			break ;
+		// 		}
+		// 		case HTTP_POST:
+		// 		{
+		// 			responseBody = _execPOST();
+		// 			break ;
+		// 		}
+		// 		case HTTP_DELETE:
+		// 		{
+		// 			responseBody = _execDELETE();
+		// 			break ;
+		// 		}
+		// 	}
+		// }
+		response.parseFromCGI(responseBody);
+    }
+    catch(const HTTPexception& e)
+    {
+        std::cerr << e.what() << '\n';
+		response.parseFromStatic(e.getStatus(), this->_servName, "");
+    }
+    return (response);
+}
+
 HTTPmethod		HTTPrequest::getMethod( void ) const noexcept
 {
 	return (this->_method);
@@ -225,6 +274,22 @@ std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 	return (boundary);
 }
 
+ConfigServer const&		HTTPrequest::getConfigServer( void ) const noexcept
+{
+    return (*(this->_configServer));
+}
+
+int		HTTPrequest::getSocket( void ) const noexcept
+{
+	return (this->_socket);
+}
+
+void 	HTTPrequest::setConfigServer(ConfigServer const* config) noexcept
+{
+	this->_configServer = config;
+	this->_servName = config->getPrimaryName();
+}
+
 std::string	const&	HTTPrequest::getBody( void ) const noexcept
 {
 	return (this->_body);
@@ -233,6 +298,13 @@ std::string	const&	HTTPrequest::getBody( void ) const noexcept
 std::string	const&	HTTPrequest::getQueryRaw( void ) const noexcept
 {
 	return (this->_url.queryRaw);
+}
+
+void	HTTPrequest::_setSocket( int newSocket )
+{
+	if (newSocket == -1)
+		throw(RequestException({"invalid socket"}, 500));
+	this->_socket = newSocket;
 }
 
 void	HTTPrequest::_setHead( std::string const& header )
@@ -266,6 +338,7 @@ void	HTTPrequest::_setHeaders( std::string const& headers)
 		throw(RequestException({"no Host header"}, 412));
 	}
 	// NB: set drop connection flag depending on header
+	// NB: merge this headers check with body heades check
 }
 
 void    HTTPrequest::_setMethod( std::string const& strMethod )
@@ -426,7 +499,7 @@ void	HTTPrequest::_setVersion( std::string const& strVersion )
 		throw(RequestException({"unsupported HTTP version:", strVersion}, 505));
 }
 
-void	HTTPrequest::_checkBodyInfo( size_t maxBodyLength )
+void	HTTPrequest::checkHeaders( size_t maxBodyLength )
 {
 	this->_maxBodySize = maxBodyLength;
 
@@ -489,4 +562,17 @@ std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
 		}
 	} while (sizeChunk != 0);
 	return (tmpChunkedBody);
+}
+
+std::string	HTTPrequest::_readContent(std::string const& pathReq)
+{
+	std::fstream	fileStream(pathReq.c_str());
+	std::string		fileContent, line;
+
+	if (!fileStream.is_open())
+		throw(ExecException({"error opening file", pathReq}, 500));	// NB not an exception! has to be the correspondant to 40X error code
+	while (std::getline(fileStream, line))
+		fileContent += line + std::string("\n");
+	fileStream.close();
+	return (fileContent);
 }

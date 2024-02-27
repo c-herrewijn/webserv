@@ -12,12 +12,17 @@
 
 #pragma once
 
-#include "HTTPstruct.hpp"
 #include <sys/types.h>        // send, recv
 #include <sys/socket.h>       // send, recv
 #include <cstring>           // strerror
 #include <limits>
+#include <fstream>
 #include <filesystem>
+
+#include "HTTPstruct.hpp"
+#include "HTTPresponse.hpp"
+#include "ConfigServer.hpp"
+
 #define DEF_BUF_SIZE 	8192						// max size of HTTP header
 
 typedef enum HTTPmethod_s
@@ -50,15 +55,17 @@ class HTTPrequest : public HTTPstruct
 			_endConn(false) {};
 		virtual ~HTTPrequest( void ) override {};
 
-		void	readHead( int );
-		void	readPlainBody( int );
-		void	readChunkedBody( int );
-		void	parseHead( std::string const& );
-		void	parseBody( int, size_t );
-		bool	isCGI( void ) const noexcept;
-		bool	isChunked( void ) const noexcept;
-		bool	isFileUpload( void ) const noexcept;
-		bool	isEndConn( void ) const noexcept;
+		void			readHead( int );
+		void			readPlainBody( void );
+		void			readChunkedBody( void );
+		void			parseHead( std::string const& );
+		void			parseBody( void );
+		bool			isCGI( void ) const noexcept;
+		bool			isChunked( void ) const noexcept;
+		bool			isFileUpload( void ) const noexcept;
+		bool			isEndConn( void ) const noexcept;
+		void			checkHeaders( size_t );
+		HTTPresponse	execRequest( void ) noexcept;
 
 		std::string	toString( void ) const noexcept override;
 
@@ -69,15 +76,22 @@ class HTTPrequest : public HTTPstruct
 		std::string	const& 	getBody( void ) const noexcept;
 		std::string	const&	getQueryRaw( void ) const noexcept;
 		std::string			getContentTypeBoundary( void ) const noexcept;
+		ConfigServer const&	getConfigServer( void ) const noexcept;
+		void 				setConfigServer(ConfigServer const* config) noexcept;
+		int					getSocket( void ) const noexcept;
 
 	protected:
-		HTTPmethod	_method;
-		HTTPurl		_url;
-		std::string	_tmpBody;
+		HTTPmethod			_method;
+		HTTPurl				_url;
+		std::string			_tmpBody;
+		ConfigServer const*	_configServer;
+		std::string 		_servName;
+		int					_socket;
 
 		size_t		_maxBodySize, _contentLength;
 		bool		_isChunked, _isFileUpload, _endConn;
 
+		void	_setSocket( int ) ;
 		void	_setHead( std::string const& ) override;
 		void	_setHeaders( std::string const& ) override;
 
@@ -92,6 +106,6 @@ class HTTPrequest : public HTTPstruct
 
 		void	_setVersion( std::string const& );
 
-		void		_checkBodyInfo( size_t );
 		std::string	_unchunkBody( std::string const& );
+		std::string	_readContent(std::string const&);
 };

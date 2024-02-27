@@ -63,6 +63,7 @@ void			WebServer::startListen( void )
 void			WebServer::loop( void )
 {
 	int				nConn = -1;
+	HTTPrequest 	*request;
 	HTTPresponse	response;
 
 	while (true)
@@ -114,14 +115,54 @@ void			WebServer::loop( void )
 						if (current.pollState == WAITING_FOR_CONNECTION) {
 							handleNewConnections(current);
 						}
-						else if (current.pollState == READ_STATIC_FILE) {
-							// replace this logic
-							response = _handleRequest(this->_pollfds[i].fd);
-							response.writeContent(this->_pollfds[i].fd);
-							if (response.getStatusCode() != 200)
-								_dropConn(this->_pollfds[i--].fd);
-						}
 						else if (current.pollState == READ_REQ_HEADER) {
+
+
+							// this->_requests.push_back(executor);
+							request = new HTTPrequest;
+							try {
+								// RequestExecutor executor(current.fd);
+								request->readHead(current.fd);
+								request->setConfigServer(&this->getHandler(request->getHost()));
+								// executor.setRequest(&request);
+								// validation from configServer (chocko's validation)
+								request->checkHeaders(1000000);
+								if (request->isCGI()) {
+									if (request->hasBody())
+										current.pollState = FORWARD_REQ_BODY_TO_CGI;
+									else
+										current.pollState = READ_CGI_RESPONSE;
+								}
+								else
+									current.pollState = READ_STATIC_FILE;
+								this->_requests.push_back(request);
+								// is static file -> status = READ_STATIC_FILE
+								// else is CGI (POST and DELETE) -> is there a body?
+								//				yes: status = FOREWARD_REQ_BODY_TO_CGI
+								//				no: status = READ_CGI_RESPONSE
+
+
+
+
+// Non-CGI END of headers read without “content-length"	READ_STATIC_FILE
+// Non-CGI END of headers read with “content-length"		WRITE_TO_CLIENT			error case, discard request body by reading it all
+// CGI END of headers read without “content-length"		READ_CGI_RESPONSE		run the CGI
+// CGI END of headers read with “content-length"			FOREWARD_REQ_BODY_TO_CGI	run the CGI
+
+
+
+							}
+							catch (const HTTPexception& e) {
+								// TODO
+							}
+
+
+
+
+							// read max size of header (8192 bytes)
+							// parse header
+							// store overshoot
+
 							// replace this logic
 							response = _handleRequest(this->_pollfds[i].fd);
 							response.writeContent(this->_pollfds[i].fd);
@@ -136,6 +177,13 @@ void			WebServer::loop( void )
 								_dropConn(this->_pollfds[i--].fd);
 						}
 						else if (current.pollState == READ_CGI_RESPONSE) {
+							// replace this logic
+							response = _handleRequest(this->_pollfds[i].fd);
+							response.writeContent(this->_pollfds[i].fd);
+							if (response.getStatusCode() != 200)
+								_dropConn(this->_pollfds[i--].fd);
+						}
+						else if (current.pollState == READ_STATIC_FILE) {
 							// replace this logic
 							response = _handleRequest(this->_pollfds[i].fd);
 							response.writeContent(this->_pollfds[i].fd);
@@ -275,11 +323,10 @@ HTTPresponse	WebServer::_handleRequest( int connfd )
 
 	// this->_requests.push_back(executor);
 	try {
-		RequestExecutor executor(connfd);
+		// RequestExecutor executor(connfd);
 		request.readHead(connfd);
-		executor.setConfigServer(&this->getHandler(request.getHost()));
-		executor.setRequest(&request);
-		response = executor.execRequest();
+		request.setConfigServer(&this->getHandler(request.getHost()));
+		response = request.execRequest();
 	}
 	catch (const HTTPexception& e) {
 		std::cerr << e.what() << '\n';
