@@ -30,7 +30,7 @@ HTTPresponse	RequestExecutor::execRequest( void ) noexcept
 {
     int             status = 200;
     HTTPresponse    response;
-    std::string     body;
+    std::string     responseBody;
 
     try
     {
@@ -38,14 +38,14 @@ HTTPresponse	RequestExecutor::execRequest( void ) noexcept
         if (status != 200)
 			throw(ExecException({"request validation failed with code:", std::to_string(status)}, status));
 		this->_request->parseBody(this->_socket, 1000000);	// NB: this needs to be dynamic depending on the location
-		body = _runHTTPmethod();
+		responseBody = _runHTTPmethod();
     }
     catch(const HTTPexception& e)
     {
         std::cerr << e.what() << '\n';
         status = e.getStatus();
     }
-    response = createResponse(status, body);
+    response = createResponse(status, responseBody);
     return (response);
 }
 
@@ -97,13 +97,13 @@ void 	RequestExecutor::setConfigServer(ConfigServer const* config) noexcept
 
 std::string	RequestExecutor::_runHTTPmethod( void )
 {
-    std::string	body;
+    std::string	responseBody;
 
 	if (this->_request->isCGI() == true)
     {
         // CGI
 		CGI CGIrequest(*(this->_request), *(this->_configServer));
-        body = CGIrequest.getHTMLBody();
+        responseBody = CGIrequest.getHTMLBody();
 	}
 	else {
 		// non-CGI
@@ -111,22 +111,22 @@ std::string	RequestExecutor::_runHTTPmethod( void )
 		{
 			case HTTP_GET:
 			{
-				body = _execGET();
+				responseBody = _execGET();
 				break ;
 			}
 			case HTTP_POST:
 			{
-				body = _execPOST();
+				responseBody = _execPOST();
 				break ;
 			}
 			case HTTP_DELETE:
 			{
-				body = _execDELETE();
+				responseBody = _execDELETE();
 				break ;
 			}
 		}
 	}
-	return (body);
+	return (responseBody);
 }
 
 std::string	RequestExecutor::_execGET( void )
@@ -155,12 +155,12 @@ std::string	RequestExecutor::_execDELETE( void )
 std::string	RequestExecutor::_readContent(std::string const& pathReq)
 {
 	std::fstream	fd(pathReq.c_str());
-	std::string		body, line;
+	std::string		fileContent, line;
 
 	if (!fd.is_open())
 		throw(ExecException({"error opening file", pathReq}, 500));	// NB not an exception! has to be the correspondant to 40X error code
 	while (std::getline(fd, line))
-		body += line + std::string("\n");
+		fileContent += line + std::string("\n");
 	fd.close();
-	return (body);
+	return (fileContent);
 }
