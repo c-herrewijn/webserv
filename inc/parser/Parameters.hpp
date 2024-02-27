@@ -19,9 +19,14 @@
 # include <climits>
 # include <stdexcept>
 # include <iostream>
+# include <bitset>
 
 # include "Exceptions.hpp"
 
+# define M_GET 0
+# define M_POST 1
+# define M_DELETE 2
+# define M_SIZE 3 // amount of methodes used in our program
 # define DEF_SIZE 32
 # define DEF_SIZE_TYPE 'M'
 # define DEF_ROOT "/html"
@@ -38,25 +43,26 @@ class Parameters
 		void	setRoot(std::string& val);
 		void	setSize(long val, char *c);
 		void	setAutoindex(bool status);
-		void	addIndex(const std::string& val);
 
 		void 											setBlockIndex(size_t ref);
 		const size_t& 									getBlockIndex(void) const;
-		const std::unordered_set<std::string>& 			getIndexes(void) const;
+		const std::string& 								getIndex(void) const;
 		size_t						 					getMaxSize(void) const;
 		const std::unordered_map<size_t, std::string>& 	getErrorPages(void) const;
 		const std::unordered_map<size_t, std::string>& 	getReturns(void) const;
 		const bool& 									getAutoindex(void) const;
 		const std::string& 								getRoot(void) const;
+		const std::bitset<M_SIZE>&						getAllowedMethods(void) const;
 
 	private:
 		size_t 									block_index;
 		size_t					 				max_size;	// Will be overwriten by last found
 		bool									autoindex;	// FALSE in default, will be overwriten.
-		std::unordered_set<std::string>			indexes;	// Will be searched in given order
+		std::string								index;	// Will be searched in given order
 		std::string								root;		// Last found will be used.
 		std::unordered_map<size_t, std::string>	error_pages;	// Same status codes will be overwriten
 		std::unordered_map<size_t, std::string>	returns;	// Same reponse codes are overwriten by the last
+		std::bitset<M_SIZE> 					allowedMethods;	// Allowed methods
 
 		void	_parseRoot(std::vector<std::string>& block);
 		void	_parseBodySize(std::vector<std::string>& block);
@@ -64,6 +70,7 @@ class Parameters
 		void	_parseIndex(std::vector<std::string>& block);
 		void	_parseErrorPage(std::vector<std::string>& block);
 		void	_parseReturn(std::vector<std::string>& block);
+		void	_parseAllowedMethod(std::vector<std::string>& block);
 
 	    friend std::ostream& operator<<(std::ostream& os, const Parameters& params);
 };
