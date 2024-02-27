@@ -109,13 +109,34 @@ void			WebServer::loop( void )
 				if (nConn == 0)
 					break ;
 				try {
-					if (this->_pollfds[i].revents & POLLIN)
-					{
+					if (this->_pollfds[i].revents & POLLIN) {
 						t_PollItem &current = _getPollItem(this->_pollfds[i].fd);
-						if (current.pollType == SERVER_SOCKET)
+						if (current.pollState == WAITING_FOR_CONNECTION) {
 							handleNewConnections(current);
-						else
-						{
+						}
+						else if (current.pollState == READ_STATIC_FILE) {
+							// replace this logic
+							response = _handleRequest(this->_pollfds[i].fd);
+							response.writeContent(this->_pollfds[i].fd);
+							if (response.getStatusCode() != 200)
+								_dropConn(this->_pollfds[i--].fd);
+						}
+						else if (current.pollState == READ_REQ_HEADER) {
+							// replace this logic
+							response = _handleRequest(this->_pollfds[i].fd);
+							response.writeContent(this->_pollfds[i].fd);
+							if (response.getStatusCode() != 200)
+								_dropConn(this->_pollfds[i--].fd);
+						}
+						else if (current.pollState == FORWARD_REQ_BODY_TO_CGI) {
+							// replace this logic
+							response = _handleRequest(this->_pollfds[i].fd);
+							response.writeContent(this->_pollfds[i].fd);
+							if (response.getStatusCode() != 200)
+								_dropConn(this->_pollfds[i--].fd);
+						}
+						else if (current.pollState == READ_CGI_RESPONSE) {
+							// replace this logic
 							response = _handleRequest(this->_pollfds[i].fd);
 							response.writeContent(this->_pollfds[i].fd);
 							if (response.getStatusCode() != 200)
@@ -123,8 +144,25 @@ void			WebServer::loop( void )
 						}
 						nConn--;
 					}
-					if (this->_pollfds[i].revents & POLLOUT)
+					else if (this->_pollfds[i].revents & POLLOUT)
 					{
+						t_PollItem &current = _getPollItem(this->_pollfds[i].fd);
+
+						if (current.pollState == FORWARD_REQ_BODY_TO_CGI) {
+							// replace this logic
+							response = _handleRequest(this->_pollfds[i].fd);
+							response.writeContent(this->_pollfds[i].fd);
+							if (response.getStatusCode() != 200)
+								_dropConn(this->_pollfds[i--].fd);
+						}
+						else if (current.pollState == WRITE_TO_CLIENT) {
+							// replace this logic
+							response = _handleRequest(this->_pollfds[i].fd);
+							response.writeContent(this->_pollfds[i].fd);
+							if (response.getStatusCode() != 200)
+								_dropConn(this->_pollfds[i--].fd);
+						}
+
 						// ...
 						nConn--;
 					}
