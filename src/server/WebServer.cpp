@@ -82,7 +82,7 @@ void			WebServer::loop( void )
 			//		3. also during signal (children have to be killed?)
 			//
 			// markAllPollItemsAsActionable();
-			// 
+			//
 			// all functions should loop through the _requests, but only act on certain states
 			// handleNewClientConnections();  // state: READ_REQ_HEADERS
 			// 							// CLIENT_CONNECTION (reading header only: )
@@ -299,31 +299,31 @@ void	WebServer::handleNewConnections( PollItem& item )
 	this->_addConn(connfd, CLIENT_CONNECTION, READ_REQ_HEADER);
 }
 
-void	WebServer::readRequestHeaders( PollItem& item ) 
+void	WebServer::readRequestHeaders( PollItem& item )
 {
 	(void) item ;
 	; // todo
 }
 
-void	WebServer::readStaticFiles( PollItem& item ) 
+void	WebServer::readStaticFiles( PollItem& item )
 {
 	(void) item ;
 	; // todo
 }
 
-void	WebServer::forwardRequestBodyToCGI( PollItem& item ) 
+void	WebServer::forwardRequestBodyToCGI( PollItem& item )
 {
 	(void) item ;
 	; // todo
 }
 
-void	WebServer::readCGIResponses( PollItem& item ) 
+void	WebServer::readCGIResponses( PollItem& item )
 {
 	(void) item ;
 	; // todo
 }
 
-void	WebServer::writeToClients( PollItem& item ) 
+void	WebServer::writeToClients( PollItem& item )
 {
 	(void) item ;
 	; // todo

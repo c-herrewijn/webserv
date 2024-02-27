@@ -464,7 +464,7 @@ void	HTTPrequest::_checkBodyInfo( size_t maxBodyLength )
 			return;
 		}
 	}
-	this->_body = true;
+	this->_hasBody = true;
 }
 
 std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)

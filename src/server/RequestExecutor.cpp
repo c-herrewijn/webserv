@@ -38,7 +38,7 @@ HTTPresponse	RequestExecutor::execRequest( void ) noexcept
         if (status != 200)
 			throw(ExecException({"request validation failed with code:", std::to_string(status)}, status));
 		this->_request->parseBody(this->_socket, 1000000);	// NB: this needs to be dynamic depending on the location
-        body = _runHTTPmethod();
+		body = _runHTTPmethod();
     }
     catch(const HTTPexception& e)
     {
@@ -57,7 +57,6 @@ HTTPresponse	RequestExecutor::createResponse( int status, std::string const& bod
 	if (this->_request->isCGI())
 	{
 		try {
-			std::cout <<"|" << bodyResp << "|\n";
 			response.parseFromCGI(bodyResp);
 		}
 		catch(const ResponseException& e) {
