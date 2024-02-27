@@ -215,6 +215,8 @@ static void	separateURL(std::string const& input, std::vector<std::string>& outp
 	}
 }
 
+// will be updated to return std::pair<std::string, Location*>
+
 static Location*	diveLocation(Location& cur, std::vector<std::string>::iterator& itDir, std::vector<std::string>& directory)
 {
 	std::vector<std::string> curURL;
