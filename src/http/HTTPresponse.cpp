@@ -6,22 +6,22 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/23 19:13:12 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/28 20:09:52 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPresponse.hpp"
 
-void	HTTPresponse::parseFromStatic( int code, std::string const& servName, std::string const& body ) noexcept
+void	HTTPresponse::parseStaticHTML( int code )
 {
 	_setHead(std::to_string(code));
 	_addHeader("Date", _getDateTime());
-	_addHeader("Server", servName);
-	if (body.empty() == false)
+	_addHeader("Server", this->_servName);
+	if (this->_tmpBody.empty() == false)
 	{
-		_addHeader("Content-Length", std::to_string(body.size()));
+		_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
 		_addHeader("Content-Type", std::string(STD_CONTENT_TYPE));	// NB: do I need other formats?
-		HTTPstruct::_setBody(body);
+		HTTPstruct::_setBody(this->_tmpBody);
 	}
 }
 
@@ -41,22 +41,41 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 	_setHead(_getStatusFromHeader());
 }
 
-void		HTTPresponse::writeContent( int socket )
+void	HTTPresponse::readHTML( void )
 {
-	std::string 	toWrite, fullContent=this->toString();
-	size_t			start=0, len=fullContent.size();
-	ssize_t 		written=0;
-
-	if (socket == -1)
-		throw(ResponseException({"invalid socket"}, 500));
-	while (start < fullContent.size())
+    ssize_t 	readChar = -1;
+    char        buffer[DEF_BUF_SIZE + 1];
+	
+	if (this->_HTMLfd == -1)
+		throw(RequestException({"invalid socket"}, 500));
+	bzero(buffer, DEF_BUF_SIZE + 1);
+	readChar = read(this->_HTMLfd, buffer, DEF_BUF_SIZE);
+	if (readChar < 0)
+		throw(RequestException({"fd unavailable"}, 500));
+	this->_tmpBody += buffer;
+	if (readChar < DEF_BUF_SIZE)
 	{
-		toWrite = fullContent.substr(start, len);
-		written = send(socket, toWrite.c_str(), len, 0);
-		if (written < -1)
-			throw(ServerException({"from writing: socket not available"}));
-		start += written;
-		len -= written;
+		this->_gotFullHTML = true;
+		this->_HTMLfd = -1;
+	}
+}
+
+void		HTTPresponse::writeContent( void )
+{
+	std::string 	toWrite;
+	static ssize_t 	written = 0;
+
+	if (this->_socket == -1)
+		throw(RequestException({"invalid socket"}, 500));
+	toWrite = toString().substr(written);
+	written = send(this->_socket, toWrite.c_str(), toWrite.size(), 0);
+	if (written < -1)
+		throw(ServerException({"socket not available"}));
+	else if ((size_t) written == toWrite.size())
+	{
+		this->_writtenResp = true;
+		this->_socket = -1;
+		written = 0;
 	}
 }
 
@@ -99,6 +118,33 @@ int		HTTPresponse::getStatusCode( void ) const noexcept
 	return (this->_statusCode);
 }
 
+void	HTTPresponse::setHTMLfd( int HTMLfd ) 
+{
+	if (HTMLfd == -1)
+		throw(RequestException({"invalid socket"}, 500));
+	this->_HTMLfd = HTMLfd;
+}
+
+int		HTTPresponse::getHTMLfd( void ) const noexcept
+{
+	return (this->_HTMLfd);
+}
+
+bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept
+{
+	return (this->_gotFullHTML);
+}
+
+bool	HTTPresponse::isDoneWriting( void ) const noexcept
+{
+	return (this->_writtenResp);
+}
+
+void	HTTPresponse::setServName( std::string nameServ) noexcept
+{
+	this->_servName = nameServ;
+}
+
 void	HTTPresponse::_setHead( std::string const& strStatusCode)
 {
 	this->_version.scheme = HTTP_SCHEME;
@@ -132,7 +178,6 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 	}
 }
 
-// NB: see RFC 7231 for info about every specific error code
 std::string	HTTPresponse::_mapStatusCode( int status) const
 {
 	std::map<int, const char*> mapStatus =

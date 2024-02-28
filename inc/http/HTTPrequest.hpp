@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/28 14:03:41 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/28 19:14:54 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 
 #include <sys/types.h>        // send, recv
 #include <sys/socket.h>       // send, recv
+#include <fcntl.h>
 #include <cstring>           // strerror
 #include <limits>
 #include <fstream>
@@ -22,8 +23,6 @@
 #include "HTTPstruct.hpp"
 #include "HTTPresponse.hpp"
 #include "ConfigServer.hpp"
-
-#define DEF_BUF_SIZE 	8192						// max size of HTTP header
 
 typedef enum HTTPmethod_s
 {
@@ -47,7 +46,8 @@ typedef struct HTTPurl_f
 class HTTPrequest : public HTTPstruct
 {
 	public:
-		HTTPrequest( void ) : HTTPstruct() ,
+		HTTPrequest( void ) : 
+			HTTPstruct() ,
 			_maxBodySize(0) ,
 			_contentLength(0) ,
 			_isChunked(false),
@@ -55,17 +55,14 @@ class HTTPrequest : public HTTPstruct
 			_endConn(false) {};
 		virtual ~HTTPrequest( void ) override {};
 
-		void			readHead( int );
-		void			readPlainBody( void );
-		void			readChunkedBody( void );
-		void			parseHead( std::string const& );
+		void			parseHead( void );
 		void			parseBody( void );
 		bool			isCGI( void ) const noexcept;
 		bool			isChunked( void ) const noexcept;
 		bool			isFileUpload( void ) const noexcept;
 		bool			isEndConn( void ) const noexcept;		// NB: to implement
 		void			checkHeaders( size_t );
-		HTTPresponse	execRequest( void ) noexcept;
+		// HTTPresponse	runCGI( void ) noexcept;
 
 		std::string	toString( void ) const noexcept override;
 
@@ -78,34 +75,28 @@ class HTTPrequest : public HTTPstruct
 		std::string			getContentTypeBoundary( void ) const noexcept;
 		ConfigServer const&	getConfigServer( void ) const noexcept;
 		void 				setConfigServer(ConfigServer const* config) noexcept;
-		int					getSocket( void ) const noexcept;
 
 	protected:
 		HTTPmethod			_method;
 		HTTPurl				_url;
-		std::string			_tmpBody;
 		ConfigServer const*	_configServer;
-		std::string 		_servName;
-		int					_socket;
 
 		size_t		_maxBodySize, _contentLength;
 		bool		_isChunked, _isFileUpload, _endConn;
 
-		void	_setSocket( int ) ;
 		void	_setMaxBodySize(size_t) noexcept;
 		void	_setHead( std::string const& ) override;
 
 		void	_setMethod( std::string const& );
 		void	_setURL( std::string const& );
-
 		void	_setScheme( std::string const& );
 		void	_setHostPort( std::string const& );
 		void	_setPath( std::string const& );
 		void	_setQuery( std::string const& );
 		void	_setFragment( std::string const& );
-
 		void	_setVersion( std::string const& );
 
 		std::string	_unchunkBody( std::string const& );
-		std::string	_readContent(std::string const&);
+		void		_readPlainBody( void );
+		void		_readChunkedBody( void );
 };

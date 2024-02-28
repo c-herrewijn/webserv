@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/23 17:52:59 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/28 20:23:48 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,6 @@
 #include <unordered_map>
 #include <algorithm>
 #include <filesystem>
-#include <fcntl.h>
 
 #include "HTTPrequest.hpp"
 #include "HTTPresponse.hpp"
@@ -71,8 +70,8 @@ typedef struct PollItem
 	fdType          pollType;
     fdState         pollState;
     bool			actionHappened;
-} t_PollItem;
 
+} t_PollItem;
 
 // NB: non-blocking waitpid
 // NB: in case of terminating error child process must be killed with signals
@@ -85,9 +84,9 @@ class WebServer
 		void			startListen( void );
 		void			loop( void );
 
-		std::string		getAddress( const struct sockaddr_storage*) const noexcept ;
-		ConfigServer const&	getHandler( std::string const& ) const ;
-		ConfigServer const&	getDefaultServer( void ) const ;
+		std::string			getAddress( const struct sockaddr_storage*) const noexcept ;
+		ConfigServer const&	getHandler( std::string const& ) const noexcept;
+		ConfigServer const&	getDefaultServer( void ) const noexcept;
 
 	private:
 		ConfigServer				 _defaultServer;
@@ -96,16 +95,16 @@ class WebServer
 		std::vector<struct pollfd>	 _pollfds;
 		std::unordered_map<int, t_PollItem>	 	_pollitems;
 		std::unordered_map<int, HTTPrequest*> 	_requests;
+		std::unordered_map<int, HTTPresponse*> 	_responses;
 
 		void			_listenTo( std::string const&, std::string const& );
-		HTTPresponse	_handleRequest( int ) ;
-		void			_addConn( int , fdType , fdState ) noexcept;
+		void			_addConn( int , fdType , fdState );
 		void			_dropConn( int socket = -1 ) noexcept;
 
-		void			handleNewConnections( PollItem& ); // keep - DONE
-		void			readRequestHeaders( PollItem& ); // keep / rework
-		void			readStaticFiles( PollItem& ); // keep / rework
-		void			forwardRequestBodyToCGI( PollItem& ); // split into: 'readRequestBody()' and 'writeRequestBodyToCGI()'
-		void			readCGIResponses( PollItem& ); // keep / rework
-		void			writeToClients( PollItem& );
+		void			handleNewConnections( t_PollItem& ); // keep - DONE
+		void			readRequestHeaders( t_PollItem& ); // keep / rework
+		void			readStaticFiles( t_PollItem&, std::vector<int>& ); // keep / rework
+		void			forwardRequestBodyToCGI( t_PollItem& ); // split into: 'readRequestBody()' and 'writeRequestBodyToCGI()'
+		void			readCGIResponses( t_PollItem& ); // keep / rework
+		void			writeToClients( t_PollItem& );
 };

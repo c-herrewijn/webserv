@@ -39,6 +39,15 @@ WebServer::WebServer ( std::vector<ConfigServer> const& servers ) : _servers(ser
 WebServer::~WebServer ( void ) noexcept
 {
 	this->_dropConn();
+	for (auto item : this->_requests)
+		delete item.second;
+	for (auto item : this->_responses)
+		delete item.second;
+	for (auto item : this->_pollfds)
+	{
+		shutdown(item.fd, SHUT_RDWR);
+		close(item.fd);
+	}
 }
 
 void			WebServer::startListen( void )
@@ -57,9 +66,10 @@ void			WebServer::startListen( void )
 
 void			WebServer::loop( void )
 {
-	int				nConn = -1;
-	HTTPrequest 	*request;
-	HTTPresponse	response;
+	int					nConn = -1;
+	HTTPrequest 		*request;
+	HTTPresponse		*response;
+	std::vector<int>	emptyConns;
 
 	while (true)
 	{
@@ -69,137 +79,119 @@ void			WebServer::loop( void )
 			if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
 				throw(ServerException({"poll failed"}));
 		}
-		else if (nConn > 0)
+		// some notes:
+		//		1. update reading for chunked requests: it is possibile un unchunk
+		// 			the body directly while reading, intstead of storing it in a variable
+		// 		2. because of fork, waitpid (no hang) should be checked here to terminate any child
+		//		3. also during signal (children have to be killed?)
+		//
+		// markAllPollItemsAsActionable();
+		//
+		// all functions should loop through the _requests, but only act on certain states
+		// handleNewClientConnections();  // state: READ_REQ_HEADERS
+		// 							// CLIENT_CONNECTION (reading header only: )
+		// 							// if CGI, run the program
+		//
+		// handleCGIRequest();			// state: FOREWARD_REQ_TO_CGI
+		// 							// CLIENT_CONNECTION (reading body POLLIN),
+		// 							// CGI_DATA_PIPE (writing body POLLOUT)
+		//
+		// handleCGIResponse();
+		// 							// CGI_RESPONSE_PIPE (reading response) state: FORWARD_CGI_RESPONSE
+		// 							// CGI_RESPONSE_PIPE (reading POLLIN),
+		// 							// CLIENT_CONNECTION (writing POLLOUT)
+		//
+		// countStaticFileLength(); 	// state: DETERMINE_STATIC_FILE_LENGTH
+		// 							// STATIC_FILE (reading file)
+		//
+		// forewardStaticFile()		// state: FOREWARD_STATIC_FILE
+		// 							// STATIC_FILE (read)
+		// 							// CLIENT_CONNECTION (write)
+
+		auto begin = this->_pollfds.begin();
+		while (nConn > 0)
 		{
-			// some notes:
-			//		1. update reading for chunked requests: it is possibile un unchunk
-			// 			the body directly while reading, intstead of storing it in a variable
-			// 		2. because of fork, waitpid (no hang) should be checked here to terminate any child
-			//		3. also during signal (children have to be killed?)
-			//
-			// markAllPollItemsAsActionable();
-			//
-			// all functions should loop through the _requests, but only act on certain states
-			// handleNewClientConnections();  // state: READ_REQ_HEADERS
-			// 							// CLIENT_CONNECTION (reading header only: )
-			// 							// if CGI, run the program
-			//
-			// handleCGIRequest();			// state: FOREWARD_REQ_TO_CGI
-			// 							// CLIENT_CONNECTION (reading body POLLIN),
-			// 							// CGI_DATA_PIPE (writing body POLLOUT)
-			//
-			// handleCGIResponse();
-			// 							// CGI_RESPONSE_PIPE (reading response) state: FORWARD_CGI_RESPONSE
-			// 							// CGI_RESPONSE_PIPE (reading POLLIN),
-			// 							// CLIENT_CONNECTION (writing POLLOUT)
-			//
-  			// countStaticFileLength(); 	// state: DETERMINE_STATIC_FILE_LENGTH
-			// 							// STATIC_FILE (reading file)
-			//
-			// forewardStaticFile()		// state: FOREWARD_STATIC_FILE
-			// 							// STATIC_FILE (read)
-			// 							// CLIENT_CONNECTION (write)
-
-			for (size_t i=0; i<this->_pollfds.size(); i++)
-			{
-				if (nConn == 0)
-					break ;
-				try {
-					if (this->_pollfds[i].revents & POLLIN) {
-						t_PollItem &current = this->_pollitems[this->_pollfds[i].fd];
-						if (current.pollState == WAITING_FOR_CONNECTION) {
-							handleNewConnections(current);
+			try {
+				if (begin->revents & POLLIN) {
+					t_PollItem &current = this->_pollitems[begin->fd];
+					if (current.pollState == WAITING_FOR_CONNECTION)
+						handleNewConnections(current);
+					else if (current.pollState == READ_REQ_HEADER) {
+						request = new HTTPrequest;
+						request->setSocket(current.fd);
+						request->parseHead();
+						request->setConfigServer(&this->getHandler(request->getHost()));
+						// validation from configServer (chocko's validation), the validation has to set the maxBodyLength!
+						request->checkHeaders(1000000);	// has to be dynamic
+						if (request->isCGI()) {
+							if (request->hasBody())
+								current.pollState = FORWARD_REQ_BODY_TO_CGI;
+							else
+								current.pollState = READ_CGI_RESPONSE;
 						}
-						else if (current.pollState == READ_REQ_HEADER) {
-							request = new HTTPrequest;
-							try {
-								request->readHead(current.fd);
-								request->setConfigServer(&this->getHandler(request->getHost()));
-								// validation from configServer (chocko's validation)
-								request->checkHeaders(1000000);	// has to be dynamic
-								if (request->isCGI()) {
-									if (request->hasBody())
-										current.pollState = FORWARD_REQ_BODY_TO_CGI;
-									else
-										current.pollState = READ_CGI_RESPONSE;
-								}
-								else
-									current.pollState = READ_STATIC_FILE;
-								this->_requests.insert(std::pair<int, HTTPrequest*>(current.fd, request));
-								// is static file -> status = READ_STATIC_FILE
-								// else is CGI (POST and DELETE) -> is there a body?
-								//				yes: status = FOREWARD_REQ_BODY_TO_CGI
-								//				no: status = READ_CGI_RESPONSE
-
-							// Non-CGI END of headers read without “content-length"	READ_STATIC_FILE
-							// Non-CGI END of headers read with “content-length"		WRITE_TO_CLIENT			error case, discard request body by reading it all
-							// CGI END of headers read without “content-length"		READ_CGI_RESPONSE		run the CGI
-							// CGI END of headers read with “content-length"			FOREWARD_REQ_BODY_TO_CGI	run the CGI
-							}
-							catch (const HTTPexception& e) {
-								// TODO
-							}
+						else
+						{
+							response = new HTTPresponse;
+							response->setSocket(current.fd);
+							response->setServName(request->getConfigServer().getPrimaryName());
+							int HTMLfd = open(request->getPath().c_str(), O_RDONLY);
+							response->setHTMLfd(HTMLfd);
+							_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
+							current.pollState = READ_STATIC_FILE;
+							this->_responses.insert(std::pair<int, HTTPresponse*>(current.fd, response));
 						}
-						else if (current.pollState == FORWARD_REQ_BODY_TO_CGI) {
-							// replace this logic
-							response = _handleRequest(this->_pollfds[i].fd);
-							response.writeContent(this->_pollfds[i].fd);
-							if (response.getStatusCode() != 200)
-								_dropConn(this->_pollfds[i--].fd);
-						}
-						else if (current.pollState == READ_CGI_RESPONSE) {
-							// replace this logic
-							response = _handleRequest(this->_pollfds[i].fd);
-							response.writeContent(this->_pollfds[i].fd);
-							if (response.getStatusCode() != 200)
-								_dropConn(this->_pollfds[i--].fd);
-						}
-						else if (current.pollState == READ_STATIC_FILE) {
-							// replace this logic
-							response = _handleRequest(this->_pollfds[i].fd);
-							response.writeContent(this->_pollfds[i].fd);
-							if (response.getStatusCode() != 200)
-								_dropConn(this->_pollfds[i--].fd);
-						}
-						nConn--;
+						this->_requests.insert(std::pair<int, HTTPrequest*>(current.fd, request));
 					}
-					else if (this->_pollfds[i].revents & POLLOUT)
-					{
-						t_PollItem &current = this->_pollitems[this->_pollfds[i].fd];
-
-						if (current.pollState == FORWARD_REQ_BODY_TO_CGI) {
-							// replace this logic
-							response = _handleRequest(this->_pollfds[i].fd);
-							response.writeContent(this->_pollfds[i].fd);
-							if (response.getStatusCode() != 200)
-								_dropConn(this->_pollfds[i--].fd);
-						}
-						else if (current.pollState == WRITE_TO_CLIENT) {
-							// replace this logic
-							response = _handleRequest(this->_pollfds[i].fd);
-							response.writeContent(this->_pollfds[i].fd);
-							if (response.getStatusCode() != 200)
-								_dropConn(this->_pollfds[i--].fd);
-						}
-						nConn--;
+					else if (current.pollState == FORWARD_REQ_BODY_TO_CGI) {
+						// replace this logic
+						// response = _handleRequest(begin->fd);
+						// response.writeContent(begin->fd);
+						// if (response.getStatusCode() != 200)
+						// 	_dropConn(this->_pollfds[i--].fd);
 					}
-					// if (this->_pollfds[i].revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
-					// 	_dropConn(this->_pollfds[i--].fd);
+					else if (current.pollState == READ_CGI_RESPONSE) {
+						// replace this logic
+						// response = _handleRequest(begin->fd);
+						// response.writeContent(begin->fd);
+						// if (response.getStatusCode() != 200)
+						// 	_dropConn(this->_pollfds[i--].fd);
+					}
+					else if (current.pollState == READ_STATIC_FILE) {
+						readStaticFiles(current, emptyConns);
+					}
+					nConn--;
+				}
+				else if (begin->revents & POLLOUT)
+				{
+					t_PollItem &current = this->_pollitems[begin->fd];
+					if (current.pollState == FORWARD_REQ_BODY_TO_CGI) {
 
-					// 	readRequestHeaders(current);
-					// 	readStaticFiles(current);
-					// 	forwardRequestBodyToCGI(current);
-					// 	readCGIResponses(current);
-					// 	writeToClients(current);
+					}
+					else if (current.pollState == WRITE_TO_CLIENT) {
+						response = this->_responses[current.fd];
+						response->writeContent();
+						if (response->isDoneWriting())
+							emptyConns.push_back(current.fd);
+					}
+					nConn--;
 				}
-				catch(const ServerException& e) {
-					std::cerr << e.what() << '\n';
-					_dropConn(this->_pollfds[i--].fd);
-				}
+				// else if (this->_pollfds[i].revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
+				// 	_dropConn(this->_pollfds[i--].fd);
 			}
+			catch(const ServerException& e) {
+				std::cerr << e.what() << '\n';
+				// error handling
+				_dropConn(begin->fd);
+			}
+			begin++;
 		}
+		while (emptyConns.empty() == false)
+		{
+			_dropConn(emptyConns.back());
+			emptyConns.pop_back();
+		}
+
 	}
-	_dropConn();
 }
 
 std::string		WebServer::getAddress( const struct sockaddr_storage *addr ) const noexcept
@@ -222,7 +214,7 @@ std::string		WebServer::getAddress( const struct sockaddr_storage *addr ) const 
 	return (ipAddress);
 }
 
-ConfigServer const&	WebServer::getHandler( std::string const& servName ) const
+ConfigServer const&	WebServer::getHandler( std::string const& servName ) const noexcept
 {
 	std::string	tmpServName = servName;
 
@@ -239,7 +231,7 @@ ConfigServer const&	WebServer::getHandler( std::string const& servName ) const
 	return (getDefaultServer());
 }
 
-ConfigServer const&	WebServer::getDefaultServer( void ) const
+ConfigServer const&	WebServer::getDefaultServer( void ) const noexcept
 {
 	return (this->_defaultServer);
 }
@@ -285,54 +277,41 @@ void			WebServer::_listenTo( std::string const& hostname, std::string const& por
 	this->_addConn(listenSocket, SERVER_SOCKET, WAITING_FOR_CONNECTION);
 }
 
-HTTPresponse	WebServer::_handleRequest( int connfd )
+void			WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePollItem )
 {
-	HTTPrequest 	request;
-	HTTPresponse	response;
-
-	// this->_requests.push_back(executor);
-	try {
-		// RequestExecutor executor(connfd);
-		request.readHead(connfd);
-		request.setConfigServer(&this->getHandler(request.getHost()));
-		response = request.execRequest();
-	}
-	catch (const HTTPexception& e) {
-		std::cerr << e.what() << '\n';
-		response.parseFromStatic(e.getStatus(), getDefaultServer().getPrimaryName(), "");
-	}
-	return (response);
-}
-
-void			WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePollItem ) noexcept
-{
-	if (newSocket != -1)
-	{
-		this->_pollfds.push_back({newSocket, POLLIN | POLLOUT, 0});
-
-		std::make_pair<int,int>(23,5);
-		t_PollItem newPollitem = {newSocket, typePollItem, statePollItem, false};
-		this->_pollitems.insert(std::pair(newSocket, newPollitem));
-	}
+	if (newSocket == -1)
+		throw(ServerException({"invalid file descriptor"}));
+	this->_pollfds.push_back({newSocket, POLLIN | POLLOUT, 0});
+	t_PollItem newPollitem = {newSocket, typePollItem, statePollItem, false};
+	this->_pollitems.insert(std::pair(newSocket, newPollitem));
 }
 
 void			WebServer::_dropConn(int toDrop) noexcept
 {
-	for (size_t i=0; i<this->_pollfds.size(); i++)
+	shutdown(toDrop, SHUT_RDWR);
+	close(toDrop);
+	for (auto start=this->_pollfds.begin(); start != this->_pollfds.end(); start++)
 	{
-		if ((this->_pollfds[i].fd == toDrop) or (toDrop == -1))
+		if (start->fd == toDrop)
 		{
-			shutdown(this->_pollfds[i].fd, SHUT_RDWR);
-			close(this->_pollfds[i].fd);
-			this->_pollfds.erase(this->_pollfds.begin() + i);
-			if (toDrop != -1)
-				break;
-			i--;
+			this->_pollfds.erase(start);
+			break;
 		}
+	}
+	this->_pollitems.erase(toDrop);
+	if (this->_requests.count(toDrop) > 0)
+	{
+		delete (this->_requests[toDrop]);
+		this->_requests.erase(toDrop);
+	}
+	if (this->_responses.count(toDrop) > 0)
+	{
+		delete (this->_responses[toDrop]);
+		this->_responses.erase(toDrop);
 	}
 }
 
-void	WebServer::handleNewConnections( PollItem& item )
+void	WebServer::handleNewConnections( t_PollItem& item )
 {
 	struct sockaddr_storage client;
 	unsigned int 			sizeAddr = sizeof(client);
@@ -346,31 +325,46 @@ void	WebServer::handleNewConnections( PollItem& item )
 	this->_addConn(connfd, CLIENT_CONNECTION, READ_REQ_HEADER);
 }
 
-void	WebServer::readRequestHeaders( PollItem& item )
+void	WebServer::readRequestHeaders( t_PollItem& item )
 {
 	(void) item ;
 	; // todo
 }
 
-void	WebServer::readStaticFiles( PollItem& item )
+void	WebServer::readStaticFiles( t_PollItem& currentPoll, std::vector<int>& emptyConns )
+{
+	HTTPresponse	*response;
+
+	for (auto& item : this->_responses)
+	{
+		if (item.second->getHTMLfd() == currentPoll.fd)
+		{
+			response = item.second;
+			break ;
+		}
+	}
+	response->readHTML();
+	if (response->isDoneReadingHTML() == true)
+	{
+		emptyConns.push_back(currentPoll.fd);
+		response->parseStaticHTML(200);
+		this->_pollitems[response->getSocket()].pollState = WRITE_TO_CLIENT;
+	}
+}
+
+void	WebServer::forwardRequestBodyToCGI( t_PollItem& item )
 {
 	(void) item ;
 	; // todo
 }
 
-void	WebServer::forwardRequestBodyToCGI( PollItem& item )
+void	WebServer::readCGIResponses( t_PollItem& item )
 {
 	(void) item ;
 	; // todo
 }
 
-void	WebServer::readCGIResponses( PollItem& item )
-{
-	(void) item ;
-	; // todo
-}
-
-void	WebServer::writeToClients( PollItem& item )
+void	WebServer::writeToClients( t_PollItem& item )
 {
 	(void) item ;
 	; // todo
