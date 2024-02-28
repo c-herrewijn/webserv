@@ -10,6 +10,8 @@
 # include <unistd.h>  // pipe(), fork()
 # include <sys/wait.h>  // waitpid()
 
+#include "HTTPrequest.hpp"
+
 class  CGI {
 public:
     CGI(const HTTPrequest &req);

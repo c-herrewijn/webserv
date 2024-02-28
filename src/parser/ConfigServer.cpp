@@ -199,11 +199,11 @@ void	ConfigServer::parseBlock(std::vector<std::string>& block)
 	_fillServer(block);
 }
 
-int	ConfigServer::validateRequest(HTTPrequest& req) const
-{
-	(void) req;
-	return (200);
-}
+// int	ConfigServer::validateRequest(HTTPrequest& req) const
+// {
+// 	(void) req;
+// 	return (200);
+// }
 
 const std::vector<Listen>& ConfigServer::getListens(void) const
 {

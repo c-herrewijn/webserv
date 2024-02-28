@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/21 23:24:54 by fra           ########   odam.nl         */
+/*   Updated: 2024/02/28 14:03:41 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,7 +63,7 @@ class HTTPrequest : public HTTPstruct
 		bool			isCGI( void ) const noexcept;
 		bool			isChunked( void ) const noexcept;
 		bool			isFileUpload( void ) const noexcept;
-		bool			isEndConn( void ) const noexcept;
+		bool			isEndConn( void ) const noexcept;		// NB: to implement
 		void			checkHeaders( size_t );
 		HTTPresponse	execRequest( void ) noexcept;
 
@@ -92,8 +92,8 @@ class HTTPrequest : public HTTPstruct
 		bool		_isChunked, _isFileUpload, _endConn;
 
 		void	_setSocket( int ) ;
+		void	_setMaxBodySize(size_t) noexcept;
 		void	_setHead( std::string const& ) override;
-		void	_setHeaders( std::string const& ) override;
 
 		void	_setMethod( std::string const& );
 		void	_setURL( std::string const& );

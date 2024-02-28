@@ -55,11 +55,6 @@ void			WebServer::startListen( void )
 
 }
 
-// WebServer::addRequestIfNew(int socket)
-// {
-
-// }
-
 void			WebServer::loop( void )
 {
 	int				nConn = -1;
@@ -116,17 +111,12 @@ void			WebServer::loop( void )
 							handleNewConnections(current);
 						}
 						else if (current.pollState == READ_REQ_HEADER) {
-
-
-							// this->_requests.push_back(executor);
 							request = new HTTPrequest;
 							try {
-								// RequestExecutor executor(current.fd);
 								request->readHead(current.fd);
 								request->setConfigServer(&this->getHandler(request->getHost()));
-								// executor.setRequest(&request);
 								// validation from configServer (chocko's validation)
-								request->checkHeaders(1000000);
+								request->checkHeaders(1000000);	// has to be dynamic
 								if (request->isCGI()) {
 									if (request->hasBody())
 										current.pollState = FORWARD_REQ_BODY_TO_CGI;
@@ -141,33 +131,14 @@ void			WebServer::loop( void )
 								//				yes: status = FOREWARD_REQ_BODY_TO_CGI
 								//				no: status = READ_CGI_RESPONSE
 
-
-
-
-// Non-CGI END of headers read without “content-length"	READ_STATIC_FILE
-// Non-CGI END of headers read with “content-length"		WRITE_TO_CLIENT			error case, discard request body by reading it all
-// CGI END of headers read without “content-length"		READ_CGI_RESPONSE		run the CGI
-// CGI END of headers read with “content-length"			FOREWARD_REQ_BODY_TO_CGI	run the CGI
-
-
-
+							// Non-CGI END of headers read without “content-length"	READ_STATIC_FILE
+							// Non-CGI END of headers read with “content-length"		WRITE_TO_CLIENT			error case, discard request body by reading it all
+							// CGI END of headers read without “content-length"		READ_CGI_RESPONSE		run the CGI
+							// CGI END of headers read with “content-length"			FOREWARD_REQ_BODY_TO_CGI	run the CGI
 							}
 							catch (const HTTPexception& e) {
 								// TODO
 							}
-
-
-
-
-							// read max size of header (8192 bytes)
-							// parse header
-							// store overshoot
-
-							// replace this logic
-							response = _handleRequest(this->_pollfds[i].fd);
-							response.writeContent(this->_pollfds[i].fd);
-							if (response.getStatusCode() != 200)
-								_dropConn(this->_pollfds[i--].fd);
 						}
 						else if (current.pollState == FORWARD_REQ_BODY_TO_CGI) {
 							// replace this logic
@@ -210,8 +181,6 @@ void			WebServer::loop( void )
 							if (response.getStatusCode() != 200)
 								_dropConn(this->_pollfds[i--].fd);
 						}
-
-						// ...
 						nConn--;
 					}
 					// if (this->_pollfds[i].revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid

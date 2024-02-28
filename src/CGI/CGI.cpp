@@ -1,6 +1,4 @@
 #include "CGI.hpp"
-#include "HTTPrequest.hpp"
-#include "ConfigServer.hpp"
 
 #include <string>
 #include <iostream>

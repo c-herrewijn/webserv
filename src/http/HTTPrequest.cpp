@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/23 18:31:22 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/28 14:04:16 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,7 @@ void	HTTPrequest::parseHead( std::string const& strReq )
 	{
 		headers = head.substr(delimiter + HTTP_NL.size()) + HTTP_NL;
 		head = head.substr(0, delimiter);
-		_setHeaders(headers);
+		HTTPstruct::_setHeaders(headers);
 	}
 	_setHead(head);
 }
@@ -50,15 +50,13 @@ void	HTTPrequest::readHead( int socket )
 	size_t		httpTerm = std::string::npos;
 
 	_setSocket(socket);
-	while (true)
-	{
-		bzero(buffer, DEF_BUF_SIZE + 1);
-		recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-		content += std::string(buffer);
-		httpTerm = content.find(HTTP_TERM);
-		if ( httpTerm != std::string::npos)
-			break;
-	}
+	bzero(buffer, DEF_BUF_SIZE + 1);
+	recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+	content = std::string(buffer);
+	httpTerm = content.find(HTTP_TERM);
+	std::cout << "|" << content << "|\n";
+	if (httpTerm == std::string::npos)
+		throw(RequestException({"no header terminator in request"}, 400));
 	httpTerm += HTTP_TERM.size();
 	parseHead(content.substr(0, httpTerm));
 	if ((httpTerm - 1) < content.size())
@@ -179,15 +177,15 @@ std::string	HTTPrequest::toString( void ) const noexcept
 
 HTTPresponse	HTTPrequest::execRequest( void ) noexcept
 {
-    int             status = 200;
+    // int             status = 200;
     HTTPresponse    response;
     std::string     responseBody;
 
     try
     {
-        status = this->_configServer->validateRequest(*this);
-        if (status != 200)
-			throw(ExecException({"request validation failed with code:", std::to_string(status)}, status));
+        // status = this->_configServer->validateRequest(*this);
+        // if (status != 200)
+		// 	throw(ExecException({"request validation failed with code:", std::to_string(status)}, status));
 		checkHeaders(1000000);
 		parseBody();	// NB: this needs to be dynamic depending on the location
 		if (isCGI() == true)
@@ -307,6 +305,11 @@ void	HTTPrequest::_setSocket( int newSocket )
 	this->_socket = newSocket;
 }
 
+void	HTTPrequest::_setMaxBodySize( size_t maxSize) noexcept
+{
+	this->_maxBodySize = maxSize;
+}
+
 void	HTTPrequest::_setHead( std::string const& header )
 {
 	std::istringstream	stream(header);
@@ -321,24 +324,6 @@ void	HTTPrequest::_setHead( std::string const& header )
 	if (! std::getline(stream, version, ' '))
 		throw(RequestException({"invalid header:", header}, 400));
 	_setVersion(version);
-}
-
-void	HTTPrequest::_setHeaders( std::string const& headers)
-{
-	HTTPstruct::_setHeaders(headers);
-
-	try {
-		std::string currentHost = this->_headers.at("Host");
-		if (this->_url.host == "")
-			_setHostPort(currentHost);
-		else if ( currentHost.find(this->_url.host) == std::string::npos)
-			throw(RequestException({"hosts do not match"}, 412));
-	}
-	catch(std::out_of_range const& e) {
-		throw(RequestException({"no Host header"}, 412));
-	}
-	// NB: set drop connection flag depending on header
-	// NB: merge this headers check with body heades check
 }
 
 void    HTTPrequest::_setMethod( std::string const& strMethod )
@@ -501,42 +486,44 @@ void	HTTPrequest::_setVersion( std::string const& strVersion )
 
 void	HTTPrequest::checkHeaders( size_t maxBodyLength )
 {
-	this->_maxBodySize = maxBodyLength;
+	size_t	contentLength = 0;
 
-	try {
-		this->_headers.at("Content-Length");
+	if (this->_headers.count("Host") == 0)
+		throw(RequestException({"no Host header"}, 412));
+	if (this->_url.host == "")
+		_setHostPort(this->_headers["Host"]);
+	else if (this->_headers["Host"].find(this->_url.host) == std::string::npos)
+		throw(RequestException({"hosts do not match"}, 412));
+
+	if (this->_headers.count("Content-Length") == 0)
+	{
+		if (this->_headers.count("Transfer-Encoding") == 0)		// no body
+			return ;
+		else if (this->_headers.at("Transfer-Encoding") == "chunked")
+		{
+			if ((maxBodyLength > 0) and (this->_tmpBody.size() > maxBodyLength))
+				throw(RequestException({"Content-Length is longer than maximum allowed"}, 413));
+			this->_isChunked = true;
+			contentLength = maxBodyLength;
+		}
+	}
+	else
+	{
 		try {
-			this->_contentLength = std::stoull(this->_headers["Content-Length"]);
+			contentLength = std::stoull(this->_headers["Content-Length"]);
 		}
 		catch (const std::exception& e) {
 			throw(RequestException({"invalid Content-Length"}, 400));
 		}
-		if ((this->_maxBodySize > 0) and (this->_contentLength > this->_maxBodySize))
+		if ((maxBodyLength > 0) and (contentLength > maxBodyLength))
 			throw(RequestException({"Content-Length is longer than maximum allowed"}, 413));
-		else if (this->_tmpBody.size() > this->_contentLength)
+		else if (this->_tmpBody.size() > contentLength)
 			throw(RequestException({"body is longer than expected"}, 413));
-		try
-		{
-			if (this->_headers.at("Content-Type").find("multipart/form-data; boundary=-") == 0)
-				this->_isFileUpload = true;
-		}
-		catch(const std::exception& e) {}
-
+		if (this->_headers.count("Content-Type") != 0)
+			this->_isFileUpload = this->_headers["Content-Type"].find("multipart/form-data; boundary=-") == 0;
 	}
-	catch (const std::out_of_range& e1) {
-		try {
-			if (this->_headers.at("Transfer-Encoding") == "chunked")
-			{
-				if ((this->_maxBodySize > 0) and (this->_tmpBody.size() > this->_maxBodySize))
-					throw(RequestException({"Content-Length is longer than maximum allowed"}, 413));
-				this->_isChunked = true;
-				this->_contentLength = this->_maxBodySize;
-			}
-		}
-		catch(const std::out_of_range& e2) {		// no body
-			return;
-		}
-	}
+	this->_contentLength = contentLength;
+	this->_maxBodySize = maxBodyLength;
 	this->_hasBody = true;
 }
 
