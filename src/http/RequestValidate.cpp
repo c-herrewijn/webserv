@@ -267,4 +267,5 @@ void	RequestValidate::initElements(void)
 		if (std::filesystem::file_size(filePath) > validParams->getMaxSize())
 			return ;// 431 error, size
 	}
+	return ;// success
 }
