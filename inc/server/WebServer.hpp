@@ -34,6 +34,7 @@
 #include <vector>
 #include <set>
 #include <stack>
+#include <unordered_map>
 #include <algorithm>
 #include <filesystem>
 #include <fcntl.h>
@@ -93,15 +94,13 @@ class WebServer
 		std::vector<ConfigServer>	 _servers;
 		std::vector<Listen>			 _listenAddress;
 		std::vector<struct pollfd>	 _pollfds;
-		std::vector<t_PollItem>	 _pollitems;
-
-		std::vector<HTTPrequest*> _requests;
+		std::unordered_map<int, t_PollItem>	 	_pollitems;
+		std::unordered_map<int, HTTPrequest*> 	_requests;
 
 		void			_listenTo( std::string const&, std::string const& );
 		HTTPresponse	_handleRequest( int ) ;
 		void			_addConn( int , fdType , fdState ) noexcept;
 		void			_dropConn( int socket = -1 ) noexcept;
-		t_PollItem&		_getPollItem( int );
 
 		void			handleNewConnections( PollItem& ); // keep - DONE
 		void			readRequestHeaders( PollItem& ); // keep / rework

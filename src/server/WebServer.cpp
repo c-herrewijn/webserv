@@ -106,7 +106,7 @@ void			WebServer::loop( void )
 					break ;
 				try {
 					if (this->_pollfds[i].revents & POLLIN) {
-						t_PollItem &current = _getPollItem(this->_pollfds[i].fd);
+						t_PollItem &current = this->_pollitems[this->_pollfds[i].fd];
 						if (current.pollState == WAITING_FOR_CONNECTION) {
 							handleNewConnections(current);
 						}
@@ -125,7 +125,7 @@ void			WebServer::loop( void )
 								}
 								else
 									current.pollState = READ_STATIC_FILE;
-								this->_requests.push_back(request);
+								this->_requests.insert(std::pair<int, HTTPrequest*>(current.fd, request));
 								// is static file -> status = READ_STATIC_FILE
 								// else is CGI (POST and DELETE) -> is there a body?
 								//				yes: status = FOREWARD_REQ_BODY_TO_CGI
@@ -165,7 +165,7 @@ void			WebServer::loop( void )
 					}
 					else if (this->_pollfds[i].revents & POLLOUT)
 					{
-						t_PollItem &current = _getPollItem(this->_pollfds[i].fd);
+						t_PollItem &current = this->_pollitems[this->_pollfds[i].fd];
 
 						if (current.pollState == FORWARD_REQ_BODY_TO_CGI) {
 							// replace this logic
@@ -309,7 +309,10 @@ void			WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePo
 	if (newSocket != -1)
 	{
 		this->_pollfds.push_back({newSocket, POLLIN | POLLOUT, 0});
-		this->_pollitems.push_back({newSocket, typePollItem, statePollItem, false});
+
+		std::make_pair<int,int>(23,5);
+		t_PollItem newPollitem = {newSocket, typePollItem, statePollItem, false};
+		this->_pollitems.insert(std::pair(newSocket, newPollitem));
 	}
 }
 
@@ -327,16 +330,6 @@ void			WebServer::_dropConn(int toDrop) noexcept
 			i--;
 		}
 	}
-}
-
-t_PollItem&	WebServer::_getPollItem( int value )
-{
-	for (auto &item : this->_pollitems)
-	{
-		if (item.fd == value)
-			return (item);
-	}
-	throw(ServerException({"socket not found (this should not happen)"}));
 }
 
 void	WebServer::handleNewConnections( PollItem& item )
