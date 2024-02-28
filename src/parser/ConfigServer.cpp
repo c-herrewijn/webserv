@@ -217,27 +217,27 @@ static void	separateURL(std::string const& input, std::vector<std::string>& outp
 
 // will be updated to return std::pair<std::string, Location*>
 
-static Location*	diveLocation(Location& cur, std::vector<std::string>::iterator& itDir, std::vector<std::string>& directory)
+static Location*	diveLocation(Location& cur, std::vector<std::string>::iterator& itDirectory, std::vector<std::string>& directory)
 {
 	std::vector<std::string> curURL;
 	std::vector<std::string>::iterator itLocalDir;
 
 	separateURL(cur.getURL(), curURL);
 	itLocalDir = curURL.begin();
-	while (itLocalDir != curURL.end() && itDir != directory.end())
+	while (itLocalDir != curURL.end() && itDirectory != directory.end())
 	{
-		if (*itLocalDir != *itDir)
+		if (*itLocalDir != *itDirectory)
 			break ;
 		itLocalDir++;
-		itDir++;
+		itDirectory++;
 	}
-	if (itLocalDir == curURL.end() && itDir == directory.end())
+	if (itLocalDir == curURL.end() && itDirectory == directory.end())
 		return (&cur);
 	else if (itLocalDir == curURL.end())
 	{
 		for (auto nest : cur.getNested())
 		{
-			Location*	valid = diveLocation(nest, itDir, directory);
+			Location*	valid = diveLocation(nest, itDirectory, directory);
 			if (valid)
 				return (valid);
 		}
@@ -247,28 +247,42 @@ static Location*	diveLocation(Location& cur, std::vector<std::string>::iterator&
 
 int	ConfigServer::validateRequest(HTTPrequest& req) const
 {
+	std::vector<std::string>	folders;
+	std::string					dir;
+	std::string					file;
+	Location*					validLocation = NULL;
+	Parameters*					validParams = NULL;
+
+	validParams = this->getParams();
+	file = req.getUrl().path.filename();
+	if (file)
+	{
+		dir = req.getUrl().path.parent_path();
+		if (dir.back() != '/')
+			dir += "/";
+	}
+	else
+		dir = req.getUrl().path.string();
+	separateURL(dir, folders);
 	/*
 		separate 'file' and 'dir'.
-		'dir':
-			find 'dir' in locations
-				fail:
-					use server parameters for error handling
-				success:
-					check index
-						fail:
-							use location parameters for error handling
-						success:
-							save path, status 200
-		'file:
-			find 'dir' in locations
-				fail:
-					use server parameters for error handling
-				success:
-					check file
-						fail:
-							use location parameters for error handling
-						success:
-							save path, status 200
+		find 'dir' in locations
+			fail:
+				use server parameters for error handling (...)
+			success:
+				check method allowance
+					fail:
+						check returns than error_page
+				if no file, set index as file
+				check file exists and permissions and size
+					fail:
+						user 'valid' parameters for error handling (...)
+					success:
+						check return paths
+							success:
+								give new path for return situation
+							fail:
+								use current path
 	*/
 	std::filesystem::file_status status;
 	std::vector<std::string> folders;
