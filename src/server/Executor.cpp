@@ -26,7 +26,10 @@ HTTPresponse	Executor::execRequest( void ) noexcept
 
     try
     {
-        status = this->_configServer.validateRequest(this->_request);
+		ConfigServer tmp = this->_configServer;
+		RequestValidate	validation(&tmp, this->_request);
+		status = validation.getStatusCode();
+        // status = this->_configServer.validateRequest(this->_request);
         if (status != 200)
 			throw(ExecException({"request validation failed with code:", std::to_string(status)}, status));
 		this->_request.parseBody(1000000);	// NB: this needs to be dynamic depending on the location

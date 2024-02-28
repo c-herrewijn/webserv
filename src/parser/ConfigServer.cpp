@@ -199,134 +199,6 @@ void	ConfigServer::parseBlock(std::vector<std::string>& block)
 	_fillServer(block);
 }
 
-static void	separateURL(std::string const& input, std::vector<std::string>& output) noexcept
-{
-	std::string tmp;
-
-	for (auto letter : input)
-	{
-		if (letter == '/' && !tmp.empty())
-		{
-			output.push_back(tmp);
-			tmp.clear();
-		}
-		else
-			tmp += letter;
-	}
-}
-
-// will be updated to return std::pair<std::string, Location*>
-
-static Location*	diveLocation(Location& cur, std::vector<std::string>::iterator& itDirectory, std::vector<std::string>& directory)
-{
-	std::vector<std::string> curURL;
-	std::vector<std::string>::iterator itLocalDir;
-
-	separateURL(cur.getURL(), curURL);
-	itLocalDir = curURL.begin();
-	while (itLocalDir != curURL.end() && itDirectory != directory.end())
-	{
-		if (*itLocalDir != *itDirectory)
-			break ;
-		itLocalDir++;
-		itDirectory++;
-	}
-	if (itLocalDir == curURL.end() && itDirectory == directory.end())
-		return (&cur);
-	else if (itLocalDir == curURL.end())
-	{
-		for (auto nest : cur.getNested())
-		{
-			Location*	valid = diveLocation(nest, itDirectory, directory);
-			if (valid)
-				return (valid);
-		}
-	}
-	return (NULL);
-}
-
-int	ConfigServer::validateRequest(HTTPrequest& req) const
-{
-	std::vector<std::string>	folders;
-	std::string					dir;
-	std::string					file;
-	Location*					validLocation = NULL;
-	Parameters*					validParams = NULL;
-
-	validParams = this->getParams();
-	file = req.getUrl().path.filename();
-	if (file)
-	{
-		dir = req.getUrl().path.parent_path();
-		if (dir.back() != '/')
-			dir += "/";
-	}
-	else
-		dir = req.getUrl().path.string();
-	separateURL(dir, folders);
-	/*
-		separate 'file' and 'dir'.
-		find 'dir' in locations
-			fail:
-				use server parameters for error handling (...)
-			success:
-				check method allowance
-					fail:
-						check returns than error_page
-				if no file, set index as file
-				check file exists and permissions and size
-					fail:
-						user 'valid' parameters for error handling (...)
-					success:
-						check return paths
-							success:
-								give new path for return situation
-							fail:
-								use current path
-	*/
-	std::filesystem::file_status status;
-	std::vector<std::string> folders;
-	std::string path;
-	Location*	valid;
-	std::string file = req.getUrl().path.filename();
-	std::string	dir;
-	if (file.empty())
-		dir = req.getUrl().path.string();
-	else
-	{
-		dir = req.getUrl().path.parent_path().string();
-		if (dir.back() != '/')
-			dir += "/";
-	}
-	separateURL(dir, folders);
-	req.setRelatedParams(const_cast<Parameters*>(&(this->getParams())));
-	for (auto location : locations)
-	{
-		std::vector<std::string>::iterator it = folders.begin();
-		valid = diveLocation(location, it, folders);
-		if (valid)
-			break ;
-	}
-	if (!valid && dir != "/")
-		return (req.setStatus(404), 404);
-	if (valid)
-		req.setRelatedParams(const_cast<Parameters*>(&(valid->getParams())));
-	if (!(req.getRelatedParams()->getAllowedMethods()[req.getMethod()]))
-		return (req.setStatus(405), 405);
-	path = valid->getParams().getRoot() + dir + (file.empty() ? "" : file);
-	if (!std::filesystem::exists(path))
-		return (req.setStatus(404), 404);
-	if (file.empty() && (!valid->getParams().getAutoindex() || !std::filesystem::is_directory(path)))
-		return (req.setStatus(404), 404);
-	status = std::filesystem::status(path);
-	if ((status.permissions() & std::filesystem::perms::others_read) == std::filesystem::perms::none)
-		return (req.setStatus(403), 403);
-	// // check max_size
-	// if ()
-	// 	return (431);
-	return (req.setStatus(200), 200);
-}
-
 const std::vector<Listen>& ConfigServer::getListens(void) const
 {
 	return (listens);
@@ -391,7 +263,7 @@ std::ostream& operator<<(std::ostream& os, const ConfigServer& server) {
     os << "\tclient_max_body_size " << server.getParams().getMaxSize() << ";\n";
     os << "\tautoindex " << (server.getParams().getAutoindex() ? "on" : "off") << ";\n";
 
-    const auto& indexes = server.getParams().getIndexes();
+    const auto& indexes = server.getParams().getIndex();
     for (const auto& index : indexes) {
         os << "\tindex " << index << ";\n";
     }

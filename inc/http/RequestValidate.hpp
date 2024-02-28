@@ -12,7 +12,13 @@
 
 #ifndef REQUESTVALIDATE_HPP
 # define REQUESTVALIDATE_HPP
+# include "HTTPrequest.hpp"
 # include "ConfigServer.hpp"
+// Needed for file size calculation
+# include <iostream>
+# include <fstream>
+// filesystem management
+# include <filesystem>
 
 class RequestValidate
 {
@@ -26,17 +32,17 @@ class RequestValidate
 		size_t						statusCode;
 		std::vector<std::string>	folders;
 
-		void		calculateElements(void);
 		void		setTargetFile(const std::string& file);
-		void		setValidParams(Parameters* params);
+		void		setValidParams(const Parameters* params);
 		void		setTargetDir(const std::string& dir);
 		void		setStatusCode(const size_t& code);
 		void		separateFolders(std::string const& input, std::vector<std::string>& output);
-		Location*	diveLocation(Location& cur, std::vector<std::string>::iterator& itDirectory)
+		Location*	diveLocation(Location& cur, std::vector<std::string>::iterator itDirectory);
+		void		initElements(void);
 		void		initValidLocation(void);
 		void		initTargetDir(void);
 	public:
-		RequestValidate(const ConfigServer* conf, const HTTPrequest& req);
+		RequestValidate(ConfigServer* conf, HTTPrequest& req);
 		RequestValidate(void);
 		RequestValidate(const RequestValidate& copy);
 		RequestValidate&	operator=(const RequestValidate& assign);

@@ -41,13 +41,13 @@ class Parameters
 
 		void	fill(std::vector<std::string>& block);
 		void	setRoot(std::string& val);
-		void	setSize(long val, char *c);
+		void	setSize(uintmax_t val, char *c);
 		void	setAutoindex(bool status);
 
 		void 											setBlockIndex(size_t ref);
 		const size_t& 									getBlockIndex(void) const;
 		const std::string& 								getIndex(void) const;
-		size_t						 					getMaxSize(void) const;
+		std::uintmax_t									getMaxSize(void) const;
 		const std::unordered_map<size_t, std::string>& 	getErrorPages(void) const;
 		const std::unordered_map<size_t, std::string>& 	getReturns(void) const;
 		const bool& 									getAutoindex(void) const;

@@ -22,7 +22,6 @@
 # include "Location.hpp"
 # include "Listen.hpp"
 # include "Exceptions.hpp"
-# include "HTTPrequest.hpp"
 
 # define DEF_CONF std::string("default/default.conf")
 
@@ -35,10 +34,9 @@ class ConfigServer
 		ConfigServer&	operator=(const ConfigServer& assign);
 		virtual ~ConfigServer(void);
 		
-		void			parseBlock(std::vector<std::string>& block);
-		int				validateRequest(HTTPrequest&) const;
-		const std::vector<Listen>& getListens(void) const;
-		const std::vector<std::string>& getNames(void) const;
+		void							parseBlock(std::vector<std::string>& block);
+		const std::vector<Listen>& 		getListens(void) const;
+		const std::vector<std::string>&	getNames(void) const;
 		const std::string&				getPrimaryName(void) const;
 		const Parameters&				getParams(void) const;
 		const std::vector<Location>&	getLocations(void) const;

@@ -94,6 +94,7 @@ void	Parameters::_parseRoot(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
+// size must be stored as uint. max size can be 20G, value must be clamped 0-20G
 void	Parameters::_parseBodySize(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
@@ -103,7 +104,7 @@ void	Parameters::_parseBodySize(std::vector<std::string>& block)
 		throw ParserException({"'client_max_body_size' must have a digit as first value in parameter"});
 	errno = 0;
 	char*	endPtr = NULL;
-	long convertedValue = std::strtol(block.front().c_str(), &endPtr, 10);
+	uintmax_t convertedValue = std::strtoul(block.front().c_str(), &endPtr, 10);
 	if ((errno == ERANGE && (convertedValue == LONG_MAX || convertedValue < 0)) ||
 		(errno != 0 && convertedValue == 0))
 		throw ParserException({"'" + block.front() + "' resulted in overflow or underflow\n'client_max_body_size' must be formated as '(unsigned int)/(type=K|M|G)'"});
@@ -215,7 +216,7 @@ const std::string& Parameters::getIndex(void) const
 	return (this->index);
 }
 
-size_t Parameters::getMaxSize(void) const
+std::uintmax_t Parameters::getMaxSize(void) const
 {
 	return (max_size);
 }
@@ -246,7 +247,7 @@ void	Parameters::setAutoindex(bool status)
 }
 
 // this must be updated. size must be stored as bytes
-void	Parameters::setSize(long val, char *order)
+void	Parameters::setSize(uintmax_t val, char *order)
 {
 	this->max_size = val;
 

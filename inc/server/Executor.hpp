@@ -25,6 +25,7 @@
 #include <initializer_list>
 #include <filesystem>
 
+#include "RequestValidate.hpp"
 #include "Exceptions.hpp"
 #include "HTTPrequest.hpp"
 #include "HTTPresponse.hpp"

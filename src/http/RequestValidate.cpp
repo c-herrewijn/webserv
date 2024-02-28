@@ -12,13 +12,14 @@
 
 #include "RequestValidate.hpp"
 
-RequestValidate::RequestValidate(const ConfigServer* conf, const HTTPrequest& req)
+RequestValidate::RequestValidate(ConfigServer* conf, HTTPrequest& req)
 {
 	this->config = conf;
-	this->request = req;
+	this->request = &req;
 	validLocation = NULL;
 	validParams = NULL;
-	calculateElements();
+	initElements();
+	// check return, error_page, default error_page, error_page creation
 }
 
 RequestValidate::RequestValidate(void)
@@ -48,7 +49,7 @@ RequestValidate&	RequestValidate::operator=(const RequestValidate& assign)
 	{
 		folders.clear();
 		request = assign.request;
-		config = assign.request;
+		config = assign.config;
 		validLocation = assign.validLocation;
 		validParams = assign.validParams;
 		targetDir = assign.targetDir;
@@ -109,21 +110,21 @@ const std::vector<std::string>& RequestValidate::getFolders() const
 void	RequestValidate::setRequest(HTTPrequest* req)
 {
 	request = req;
-	calculateElements();
+	initElements();
 }
 
 void	RequestValidate::setConfig(ConfigServer* conf)
 {
 	config = conf;
-	calculateElements();
+	initElements();
 }
 
-Location*	RequestValidate::diveLocation(Location& cur, std::vector<std::string>::iterator& itDirectory)
+Location*	RequestValidate::diveLocation(Location& cur, std::vector<std::string>::iterator itDirectory)
 {
 	std::vector<std::string> curURL;
 	std::vector<std::string>::iterator itFolders;
 
-	separateURL(cur.getURL(), curURL);
+	separateFolders(cur.getURL(), curURL);
 	itFolders = curURL.begin();
 	while (itFolders != curURL.end() && itDirectory != folders.end())
 	{
@@ -162,13 +163,13 @@ void	RequestValidate::initValidLocation(void)
 	if (valid)
 	{
 		validLocation = valid;
-		setValidParams(valid->getParams());
+		setValidParams(&valid->getParams());
 	}
 }
 
-void	RequestValidate::setValidParams(Parameters* params)
+void	RequestValidate::setValidParams(const Parameters* params)
 {
-	validParams = params;
+	validParams = const_cast<Parameters*>(params);
 }
 
 void	RequestValidate::setTargetFile(const std::string& file)
@@ -205,7 +206,7 @@ void	RequestValidate::separateFolders(std::string const& input, std::vector<std:
 
 void	RequestValidate::initTargetDir(void)
 {
-	if (targetFile)
+	if (!targetFile.empty())
 	{
 		targetDir = request->getUrl().path.parent_path().string();
 		if (targetDir.back() != '/')
@@ -215,23 +216,55 @@ void	RequestValidate::initTargetDir(void)
 		targetDir = request->getUrl().path.string();
 }
 
-void	RequestValidate::calculateElements(void)
+// void	RequestValidate::findAndError()
+
+void	RequestValidate::initElements(void)
 {
+	// given NULL is not valid
 	if (!request || !config)
 		return ;
-	setValidParams(config->getParams());
+	// default params
+	setValidParams(&config->getParams());
+	// set asked file
 	setTargetFile(request->getUrl().path.filename());
+	// save path except file
 	initTargetDir();
+	// if directory is not root check for location
 	if (getTargetDir() != "/")
 	{
 		initValidLocation();
 		if (!getValidLocation())
-			// 404 error, check return, error_page, default error_page, error_page creation
+			return ;// 404 error, not found
 	}
+	if (!validParams->getAllowedMethods()[request->getMethod()])
+		return ;// 405 error, method not allowed
+	// set if indexfile is necessarry
 	if (getTargetFile().empty())
 		setTargetFile(getValidParams()->getIndex());
-	// check Method
-	// check existance depending on method (for POST existance may be a problem?)
-	// check permission
-	// check size
+	// check folder existance
+	std::filesystem::path dirPath = std::filesystem::path(validParams->getRoot()) / targetDir;
+	std::filesystem::path filePath = dirPath / targetFile;
+	if (!std::filesystem::exists(dirPath) ||
+		!std::filesystem::is_directory(dirPath))
+		return ;// 404 error, not found
+	if (!std::filesystem::exists(filePath) ||
+		std::filesystem::is_directory(filePath))
+	{
+		// check autoindex
+		if (!validParams->getAutoindex())
+			return ;// 404 error, not found
+		// autoindex behaviour???
+	}
+	else
+	{
+		// check permission
+		std::filesystem::perms permissions = std::filesystem::status(filePath).permissions();
+		if ((permissions & std::filesystem::perms::others_read) == std::filesystem::perms::none) {
+			// Handle 403 error, permissions
+			return;
+		}
+		// check size
+		if (std::filesystem::file_size(filePath) > validParams->getMaxSize())
+			return ;// 431 error, size
+	}
 }

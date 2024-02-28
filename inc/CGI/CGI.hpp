@@ -5,7 +5,7 @@
 # define CGI_READ_BUFFER_SIZE 10000
 
 # include "ConfigServer.hpp"
-
+# include "HTTPrequest.hpp"
 # include <array>
 # include <string>
 # include <strings.h> // bzero()
