@@ -69,7 +69,7 @@ clean:
 		rm -f $$file; \
 		printf "(WebServ) $(RED)Removed object $$(basename $$file)$(RESET)\n"; \
 	done
-	@-rm -rf $(DEPS)
+	@-rm -rf $(DEP_DIR)
 	@printf "(WebServ) $(RED)Removed dependencies$(RESET)\n";
 
 fclean: clean
