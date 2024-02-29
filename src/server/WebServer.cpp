@@ -108,6 +108,7 @@ void			WebServer::loop( void )
 		// 							// CLIENT_CONNECTION (write)
 
 		auto iPollFd = this->_pollfds.begin();
+		auto iPollFd = this->_pollfds.begin();
 		while (nConn > 0)
 		{
 			try {
@@ -126,6 +127,8 @@ void			WebServer::loop( void )
 						// replace this logic
 						// response = _handleRequest(iPollFd->fd);
 						// response.writeContent(iPollFd->fd);
+						// response = _handleRequest(iPollFd->fd);
+						// response.writeContent(iPollFd->fd);
 						// if (response.getStatusCode() != 200)
 						// 	_dropConn(this->_pollfds[i--].fd);
 					}
@@ -139,6 +142,7 @@ void			WebServer::loop( void )
 					}
 					nConn--;
 				}
+				else if (iPollFd->revents & POLLOUT)
 				else if (iPollFd->revents & POLLOUT)
 				{
 					t_PollItem &pollItem = this->_pollitems[iPollFd->fd];
