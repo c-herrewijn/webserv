@@ -108,4 +108,5 @@ class WebServer
 		void			forwardRequestBodyToCGI( t_PollItem& ); // split into: 'readRequestBody()' and 'writeRequestBodyToCGI()'
 		void			readCGIResponses( t_PollItem& ); // keep / rework
 		void			writeToClients( t_PollItem& );
+		void			writeToClients( t_PollItem&, std::vector<int>& );
 };

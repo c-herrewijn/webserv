@@ -68,7 +68,6 @@ void			WebServer::startListen( void )
 void			WebServer::loop( void )
 {
 	int					nConn = -1;
-	HTTPresponse		*response;
 	std::vector<int>	emptyConns;
 
 	while (true)
@@ -131,7 +130,6 @@ void			WebServer::loop( void )
 						// 	_dropConn(this->_pollfds[i--].fd);
 					}
 					else if (pollItem.pollState == READ_CGI_RESPONSE) {
-						// read from CGI response pipe
 						std::cerr << C_GREEN << "POLLIN - READ_CGI_RESPONSE " << iPollFd->fd << C_RESET << std::endl;
 						readCGIResponses(pollItem);
 					}
@@ -153,15 +151,7 @@ void			WebServer::loop( void )
 					}
 					else if (pollItem.pollState == WRITE_TO_CLIENT) {
 						std::cerr << C_GREEN << "POLLOUT - WRITE_TO_CLIENT - " << iPollFd->fd << C_RESET << std::endl;
-						HTTPrequest	*request = this->_requests[pollItem.fd];
-						response = this->_responses[pollItem.fd];
-						if (request->isCGI()) {
-							CGI *cgi = this->_cgi[pollItem.fd];
-							response->parseFromCGI(cgi->getResponse());
-						}
-						response->writeContent();
-						if (response->isDoneWriting())
-							emptyConns.push_back(pollItem.fd);
+						writeToClients( pollItem, emptyConns);
 					}
 					nConn--;
 				}
@@ -415,8 +405,15 @@ void	WebServer::readCGIResponses( t_PollItem& pollItem )
 	}
 }
 
-void	WebServer::writeToClients( t_PollItem& item )
+void	WebServer::writeToClients( t_PollItem& pollItem, std::vector<int>& emptyConns )
 {
-	(void) item ;
-	; // todo
+	HTTPrequest *request = this->_requests[pollItem.fd];
+	HTTPresponse *response = this->_responses[pollItem.fd];
+	if (request->isCGI()) {
+		CGI *cgi = this->_cgi[pollItem.fd];
+		response->parseFromCGI(cgi->getResponse());
+	}
+	response->writeContent();
+	if (response->isDoneWriting())
+		emptyConns.push_back(pollItem.fd);
 }
