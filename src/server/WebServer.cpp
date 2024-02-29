@@ -108,70 +108,70 @@ void			WebServer::loop( void )
 		// 							// STATIC_FILE (read)
 		// 							// CLIENT_CONNECTION (write)
 
-		auto begin = this->_pollfds.begin();
+		auto iPollFd = this->_pollfds.begin();
 		while (nConn > 0)
 		{
 			try {
-				if (begin->revents & POLLIN) {
-					t_PollItem &current = this->_pollitems[begin->fd];
-					if (current.pollState == WAITING_FOR_CONNECTION)
-						handleNewConnections(current);
-					else if (current.pollState == READ_REQ_HEADER) {
+				if (iPollFd->revents & POLLIN) {
+					t_PollItem &pollItem = this->_pollitems[iPollFd->fd];
+					if (pollItem.pollState == WAITING_FOR_CONNECTION)
+						handleNewConnections(pollItem);
+					else if (pollItem.pollState == READ_REQ_HEADER) {
 						request = new HTTPrequest;
-						request->setSocket(current.fd);
+						request->setSocket(pollItem.fd);
 						request->parseHead();
 						request->setConfigServer(&this->getHandler(request->getHost()));
 						// validation from configServer (chocko's validation), the validation has to set the maxBodyLength!
 						request->checkHeaders(1000000);	// has to be dynamic
 						if (request->isCGI()) {
 							if (request->hasBody())
-								current.pollState = FORWARD_REQ_BODY_TO_CGI;
+								pollItem.pollState = FORWARD_REQ_BODY_TO_CGI;
 							else
-								current.pollState = READ_CGI_RESPONSE;
+								pollItem.pollState = READ_CGI_RESPONSE;
 						}
 						else
 						{
 							response = new HTTPresponse;
-							response->setSocket(current.fd);
+							response->setSocket(pollItem.fd);
 							response->setServName(request->getConfigServer().getPrimaryName());
 							int HTMLfd = open(request->getPath().c_str(), O_RDONLY);
 							response->setHTMLfd(HTMLfd);
 							_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
-							current.pollState = READ_STATIC_FILE;
-							this->_responses.insert(std::pair<int, HTTPresponse*>(current.fd, response));
+							pollItem.pollState = READ_STATIC_FILE;
+							this->_responses.insert(std::pair<int, HTTPresponse*>(pollItem.fd, response));
 						}
-						this->_requests.insert(std::pair<int, HTTPrequest*>(current.fd, request));
+						this->_requests.insert(std::pair<int, HTTPrequest*>(pollItem.fd, request));
 					}
-					else if (current.pollState == FORWARD_REQ_BODY_TO_CGI) {
+					else if (pollItem.pollState == FORWARD_REQ_BODY_TO_CGI) {
 						// replace this logic
-						// response = _handleRequest(begin->fd);
-						// response.writeContent(begin->fd);
+						// response = _handleRequest(iPollFd->fd);
+						// response.writeContent(iPollFd->fd);
 						// if (response.getStatusCode() != 200)
 						// 	_dropConn(this->_pollfds[i--].fd);
 					}
-					else if (current.pollState == READ_CGI_RESPONSE) {
+					else if (pollItem.pollState == READ_CGI_RESPONSE) {
 						// replace this logic
-						// response = _handleRequest(begin->fd);
-						// response.writeContent(begin->fd);
+						// response = _handleRequest(iPollFd->fd);
+						// response.writeContent(iPollFd->fd);
 						// if (response.getStatusCode() != 200)
 						// 	_dropConn(this->_pollfds[i--].fd);
 					}
-					else if (current.pollState == READ_STATIC_FILE) {
-						readStaticFiles(current, emptyConns);
+					else if (pollItem.pollState == READ_STATIC_FILE) {
+						readStaticFiles(pollItem, emptyConns);
 					}
 					nConn--;
 				}
-				else if (begin->revents & POLLOUT)
+				else if (iPollFd->revents & POLLOUT)
 				{
-					t_PollItem &current = this->_pollitems[begin->fd];
-					if (current.pollState == FORWARD_REQ_BODY_TO_CGI) {
+					t_PollItem &pollItem = this->_pollitems[iPollFd->fd];
+					if (pollItem.pollState == FORWARD_REQ_BODY_TO_CGI) {
 
 					}
-					else if (current.pollState == WRITE_TO_CLIENT) {
-						response = this->_responses[current.fd];
+					else if (pollItem.pollState == WRITE_TO_CLIENT) {
+						response = this->_responses[pollItem.fd];
 						response->writeContent();
 						if (response->isDoneWriting())
-							emptyConns.push_back(current.fd);
+							emptyConns.push_back(pollItem.fd);
 					}
 					nConn--;
 				}
@@ -181,9 +181,9 @@ void			WebServer::loop( void )
 			catch(const ServerException& e) {
 				std::cerr << e.what() << '\n';
 				// error handling
-				_dropConn(begin->fd);
+				_dropConn(iPollFd->fd);
 			}
-			begin++;
+			iPollFd++;
 		}
 		while (emptyConns.empty() == false)
 		{
