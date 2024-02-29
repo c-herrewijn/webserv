@@ -68,7 +68,6 @@ void			WebServer::startListen( void )
 void			WebServer::loop( void )
 {
 	int					nConn = -1;
-	HTTPrequest 		*request;
 	HTTPresponse		*response;
 	std::vector<int>	emptyConns;
 
@@ -134,38 +133,7 @@ void			WebServer::loop( void )
 					else if (pollItem.pollState == READ_CGI_RESPONSE) {
 						// read from CGI response pipe
 						std::cerr << C_GREEN << "POLLIN - READ_CGI_RESPONSE " << iPollFd->fd << C_RESET << std::endl;
-
-						// find request and CGI obj corresponding to the
-						CGI *cgi = nullptr;
-						request = nullptr;
-						for (auto& cgiMapItem : this->_cgi)
-						{
-							if (cgiMapItem.second->getResponsePipe()[0] == pollItem.fd)
-							{
-								cgi = cgiMapItem.second;
-								request = this->_requests[cgi->getRequestSocket()];
-								break;
-							}
-						}
-						if (request == nullptr || cgi == nullptr)
-						{
-							if (request == nullptr)
-								std::cerr << C_RED << "error: request not found" << C_RESET << std::endl;
-							if (cgi == nullptr)
-								std::cerr << C_RED << "error: cgi not found" << C_RESET << std::endl;
-						}
-						char buffer[8192];
-						int readChars = read(pollItem.fd, buffer, 8192);
-						std::string newResponsePart(buffer, buffer + readChars);
-						request->cgi->appendResponse(newResponsePart);
-
-						// TODO: support partial reads, i.e. in case of very big CGI response
-						if (true) // TODO keep pipe open for consequtive reads if needed
-						{
-							close(request->cgi->getResponsePipe()[0]);
-							// ready to write to socket
-							this->_pollitems[request->getSocket()].pollState = WRITE_TO_CLIENT;
-						}
+						readCGIResponses(pollItem);
 					}
 					else if (pollItem.pollState == READ_STATIC_FILE) {
 						std::cerr << C_GREEN << "POLLIN - READ_STATIC_FILE - " << iPollFd->fd << C_RESET << std::endl;
@@ -185,6 +153,7 @@ void			WebServer::loop( void )
 					}
 					else if (pollItem.pollState == WRITE_TO_CLIENT) {
 						std::cerr << C_GREEN << "POLLOUT - WRITE_TO_CLIENT - " << iPollFd->fd << C_RESET << std::endl;
+						HTTPrequest	*request = this->_requests[pollItem.fd];
 						response = this->_responses[pollItem.fd];
 						if (request->isCGI()) {
 							CGI *cgi = this->_cgi[pollItem.fd];
@@ -412,10 +381,38 @@ void	WebServer::forwardRequestBodyToCGI( t_PollItem& item )
 	; // todo
 }
 
-void	WebServer::readCGIResponses( t_PollItem& item )
+void	WebServer::readCGIResponses( t_PollItem& pollItem )
 {
-	(void) item ;
-	; // todo
+	HTTPrequest *request = nullptr;
+	CGI         *cgi = nullptr;
+
+	for (auto& cgiMapItem : this->_cgi)
+	{
+		if (cgiMapItem.second->getResponsePipe()[0] == pollItem.fd)
+		{
+			cgi = cgiMapItem.second;
+			request = this->_requests[cgi->getRequestSocket()];
+			break;
+		}
+	}
+	if (request == nullptr || cgi == nullptr)
+	{
+		if (request == nullptr)
+			std::cerr << C_RED << "error: request not found" << C_RESET << std::endl;
+		if (cgi == nullptr)
+			std::cerr << C_RED << "error: cgi not found" << C_RESET << std::endl;
+	}
+	char buffer[DEF_BUF_SIZE];
+	int readChars = read(pollItem.fd, buffer, DEF_BUF_SIZE);
+	std::string newResponsePart(buffer, buffer + readChars);
+	request->cgi->appendResponse(newResponsePart);
+
+	// TODO: support partial reads, i.e. in case of very big CGI response
+	if (true) // TODO keep pipe open for consequtive reads if needed
+	{
+		close(request->cgi->getResponsePipe()[0]);
+		this->_pollitems[request->getSocket()].pollState = WRITE_TO_CLIENT;
+	}
 }
 
 void	WebServer::writeToClients( t_PollItem& item )
