@@ -120,8 +120,10 @@ void			WebServer::loop( void )
 						request = new HTTPrequest;
 						request->setSocket(pollItem.fd);
 						request->parseHead();
-						request->setConfigServer(&this->getHandler(request->getHost()));
 						// validation from configServer (chocko's validation), the validation has to set the maxBodyLength!
+						request->setServName(this->getHandler(request->getHost()).getPrimaryName());
+						request->setRoot(this->getHandler(request->getHost()).getParams().getRoot());
+						// request->setConfigServer(&this->getHandler(request->getHost()));
 						request->checkHeaders(1000000);	// has to be dynamic
 						if (request->isCGI()) {
 							if (request->hasBody())
@@ -133,16 +135,19 @@ void			WebServer::loop( void )
 						{
 							response = new HTTPresponse;
 							response->setSocket(pollItem.fd);
-							response->setServName(request->getConfigServer().getPrimaryName());
+							response->setServName(this->getHandler(request->getHost()).getPrimaryName());
 							int HTMLfd = open(request->getPath().c_str(), O_RDONLY);
 							response->setHTMLfd(HTMLfd);
 							_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
 							pollItem.pollState = READ_STATIC_FILE;
 							this->_responses.insert(std::pair<int, HTTPresponse*>(pollItem.fd, response));
 						}
+
 						this->_requests.insert(std::pair<int, HTTPrequest*>(pollItem.fd, request));
 					}
 					else if (pollItem.pollState == FORWARD_REQ_BODY_TO_CGI) {
+						// forward buffer to CGI
+						// write
 						// replace this logic
 						// response = _handleRequest(iPollFd->fd);
 						// response.writeContent(iPollFd->fd);
@@ -165,7 +170,7 @@ void			WebServer::loop( void )
 				{
 					t_PollItem &pollItem = this->_pollitems[iPollFd->fd];
 					if (pollItem.pollState == FORWARD_REQ_BODY_TO_CGI) {
-
+						
 					}
 					else if (pollItem.pollState == WRITE_TO_CLIENT) {
 						response = this->_responses[pollItem.fd];
@@ -242,7 +247,7 @@ void			WebServer::_listenTo( std::string const& hostname, std::string const& por
 	struct sockaddr_storage	hostIP;
 	int yes=1, listenSocket=-1;
 
-	bzero(&filter, sizeof(struct addrinfo));
+	ft_bzero(&filter, sizeof(struct addrinfo));
 	filter.ai_flags = AI_PASSIVE;
 	filter.ai_family = AF_UNSPEC;
 	filter.ai_protocol = IPPROTO_TCP;

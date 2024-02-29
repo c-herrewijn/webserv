@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/28 20:23:48 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/29 16:10:18 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,12 +16,12 @@
 #include <netdb.h>            // gai_strerror, getaddrinfo, freeaddrinfo
 #include <cerrno>            // errno
 #include <sys/socket.h>       // socketpair, htons, htonl, ntohs, ntohl, select
-#include <sys/poll.h>     // poll
+#include <sys/poll.h>     	// poll
 #include <netinet/in.h>       // socket, accept, listen, bind, connect
 #include <arpa/inet.h>        // htons, htonl, ntohs, ntohl
 // #include <sys/types.h>        // send, recv
 // #include <sys/socket.h>       // send, recv
-#include <sys/wait.h>         // waitpid
+// #include <sys/wait.h>         // waitpid
 // #include <fcntl.h>            // open
 // #include <sys/types.h>        // chdir
 // #include <sys/stat.h>         // stat
@@ -40,10 +40,11 @@
 
 #include "HTTPrequest.hpp"
 #include "HTTPresponse.hpp"
-// #include "RequestExecutor.hpp"
 #include "Exceptions.hpp"
+#include "utils.hpp"
 #include "ConfigServer.hpp"
-#define BACKLOG 			10				        	// max pending connection queued up
+
+#define BACKLOG 			10		// max pending connection queued up
 
 enum fdType
 {

@@ -41,7 +41,7 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(const HTTPrequest &req)
         "REQUEST_METHOD=" + method,
         "SCRIPT_NAME=" + req.getPath().substr(req.getPath().find_last_of("/\\") + 1), // script name, e.g. myScript.cgi
         "SCRIPT_FILENAME=" + req.getPath(), // script path relative to document root, e.g. /cgi-bin/myScript.cgi
-        "SERVER_NAME=" + req.getConfigServer().getPrimaryName(),
+        "SERVER_NAME=" + req.getServName(),
         "SERVER_PORT=" + port,
         "SERVER_PROTOCOL=HTTP/1.1", // fixed
         "SERVER_SOFTWARE=WebServServer/1.0", // fixed
@@ -68,7 +68,7 @@ std::string CGI::getHTMLBody()
     int p1[2]; // pipe where CGI writes response
     int p2[2]; // pipe where CGI reads body
 	char read_buff[CGI_READ_BUFFER_SIZE];
-    bzero(read_buff, CGI_READ_BUFFER_SIZE); // bzero() is not allowed!
+    ft_bzero(read_buff, CGI_READ_BUFFER_SIZE); // ft_bzero() is not allowed!
 
     // run cgi, and write result into pipe
 	pipe(p1);
@@ -80,7 +80,7 @@ std::string CGI::getHTMLBody()
         dup2(p1[1], STDOUT_FILENO); // write to pipe
         close(p2[1]);
         dup2(p2[0], STDIN_FILENO); // read from pipe
-        std::string CGIfilePath = _req.getConfigServer().getParams().getRoot() + _req.getPath();
+        std::string CGIfilePath = _req.getRoot() + _req.getPath();
         std::string CGIfileName = CGIfilePath.substr(CGIfilePath.rfind("/")+1); // fully stripped, only used for execve
         char *argv[2] = {(char*)CGIfileName.c_str(), NULL};
         int res = execve(CGIfilePath.c_str(), argv, this->_CgiEnvCStyle);
