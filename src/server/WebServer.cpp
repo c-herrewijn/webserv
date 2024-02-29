@@ -108,7 +108,6 @@ void			WebServer::loop( void )
 		// 							// CLIENT_CONNECTION (write)
 
 		auto iPollFd = this->_pollfds.begin();
-		auto iPollFd = this->_pollfds.begin();
 		while (nConn > 0)
 		{
 			try {
@@ -142,7 +141,6 @@ void			WebServer::loop( void )
 					}
 					nConn--;
 				}
-				else if (iPollFd->revents & POLLOUT)
 				else if (iPollFd->revents & POLLOUT)
 				{
 					t_PollItem &pollItem = this->_pollitems[iPollFd->fd];
