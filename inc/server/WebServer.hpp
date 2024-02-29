@@ -96,6 +96,7 @@ class WebServer
 		std::unordered_map<int, t_PollItem>	 	_pollitems;
 		std::unordered_map<int, HTTPrequest*> 	_requests;
 		std::unordered_map<int, HTTPresponse*> 	_responses;
+		std::unordered_map<int, CGI*> 			_cgi;	// NOTE: the key is the client socket fd, not any of the cgi-pipes
 
 		void			_listenTo( std::string const&, std::string const& );
 		void			_addConn( int , fdType , fdState );

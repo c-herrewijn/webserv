@@ -43,10 +43,12 @@ typedef struct HTTPurl_f
 
 } HTTPurl;
 
+class CGI;
+
 class HTTPrequest : public HTTPstruct
 {
 	public:
-		HTTPrequest( void ) : 
+		HTTPrequest( void ) :
 			HTTPstruct() ,
 			_maxBodySize(0) ,
 			_contentLength(0) ,
@@ -62,7 +64,7 @@ class HTTPrequest : public HTTPstruct
 		bool			isFileUpload( void ) const noexcept;
 		bool			isEndConn( void ) const noexcept;		// NB: to implement
 		void			checkHeaders( size_t );
-		// HTTPresponse	runCGI( void ) noexcept;
+		CGI *			cgi;
 
 		std::string	toString( void ) const noexcept override;
 
