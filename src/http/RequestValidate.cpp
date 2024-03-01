@@ -18,6 +18,7 @@ RequestValidate::RequestValidate(ConfigServer* conf, HTTPrequest& req)
 	this->request = &req;
 	validLocation = NULL;
 	validParams = NULL;
+	autoIndex = false;
 	initElements();
 	// check return, error_page, default error_page, error_page creation
 }
@@ -28,6 +29,7 @@ RequestValidate::RequestValidate(void)
 	config = NULL;
 	validLocation = NULL;
 	validParams = NULL;
+	autoIndex = false;
 }
 
 RequestValidate::RequestValidate(const RequestValidate& copy) :
@@ -35,6 +37,8 @@ RequestValidate::RequestValidate(const RequestValidate& copy) :
 	config(copy.config),
 	validLocation(copy.validLocation),
 	validParams(copy.validParams),
+	autoIndex(copy.autoIndex),
+	cgi(copy.cgi),
 	targetDir(copy.targetDir),
 	targetFile(copy.targetFile),
 	statusCode(copy.statusCode),
@@ -52,6 +56,8 @@ RequestValidate&	RequestValidate::operator=(const RequestValidate& assign)
 		config = assign.config;
 		validLocation = assign.validLocation;
 		validParams = assign.validParams;
+		autoIndex = assign.autoIndex;
+		cgi = assign.cgi;
 		targetDir = assign.targetDir;
 		targetFile = assign.targetFile;
 		statusCode = assign.statusCode;
@@ -86,6 +92,11 @@ Parameters* RequestValidate::getValidParams() const
 	return validParams;
 }
 
+bool	RequestValidate::getAutoIndex() const
+{
+	return (autoIndex);
+}
+
 const std::string& RequestValidate::getTargetDir() const
 {
 	return targetDir;
@@ -99,6 +110,12 @@ const std::string& RequestValidate::getTargetFile() const
 size_t RequestValidate::getStatusCode() const
 {
 	return statusCode;
+}
+
+
+std::filesystem::path	RequestValidate::getTargetPath() const
+{
+	return (std::filesystem::path(targetDir + "/" + targetFile));
 }
 
 const std::vector<std::string>& RequestValidate::getFolders() const
@@ -187,6 +204,11 @@ void	RequestValidate::setStatusCode(const size_t& code)
 	statusCode = code;
 }
 
+void	RequestValidate::setAutoIndex(bool index)
+{
+	autoIndex = index;
+}
+
 void	RequestValidate::separateFolders(std::string const& input, std::vector<std::string>& output)
 {
 	std::string	tmp;
@@ -216,13 +238,147 @@ void	RequestValidate::initTargetDir(void)
 		targetDir = request->getUrl().path.string();
 }
 
-// void	RequestValidate::findAndError()
+bool	RequestValidate::handleFolder(void)
+{
+	std::filesystem::path dirPath = std::filesystem::path(validParams->getRoot()) / targetDir;
+	if (!std::filesystem::exists(dirPath) ||
+	!std::filesystem::is_directory(dirPath))
+		return (setStatusCode(404), false);// 404 error, not found
+	// check autoindex
+	if (!validParams->getAutoindex())
+		return (setStatusCode(404), false);// 404 error, not found
+	autoIndex = true;
+	return(true);
+}
+
+bool	RequestValidate::handleFile(void)
+{
+	std::filesystem::path dirPath = std::filesystem::path(validParams->getRoot()) / targetDir;
+	std::filesystem::path filePath = dirPath / targetFile;
+
+	// check filePath
+	if (!std::filesystem::exists(filePath) ||
+		std::filesystem::is_directory(filePath))
+	{
+		// check folderPath
+		if (!std::filesystem::exists(dirPath) ||
+			!std::filesystem::is_directory(dirPath))
+			return (setStatusCode(404), false);// 404 error, not found
+		// check autoindex
+		if (!validParams->getAutoindex())
+			return (setStatusCode(404), false);// 404 error, not found
+		autoIndex = true;
+	}
+	else
+	{
+		// check permission
+		std::filesystem::perms permissions = std::filesystem::status(filePath).permissions();
+		// check request type for permission check
+		if (config->getCgiAllowed() &&
+			filePath.has_extension() &&
+			filePath.extension() == config->getCgiExtension())
+		{
+			if ((permissions & std::filesystem::perms::others_exec) == std::filesystem::perms::none)
+				return (setStatusCode(403), false);// 403 error, permission denied
+			cgi = true;
+		}
+		else
+		{
+			if ((permissions & std::filesystem::perms::others_read) == std::filesystem::perms::none)
+				return (setStatusCode(403), false); // Handle 403 error, permissions
+			if (std::filesystem::file_size(filePath) > validParams->getMaxSize())
+				return (setStatusCode(431), false);// 431 error, size
+		}
+	}
+	return (true);
+}
+
+bool	RequestValidate::handleReturns(void)
+{
+	auto it = validParams->getReturns().find(statusCode);
+	if (it == validParams->getReturns().end())
+		return (true);
+	cgi = false;
+	autoIndex = false;
+	std::filesystem::path path = (*it).second;
+	targetFile = path.filename();
+	if (!targetFile.empty())
+	{
+		targetDir = path.parent_path().string();
+		if (targetDir.back() != '/')
+			targetDir += "/";
+	}
+	else
+		targetDir = path.string();
+	if (targetFile.empty() && !handleFolder())
+		return (false);
+	else if (!handleFile())
+		return (false);
+	return (true);
+}
+
+bool	RequestValidate::handleErrorCode(void)
+{
+	auto it = validParams->getErrorPages().find(statusCode);
+	if (it == validParams->getErrorPages().end())
+		return (true);
+	cgi = false;
+	autoIndex = false;
+	std::filesystem::path path = (*it).second;
+	targetFile = path.filename();
+	if (!targetFile.empty())
+	{
+		targetDir = path.parent_path().string();
+		if (targetDir.back() != '/')
+			targetDir += "/";
+	}
+	else
+		targetDir = path.string();
+	if (targetFile.empty() && !handleFolder())
+		return (false);
+	else if (!handleFile())
+		return (false);
+	return (true);
+}
+
+bool	RequestValidate::handleServerPages(void)
+{
+	std::filesystem::path lastChance = std::filesystem::current_path();
+	lastChance /= "default";
+	lastChance /= "pages";
+	lastChance /= std::to_string(statusCode) + ".html";
+	if (!std::filesystem::exists(lastChance) ||
+		std::filesystem::is_directory(lastChance))
+		return (false);
+	std::filesystem::perms permissions = std::filesystem::status(lastChance).permissions();
+	if ((permissions & std::filesystem::perms::others_read) == std::filesystem::perms::none)
+		return (false);
+	targetDir = lastChance.parent_path();
+	targetFile = lastChance.filename();
+	return (true);
+}
+
+void	RequestValidate::handleStatus(void)
+{
+	if (handleReturns())
+		return ;
+	if (handleErrorCode())
+		return ;
+	setValidParams(&config->getParams());
+	if (handleErrorCode())
+		return ;
+	if (handleServerPages())
+		return ;
+	// use servers error page
+	setStatusCode(500); // handleInternal();
+}
 
 void	RequestValidate::initElements(void)
 {
 	// given NULL is not valid
 	if (!request || !config)
 		return ;
+	setStatusCode(200);
 	// default params
 	setValidParams(&config->getParams());
 	// set asked file
@@ -234,38 +390,16 @@ void	RequestValidate::initElements(void)
 	{
 		initValidLocation();
 		if (!getValidLocation())
-			return ;// 404 error, not found
+			return (setStatusCode(404));// 404 error, not found
 	}
 	if (!validParams->getAllowedMethods()[request->getMethod()])
-		return ;// 405 error, method not allowed
-	// set if indexfile is necessarry
+		return (setStatusCode(405));// 405 error, method not allowed
+	// set indexfile if necessarry
 	if (getTargetFile().empty())
 		setTargetFile(getValidParams()->getIndex());
-	// check folder existance
-	std::filesystem::path dirPath = std::filesystem::path(validParams->getRoot()) / targetDir;
-	std::filesystem::path filePath = dirPath / targetFile;
-	if (!std::filesystem::exists(dirPath) ||
-		!std::filesystem::is_directory(dirPath))
-		return ;// 404 error, not found
-	if (!std::filesystem::exists(filePath) ||
-		std::filesystem::is_directory(filePath))
-	{
-		// check autoindex
-		if (!validParams->getAutoindex())
-			return ;// 404 error, not found
-		// autoindex behaviour???
-	}
+	if (targetFile.empty())
+		handleFolder();
 	else
-	{
-		// check permission
-		std::filesystem::perms permissions = std::filesystem::status(filePath).permissions();
-		if ((permissions & std::filesystem::perms::others_read) == std::filesystem::perms::none) {
-			// Handle 403 error, permissions
-			return;
-		}
-		// check size
-		if (std::filesystem::file_size(filePath) > validParams->getMaxSize())
-			return ;// 431 error, size
-	}
-	return ;// success
+		handleFile();
+	handleStatus();
 }

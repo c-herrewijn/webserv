@@ -105,7 +105,7 @@ void	Parameters::_parseBodySize(std::vector<std::string>& block)
 	errno = 0;
 	char*	endPtr = NULL;
 	uintmax_t convertedValue = std::strtoul(block.front().c_str(), &endPtr, 10);
-	if ((errno == ERANGE && (convertedValue == LONG_MAX || convertedValue < 0)) ||
+	if ((errno == ERANGE && convertedValue == LONG_MAX) ||
 		(errno != 0 && convertedValue == 0))
 		throw ParserException({"'" + block.front() + "' resulted in overflow or underflow\n'client_max_body_size' must be formated as '(unsigned int)/(type=K|M|G)'"});
 	else if (endPtr == block.front())
