@@ -147,6 +147,9 @@ void	Parameters::_parseIndex(std::vector<std::string>& block)
 		throw ParserException({"'index' must be file '" + block.front() + "'"});
 	this->index = block.front();
 	block.erase(block.begin());
+	if (block.front() != ";")
+		throw ParserException({"After 'index' file a ';' expected '" + block.front() + "'"});
+	block.erase(block.begin());
 }
 
 void	Parameters::_parseErrorPage(std::vector<std::string>& block)

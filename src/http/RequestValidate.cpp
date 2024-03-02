@@ -20,7 +20,7 @@ RequestValidate::RequestValidate(ConfigServer* conf, HTTPrequest& req)
 	validParams = NULL;
 	autoIndex = false;
 	initElements();
-	// check return, error_page, default error_page, error_page creation
+	handleStatus();
 }
 
 RequestValidate::RequestValidate(void)
@@ -128,12 +128,14 @@ void	RequestValidate::setRequest(HTTPrequest* req)
 {
 	request = req;
 	initElements();
+	handleStatus();
 }
 
 void	RequestValidate::setConfig(ConfigServer* conf)
 {
 	config = conf;
 	initElements();
+	handleStatus();
 }
 
 Location*	RequestValidate::diveLocation(Location& cur, std::vector<std::string>::iterator itDirectory)
@@ -401,5 +403,4 @@ void	RequestValidate::initElements(void)
 		handleFolder();
 	else
 		handleFile();
-	handleStatus();
 }
