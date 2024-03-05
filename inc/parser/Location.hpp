@@ -15,6 +15,7 @@
 # include <bitset>
 # include <string>
 # include <vector>
+# include <cstdint>
 
 # include "Parameters.hpp"
 # include "Exceptions.hpp"

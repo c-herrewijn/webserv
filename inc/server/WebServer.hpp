@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/28 20:23:48 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/05 23:47:06 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,14 +40,13 @@
 
 #include "HTTPrequest.hpp"
 #include "HTTPresponse.hpp"
-// #include "RequestExecutor.hpp"
 #include "Exceptions.hpp"
 #include "ConfigServer.hpp"
 #define BACKLOG 			10				        	// max pending connection queued up
 
 enum fdType
 {
-    SERVER_SOCKET,
+    LISTENER,
     CLIENT_CONNECTION,
     CGI_DATA_PIPE,
     CGI_RESPONSE_PIPE,
@@ -56,13 +55,14 @@ enum fdType
 
 enum fdState
 {
-	WAITING_FOR_CONNECTION,			// SERVER_SOCKET (read)
+	WAITING_FOR_CONNECTION,			// LISTENER (read)
 	READ_REQ_HEADER,				// CLIENT_CONNECTION (read)
 	READ_STATIC_FILE,				// STATIC_FILE (read)
 	FORWARD_REQ_BODY_TO_CGI,		// CLIENT_CONNECTION (read), CGI_DATA_PIPE (write)
 	READ_CGI_RESPONSE,				// CGI_RESPONSE_PIPE (read)
 	WRITE_TO_CLIENT					// CLIENT_CONNECTION (write)
 };
+
 
 typedef struct PollItem
 {
@@ -93,20 +93,19 @@ class WebServer
 		std::vector<ConfigServer>	 _servers;
 		std::vector<Listen>			 _listenAddress;
 		std::vector<struct pollfd>	 _pollfds;
-		std::unordered_map<int, t_PollItem>	 	_pollitems;
-		std::unordered_map<int, HTTPrequest*> 	_requests;
-		std::unordered_map<int, HTTPresponse*> 	_responses;
-		std::unordered_map<int, CGI*> 			_cgi;	// NOTE: the key is the client socket fd, not any of the cgi-pipes
+		std::map<int, t_PollItem>	 	_pollitems;
+		std::map<int, HTTPrequest*> 	_requests;
+		std::map<int, HTTPresponse*> 	_responses;
+		std::map<int, CGI*> 			_cgi;	// NOTE: the key is the client socket fd, not any of the cgi-pipes
 
 		void			_listenTo( std::string const&, std::string const& );
 		void			_addConn( int , fdType , fdState );
-		void			_dropConn( int socket = -1 ) noexcept;
+		void			_dropConn( int ) noexcept;
 
 		void			handleNewConnections( t_PollItem& ); // keep - DONE
 		void			readRequestHeaders( t_PollItem& ); // keep / rework
 		void			readStaticFiles( t_PollItem&, std::vector<int>& ); // keep / rework
 		void			forwardRequestBodyToCGI( t_PollItem& ); // split into: 'readRequestBody()' and 'writeRequestBodyToCGI()'
-		void			readCGIResponses( t_PollItem& ); // keep / rework
-		void			writeToClients( t_PollItem& );
+		void			readCGIResponses( t_PollItem&, std::vector<int>& ); // keep / rework
 		void			writeToClients( t_PollItem&, std::vector<int>& );
 };

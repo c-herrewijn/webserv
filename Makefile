@@ -6,7 +6,7 @@
 #    By: itopchu <itopchu@student.42.fr>              +#+                      #
 #                                                    +#+                       #
 #    Created: 2023/11/25 18:04:49 by fra           #+#    #+#                  #
-#    Updated: 2024/02/20 15:38:57 by faru          ########   odam.nl          #
+#    Updated: 2024/03/05 23:09:38 by fra           ########   odam.nl          #
 #                                                                              #
 # **************************************************************************** #
 
@@ -27,7 +27,7 @@ CLIENT_SRCS := $(shell find $(CLI_DIR) -type f -name '*.cpp')
 
 CC := c++
 INC_FLAGS := -I$(INC_DIR) -I$(INC_DIR)/http -I$(INC_DIR)/parser -I$(INC_DIR)/server -I$(INC_DIR)/CGI
-CPP_FLAGS := -Wall -Wextra -Werror -Wshadow -Wpedantic -g3 -fsanitize=address -std=c++17
+CPP_FLAGS := -Wall -Wextra -Werror -Wshadow -Wpedantic -std=c++17 -g3 -fsanitize=address 
 DEP_FLAGS = -MMD -MF $(DEP_DIR)/$*.d
 
 GREEN := \x1b[32;01m
@@ -45,10 +45,10 @@ $(NAME): $(OBJECTS)
 	@$(CC) $(CPP_FLAGS) $(INC_FLAGS) $^ -o $@
 	@printf "(WebServ) $(GREEN)Created program $@$(RESET)\n"
 
--include $(DEPS)
-
 $(OBJ_DIR) $(DEP_DIR):
 	@mkdir -p $@
+
+-include $(DEPS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp Makefile | $(DEP_DIR) $(OBJ_DIR)
 	@mkdir -p $(dir $@)
@@ -69,8 +69,12 @@ clean:
 		rm -f $$file; \
 		printf "(WebServ) $(RED)Removed object $$(basename $$file)$(RESET)\n"; \
 	done
+	@-rm -rf $(OBJ_DIR)
+	@for file in $(DEPS); do \
+		rm -f $$file; \
+		printf "(WebServ) $(RED)Removed dependency $$(basename $$file)$(RESET)\n"; \
+	done
 	@-rm -rf $(DEP_DIR)
-	@printf "(WebServ) $(RED)Removed dependencies$(RESET)\n";
 
 fclean: clean
 	@-rm -f $(NAME)

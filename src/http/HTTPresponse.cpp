@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/28 20:09:52 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/06 00:37:09 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,9 @@ void	HTTPresponse::readHTML( void )
     ssize_t 	readChar = -1;
     char        buffer[DEF_BUF_SIZE + 1];
 
-	if (this->_HTMLfd == -1)
+	if (this->_gotFullHTML)
+		throw(RequestException({"HTML already parsed"}, 500));
+	else if (this->_HTMLfd == -1)
 		throw(RequestException({"invalid socket"}, 500));
 	bzero(buffer, DEF_BUF_SIZE + 1);
 	readChar = read(this->_HTMLfd, buffer, DEF_BUF_SIZE);
@@ -54,28 +56,31 @@ void	HTTPresponse::readHTML( void )
 		throw(RequestException({"fd unavailable"}, 500));
 	this->_tmpBody += buffer;
 	if (readChar < DEF_BUF_SIZE)
-	{
 		this->_gotFullHTML = true;
-		this->_HTMLfd = -1;
-	}
 }
 
 void		HTTPresponse::writeContent( void )
 {
-	std::string 	toWrite;
-	static ssize_t 	written = 0;
+	static ssize_t 	written;
+    ssize_t 		readChar = -1;
+	size_t			charsToWrite = 0;
 
-	if (this->_socket == -1)
+	if (this->_writtenResp)
+		throw(RequestException({"response already sent"}, 500));
+	else if (this->_socket == -1)
 		throw(RequestException({"invalid socket"}, 500));
-	toWrite = toString().substr(written);
-	written = send(this->_socket, toWrite.c_str(), toWrite.size(), 0);
-	if (written < -1)
+	if ((toString().size() - written) < DEF_BUF_SIZE)
+		charsToWrite = toString().size() - written;
+	else
+		charsToWrite = DEF_BUF_SIZE;
+	readChar = send(this->_socket, toString().substr(written, charsToWrite).c_str(), charsToWrite, 0);
+	if (readChar < 0)
 		throw(ServerException({"socket not available"}));
-	else if ((size_t) written == toWrite.size())
+	written += readChar;
+	if (readChar < DEF_BUF_SIZE)
 	{
-		this->_writtenResp = true;
-		this->_socket = -1;
 		written = 0;
+		this->_writtenResp = true;
 	}
 }
 

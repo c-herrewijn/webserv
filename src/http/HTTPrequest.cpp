@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/28 20:26:10 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/06 00:47:38 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,9 +26,11 @@ void	HTTPrequest::parseHead( void )
 	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
 	if (charsRead < 0 )
 		throw(RequestException({"unavailable socket"}, 500));
+	else if (charsRead == 0)
+		throw(RequestException({"nothing to read"}, 500));
 	content = std::string(buffer);
 	delimiter = content.find(HTTP_TERM);
-	std::cout << "|" << content << "|\n";
+	// std::cout << "|" << content << "|\n";
 	if (delimiter == std::string::npos)
 		throw(RequestException({"no header terminator in request"}, 400));
 	head = content.substr(0, delimiter);
@@ -70,6 +72,11 @@ bool	HTTPrequest::isChunked( void ) const noexcept
 bool	HTTPrequest::isFileUpload( void ) const noexcept
 {
 	return (this->_isFileUpload);
+}
+
+bool	HTTPrequest::isEndConn( void ) const noexcept
+{
+	return (this->_endConn);
 }
 
 std::string	HTTPrequest::toString( void ) const noexcept
@@ -117,124 +124,6 @@ std::string	HTTPrequest::toString( void ) const noexcept
 		strReq += this->_body;
 	return (strReq);
 }
-
-// HTTPresponse	HTTPrequest::execRequest( void ) noexcept
-// {
-//     // int             status = 200;
-//     HTTPresponse    response;
-//     std::string     responseBody;
-//
-//     try
-//     {
-//         // status = this->_configServer->validateRequest(*this);
-//         // if (status != 200)
-// 		// 	throw(ExecException({"request validation failed with code:", std::to_string(status)}, status));
-// 		// checkHeaders(1000000);
-// 		parseBody();	// NB: this needs to be dynamic depending on the location
-// 		if (isCGI() == true)
-// 		{
-// 			// CGI
-// 			CGI CGIrequest(*this);
-// 			responseBody = CGIrequest.getHTMLBody();
-// 		}
-// 		// else {
-// 		// 	// non-CGI
-// 		// 	switch (this->_request->getMethod())
-// 		// 	{
-// 		// 		case HTTP_GET:
-// 		// 		{
-// 		// 			responseBody = _execGET();
-// 		// 			break ;
-// 		// 		}
-// 		// 		case HTTP_POST:
-// 		// 		{
-// 		// 			responseBody = _execPOST();
-// 		// 			break ;
-// 		// 		}
-// 		// 		case HTTP_DELETE:
-// 		// 		{
-// 		// 			responseBody = _execDELETE();
-// 		// 			break ;
-// 		// 		}
-// 		// 	}
-// 		// }
-// 		response.parseFromCGI(responseBody);
-//     }
-//     catch(const HTTPexception& e)
-//     {
-//         std::cerr << e.what() << '\n';
-// 		response.parseFromStatic(e.getStatus(), this->_servName, "");
-//     }
-//     return (response);
-// }
-
-// HTTPresponse	HTTPrequest::runCGI( void ) noexcept
-// {
-//     // int             status = 200;
-//     HTTPresponse    response;
-//     std::string     responseBody;
-//
-//     try
-//     {
-//         // status = this->_configServer->validateRequest(*this);
-//         // if (status != 200)
-// 		// 	throw(ExecException({"request validation failed with code:", std::to_string(status)}, status));
-// 		// checkHeaders(1000000);
-// 		parseBody();	// NB: this needs to be dynamic depending on the location
-// 		if (isCGI() == true)
-// 		{
-// 			// CGI
-// 			CGI CGIrequest(*this);
-// 			responseBody = CGIrequest.getHTMLBody();
-// 		}
-// 		// else {
-// 		// 	// non-CGI
-// 		// 	switch (this->_request->getMethod())
-// 		// 	{
-// 		// 		case HTTP_GET:
-// 		// 		{
-// 		// 			responseBody = _execGET();
-// 		// 			break ;
-// 		// 		}
-// 		// 		case HTTP_POST:
-// 		// 		{
-// 		// 			responseBody = _execPOST();
-// 		// 			break ;
-// 		// 		}
-// 		// 		case HTTP_DELETE:
-// 		// 		{
-// 		// 			responseBody = _execDELETE();
-// 		// 			break ;
-// 		// 		}
-// 		// 	}
-// 		// }
-// 		response.parseFromCGI(responseBody);
-//     }
-//     catch(const HTTPexception& e)
-//     {
-//         std::cerr << e.what() << '\n';
-// 		response.parseStaticHTML(e.getStatus(), this->_servName);
-//     }
-//     return (response);
-// }
-
-// HTTPresponse	HTTPrequest::runStatic( void ) noexcept
-// {
-//     HTTPresponse	response;
-//     std::string    	HTMLcontent, responseBody;
-//
-//     try
-//     {
-// 		HTMLcontent = _readContent(getPath().c_str());
-// 		response.parseFromCGI(responseBody);
-//     }
-//     catch(const HTTPexception& e)
-//     {
-//         std::cerr << e.what() << '\n';
-// 		response.parseFromStatic(e.getStatus(), this->_servName, "");
-//     }
-//     return (response);
-// }
 
 HTTPmethod		HTTPrequest::getMethod( void ) const noexcept
 {

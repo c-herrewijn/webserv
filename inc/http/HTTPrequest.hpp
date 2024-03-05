@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/28 19:14:54 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/06 00:53:12 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,7 +64,6 @@ class HTTPrequest : public HTTPstruct
 		bool			isFileUpload( void ) const noexcept;
 		bool			isEndConn( void ) const noexcept;		// NB: to implement
 		void			checkHeaders( size_t );
-		CGI *			cgi;
 
 		std::string	toString( void ) const noexcept override;
 
