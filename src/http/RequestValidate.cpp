@@ -14,6 +14,8 @@
 
 RequestValidate::RequestValidate(ConfigServer* conf, HTTPrequest& req)
 {
+	if (!conf)
+		throw ExecException({"ConfigServer pointer is NULL, unacceptable!"});
 	this->config = conf;
 	this->request = &req;
 	validLocation = NULL;
@@ -126,6 +128,8 @@ const std::vector<std::string>& RequestValidate::getFolders() const
 // Setter functions
 void	RequestValidate::setRequest(HTTPrequest* req)
 {
+	if (!req)
+		throw ExecException({"HTTPrequest pointer is NULL, unacceptable!"});
 	request = req;
 	initElements();
 	handleStatus();
@@ -134,6 +138,8 @@ void	RequestValidate::setRequest(HTTPrequest* req)
 void	RequestValidate::setConfig(ConfigServer* conf)
 {
 	config = conf;
+	if (!conf)
+		throw ExecException({"ConfigServer pointer is NULL, unacceptable!"});
 	initElements();
 	handleStatus();
 }
@@ -379,7 +385,7 @@ void	RequestValidate::initElements(void)
 {
 	// given NULL is not valid
 	if (!request || !config)
-		return ;
+		return (setStatusCode(404));
 	setStatusCode(200);
 	// default params
 	setValidParams(&config->getParams());
