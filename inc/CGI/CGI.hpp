@@ -16,12 +16,9 @@ class  CGI {
 public:
     CGI(const HTTPrequest &req);
     ~CGI();
-    void run();
+    std::string getHTMLBody();
     int *getuploadPipe();
     int *getResponsePipe();
-    int getRequestSocket();
-    std::string getResponse();
-    void appendResponse(std::string additionalResponsePart);
 
 private:
     const HTTPrequest &_req;
@@ -29,7 +26,6 @@ private:
     char *const *_CgiEnvCStyle;
     int _uploadPipe[2];
     int _responsePipe[2];
-    std::string _response;
 
     std::array<std::string, CGI_ENV_SIZE> _createCgiEnv(const HTTPrequest &req);
     char **_createCgiEnvCStyle();

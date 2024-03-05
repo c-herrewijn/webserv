@@ -9,10 +9,7 @@ CGI::CGI(const HTTPrequest &req)
     : _req(req),
       _CGIEnvArr(this->_createCgiEnv(req)),
       _CgiEnvCStyle(this->_createCgiEnvCStyle())
-{
-    pipe(_uploadPipe);
-    pipe(_responsePipe);
-}
+{}
 
 CGI::~CGI() {
     delete[] this->_CgiEnvCStyle;
@@ -66,32 +63,49 @@ char **CGI::_createCgiEnvCStyle(void)
     return CgiEnv;
 }
 
-void CGI::run()
+std::string CGI::getHTMLBody()
 {
-    pid_t childPid = fork();
-    if (childPid == 0) {
-        close(this->_responsePipe[0]);
-        dup2(this->_responsePipe[1], STDOUT_FILENO); // write to pipe
-        close(this->_uploadPipe[1]);
-        dup2(this->_uploadPipe[0], STDIN_FILENO); // read from pipe
+    int p1[2]; // pipe where CGI writes response
+    int p2[2]; // pipe where CGI reads body
+	char read_buff[CGI_READ_BUFFER_SIZE];
+    ft_bzero(read_buff, CGI_READ_BUFFER_SIZE); // ft_bzero() is not allowed!
 
+    // run cgi, and write result into pipe
+	pipe(p1);
+	pipe(p2);
+	pid_t childPid = fork();
+	if (childPid == 0)
+	{
+	    close(p1[0]);
+        dup2(p1[1], STDOUT_FILENO); // write to pipe
+        close(p2[1]);
+        dup2(p2[0], STDIN_FILENO); // read from pipe
         std::string CGIfilePath = _req.getRoot() + _req.getPath();
         std::string CGIfileName = CGIfilePath.substr(CGIfilePath.rfind("/")+1); // fully stripped, only used for execve
         char *argv[2] = {(char*)CGIfileName.c_str(), NULL};
         int res = execve(CGIfilePath.c_str(), argv, this->_CgiEnvCStyle);
         if (res != 0)
         {
-            close(this->_responsePipe[1]);
+            close(p1[1]);
             std::cerr << "Error in running CGI script!" << std::endl;
             std::cerr << "path: " << CGIfilePath.c_str() << std::endl;
             perror("");
-            exit(1); // TODO: exit() is not allowed!
+            exit(1); // exit() is not allowed!
         }
-    }
-}
+	}
+    // write body into pipe
+    close(p2[0]);
+    write(p2[1], this->_req.getBody().c_str(), this->_req.getBody().length());
+    close(p2[1]);
 
-int CGI::getRequestSocket() {
-    return this->_req.getSocket();
+    // return cgi response
+    int	stat_loc;
+    close(p1[1]);
+    waitpid(childPid, &stat_loc, 0);
+    read(p1[0], read_buff, CGI_READ_BUFFER_SIZE);
+    close(p1[0]);
+    std::string response = read_buff;
+    return response;
 }
 
 int *CGI::getuploadPipe(){
@@ -100,12 +114,4 @@ int *CGI::getuploadPipe(){
 
 int *CGI::getResponsePipe() {
     return this->_responsePipe;
-}
-
-std::string CGI::getResponse() {
-    return this->_response;
-}
-
-void CGI::appendResponse(std::string additionalResponsePart) {
-    this->_response = this->_response + additionalResponsePart;
 }
