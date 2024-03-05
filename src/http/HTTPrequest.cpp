@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/29 19:01:57 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/05 16:00:58 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,9 +54,9 @@ void	HTTPrequest::parseBody( void )
 	if (this->_hasBody == false)
 		return ;
 	else if (this->_isChunked == true)
-		readChunkedBody();
+		_readChunkedBody();
 	else
-		readPlainBody();
+		_readPlainBody();
 }
 
 // NB: needs to be refined
@@ -579,7 +579,7 @@ std::string	HTTPrequest::_unchunkChunk( std::string const& chunkedChunk, std::st
 	return (unchunkedChunks);
 }
 
-void	HTTPrequest::readPlainBody( void )
+void	HTTPrequest::_readPlainBody( void )
 {
     ssize_t 			readChar = -1;
     char        		buffer[DEF_BUF_SIZE + 1];
@@ -619,7 +619,7 @@ void	HTTPrequest::readPlainBody( void )
 	}
 }
 
-void	HTTPrequest::readChunkedBody( void )
+void	HTTPrequest::_readChunkedBody( void )
 {
     ssize_t 	readChar = -1;
     char    	buffer[DEF_BUF_SIZE + 1];
@@ -648,7 +648,7 @@ void	HTTPrequest::readChunkedBody( void )
 		lastRead = steady_clock::now();
 		countChars += readChar;
 		if (countChars > this->_contentLength)
-			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
+			throw(RequestException({"content body is longer than expected"}, 413));
 		body += buffer;
 		if (std::string(buffer).find(HTTP_TERM) != std::string::npos)
 		{

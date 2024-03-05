@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/29 19:00:47 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/05 15:45:59 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,8 @@
 
 #define MAX_TIMEOUT	5		// seconds
 
+using namespace std::chrono;
+
 typedef enum HTTPmethod_s
 {
 	HTTP_GET,
@@ -46,12 +48,12 @@ typedef struct HTTPurl_f
 
 } HTTPurl;
 
-using namespace std::chrono;
+class CGI;
 
 class HTTPrequest : public HTTPstruct
 {
 	public:
-		HTTPrequest( void ) : 
+		HTTPrequest( void ) :
 			HTTPstruct() ,
 			_contentLength(std::numeric_limits<size_t>::max()) ,
 			_isChunked(false),
@@ -67,9 +69,7 @@ class HTTPrequest : public HTTPstruct
 		bool			isFileUpload( void ) const noexcept;
 		bool			isEndConn( void ) const noexcept;
 		void			checkHeaders( size_t );
-		void			readPlainBody( void );
-		void			readChunkedBody( void );
-		// HTTPresponse	runCGI( void ) noexcept;
+		CGI *			cgi;
 
 		std::string	toString( void ) const noexcept override;
 
@@ -100,6 +100,9 @@ class HTTPrequest : public HTTPstruct
 		void	_setQuery( std::string const& );
 		void	_setFragment( std::string const& );
 		void	_setVersion( std::string const& );
+
+		void	_readPlainBody( void );
+		void	_readChunkedBody( void );
 
 		std::string	_unchunkChunk( std::string const&, std::string& );
 		std::string	_unchunkBody( std::string const& );
