@@ -15,6 +15,7 @@
 Location::Location(void)
 {
 	block_index = 0;
+	URL = DEF_URL;
 }
 
 Location::~Location(void)
@@ -34,12 +35,15 @@ Location::Location(const Location& copy) :
 
 Location&	Location::operator=(const Location& assign)
 {
-	block_index = assign.block_index;
-	this->filesystem = assign.filesystem;
-	URL = assign.URL;
-	params = assign.params;
-	nested.clear();
-	nested = assign.nested;
+	if (this != &assign)
+	{
+		block_index = assign.block_index;
+		this->filesystem = assign.filesystem;
+		URL = assign.URL;
+		params = assign.params;
+		nested.clear();
+		nested = assign.nested;
+	}
 	return (*this);
 }
 
@@ -48,6 +52,7 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 	std::vector<std::vector<std::string>> locationHolder;
 	std::vector<std::string>::iterator index;
 	uint64_t size = 0;
+	URL = DEF_URL;
 	block_index = param.getBlockIndex();
 	params = param;
 	params.setBlockIndex(param.getBlockIndex());

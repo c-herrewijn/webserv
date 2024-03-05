@@ -23,12 +23,15 @@ Listen::Listen(const Listen& copy) :
 
 Listen&	Listen::operator=(const Listen& assign)
 {
-	i_ip = assign.i_ip;
-	i_port = assign.i_port;
-	s_ip = assign.s_ip;
-	s_port = assign.s_port;
-	def = assign.def;
-	all = assign.all;
+	if (this != &assign)
+	{
+		i_ip = assign.i_ip;
+		i_port = assign.i_port;
+		s_ip = assign.s_ip;
+		s_port = assign.s_port;
+		def = assign.def;
+		all = assign.all;
+	}
 	return (*this);
 }
 

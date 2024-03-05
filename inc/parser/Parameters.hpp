@@ -27,9 +27,9 @@
 # define M_POST 1
 # define M_DELETE 2
 # define M_SIZE 3 // amount of methodes used in our program
-# define DEF_SIZE 32
-# define DEF_SIZE_TYPE 'M'
+# define DEF_SIZE 10
 # define DEF_ROOT "/html"
+# define MAX_SIZE 20
 
 class Parameters
 {
@@ -56,7 +56,7 @@ class Parameters
 
 	private:
 		size_t 									block_index;
-		size_t					 				max_size;	// Will be overwriten by last found
+		std::uintmax_t			 				max_size;	// Will be overwriten by last found
 		bool									autoindex;	// FALSE in default, will be overwriten.
 		std::string								index;	// Will be searched in given order
 		std::string								root;		// Last found will be used.

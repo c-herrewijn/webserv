@@ -19,6 +19,7 @@
 # include "Parameters.hpp"
 # include "Exceptions.hpp"
 
+# define DEF_URL std::string("/")
 
 class Location
 {
@@ -42,9 +43,6 @@ class Location
 		std::string				URL; // Default "location" param
 		Parameters				params; // Local values to use. If default it will be a copy of "server" context
 		std::vector<Location> 	nested; // Possible nested locations
-
-		void	_parseAlias(std::vector<std::string>& block);
-
     friend std::ostream& operator<<(std::ostream& os, const Location& location);
 };
 

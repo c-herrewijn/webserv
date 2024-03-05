@@ -17,6 +17,8 @@ Parameters::Parameters(void)
 	this->root = DEF_ROOT;
 	for (int tmp = 0; tmp < M_SIZE; tmp++)
 		allowedMethods[tmp] = 0;
+	max_size = static_cast<std::uintmax_t>(DEF_SIZE) * 1024 * 1024 * 1024;
+
 }
 
 Parameters::~Parameters(void)
@@ -39,16 +41,19 @@ Parameters::Parameters(const Parameters& copy) :
 
 Parameters&	Parameters::operator=(const Parameters& assign)
 {
-	error_pages.clear();
-	returns.clear();
-	allowedMethods = assign.allowedMethods;
-	block_index = assign.block_index;
-	max_size = assign.max_size;
-	autoindex = assign.autoindex;
-	index = assign.index;
-	root = assign.root;
-	error_pages = assign.error_pages;
-	returns = assign.returns;
+	if (this != &assign)
+	{
+		error_pages.clear();
+		returns.clear();
+		allowedMethods = assign.allowedMethods;
+		block_index = assign.block_index;
+		max_size = assign.max_size;
+		autoindex = assign.autoindex;
+		index = assign.index;
+		root = assign.root;
+		error_pages = assign.error_pages;
+		returns = assign.returns;
+	}
 	return (*this);
 }
 
@@ -94,6 +99,39 @@ void	Parameters::_parseRoot(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
+static void	capSize(uintmax_t& value, char* type)
+{
+
+	if (type == nullptr)
+		return ;
+    switch (*type) {
+        case 'G':
+            if (value > MAX_SIZE)
+			{
+                std::cerr << "Warning: Size '" + std::to_string(value) + *type + "' is capped to 20G" << std::endl;
+                value = MAX_SIZE;
+            }
+            break;
+        case 'M':
+            if (value > MAX_SIZE * 1024)
+			{
+                std::cerr << "Warning: Size '" + std::to_string(value) + *type + "' is capped to 20G" << std::endl;
+                value = MAX_SIZE * 1024;
+            }
+            break;
+        case 'K':
+            if (value > MAX_SIZE * 1024 * 1024)
+			{
+                std::cerr << "Warning: Size '" + std::to_string(value) + *type + "' is capped to 20G" << std::endl;
+                value = MAX_SIZE * 1024 * 1024;
+            }
+            break;
+        default:
+            std::cerr << "Error: Invalid size type." << std::endl;
+            break;
+    }
+}
+
 // size must be stored as uint. max size can be 20G, value must be clamped 0-20G
 void	Parameters::_parseBodySize(std::vector<std::string>& block)
 {
@@ -105,13 +143,13 @@ void	Parameters::_parseBodySize(std::vector<std::string>& block)
 	errno = 0;
 	char*	endPtr = NULL;
 	uintmax_t convertedValue = std::strtoul(block.front().c_str(), &endPtr, 10);
-	if ((errno == ERANGE && convertedValue == LONG_MAX) ||
-		(errno != 0 && convertedValue == 0))
-		throw ParserException({"'" + block.front() + "' resulted in overflow or underflow\n'client_max_body_size' must be formated as '(unsigned int)/(type=K|M|G)'"});
-	else if (endPtr == block.front())
-		throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)|(type=K||M||G)'"});
-	if (endPtr && *endPtr && *endPtr != 'K' && *endPtr != 'M' && *endPtr != 'G')
-		throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)|(type=K||M||G)'"});
+	if (errno == ERANGE)
+		throw ParserException({"'" + block.front() + "' resulted in overflow or underflow\n'client_max_body_size' must be formated as '(unsigned int)(type=K|M|G)'"});
+	else if (endPtr == NULL || *endPtr == '\0')
+		throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)(type=K||M||G)': " + block.front()});
+	if (!endPtr || (*endPtr != 'K' && *endPtr != 'M' && *endPtr != 'G'))
+		throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)(type=K||M||G)': " + block.front()});
+	capSize(convertedValue, endPtr);
 	setSize(convertedValue, endPtr);
 	block.erase(block.begin());
 	if (block.front() != ";")
