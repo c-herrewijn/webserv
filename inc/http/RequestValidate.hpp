@@ -33,6 +33,7 @@ class RequestValidate
 		std::string					targetFile;
 		size_t						statusCode;
 		std::vector<std::string>	folders;
+		std::filesystem::path		execDir;
 
 		const std::vector<std::string>&	getFolders() const;
 		Location*						getValidLocation() const;
@@ -55,7 +56,6 @@ class RequestValidate
 
 		bool		handleReturns(void);
 		bool		handleErrorCode(void);
-		bool		handleInternal(void);
 	public:
 		RequestValidate(ConfigServer* conf, HTTPrequest& req);
 		RequestValidate(void);

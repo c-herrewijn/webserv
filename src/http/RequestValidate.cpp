@@ -249,6 +249,7 @@ void	RequestValidate::initTargetDir(void)
 bool	RequestValidate::handleFolder(void)
 {
 	std::filesystem::path dirPath = std::filesystem::path(validParams->getRoot()) / targetDir;
+	execDir = dirPath;
 	if (!std::filesystem::exists(dirPath) ||
 	!std::filesystem::is_directory(dirPath))
 		return (setStatusCode(404), false);// 404 error, not found
@@ -268,6 +269,7 @@ bool	RequestValidate::handleFile(void)
 	if (!std::filesystem::exists(filePath) ||
 		std::filesystem::is_directory(filePath))
 	{
+		execDir = dirPath;
 		// check folderPath
 		if (!std::filesystem::exists(dirPath) ||
 			!std::filesystem::is_directory(dirPath))
@@ -279,6 +281,7 @@ bool	RequestValidate::handleFile(void)
 	}
 	else
 	{
+		execDir = filePath;
 		// check permission
 		std::filesystem::perms permissions = std::filesystem::status(filePath).permissions();
 		// check request type for permission check
@@ -295,7 +298,7 @@ bool	RequestValidate::handleFile(void)
 			if ((permissions & std::filesystem::perms::others_read) == std::filesystem::perms::none)
 				return (setStatusCode(403), false); // Handle 403 error, permissions
 			if (std::filesystem::file_size(filePath) > validParams->getMaxSize())
-				return (setStatusCode(431), false);// 431 error, size
+				return (setStatusCode(413), false);// 413 error, size
 		}
 	}
 	return (true);
@@ -355,6 +358,7 @@ bool	RequestValidate::handleServerPages(void)
 	lastChance /= "default";
 	lastChance /= "pages";
 	lastChance /= std::to_string(statusCode) + ".html";
+	execDir = lastChance;
 	if (!std::filesystem::exists(lastChance) ||
 		std::filesystem::is_directory(lastChance))
 		return (false);
