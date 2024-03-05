@@ -14,7 +14,7 @@
 #include <ctime>
 #include <cstring>				// bzero
 #include <sys/types.h>        	// send, recv
-#include <sys/socket.h>       	// send, recv       
+#include <sys/socket.h>       	// send, recv
 #include <unistd.h>				// read
 
 
@@ -24,12 +24,13 @@
 class HTTPresponse : public HTTPstruct
 {
 	public:
-		HTTPresponse( void ) : 
+		HTTPresponse( std::string contentType=STD_CONTENT_TYPE ) :
 			HTTPstruct() ,
 			_statusCode(200) ,
 			_HTMLfd(-1),
 			_gotFullHTML(false),
-			_writtenResp(false) {};
+			_writtenResp(false),
+			_contentType(contentType) {};
 		virtual ~HTTPresponse( void ) override {};
 
 		void		parseStaticHTML( int );
@@ -46,8 +47,9 @@ class HTTPresponse : public HTTPstruct
 		void		setServName(std::string) noexcept;
 
 	protected:
-		int		_statusCode, _HTMLfd;
-		bool	_gotFullHTML, _writtenResp;	
+		int			_statusCode, _HTMLfd;
+		bool		_gotFullHTML, _writtenResp;
+		std::string	_contentType;
 
 		void		_setHead( std::string const& ) override;
 		void		_setHeaders( std::string const& ) override;
