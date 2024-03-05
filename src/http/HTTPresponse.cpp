@@ -20,7 +20,7 @@ void	HTTPresponse::parseStaticHTML( int code )
 	if (this->_tmpBody.empty() == false)
 	{
 		_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
-		_addHeader("Content-Type", std::string(STD_CONTENT_TYPE));	// NB: do I need other formats?
+		_addHeader("Content-Type", this->_contentType);	// NB: do I need other formats?
 		HTTPstruct::_setBody(this->_tmpBody);
 	}
 }
@@ -45,7 +45,7 @@ void	HTTPresponse::readHTML( void )
 {
     ssize_t 	readChar = -1;
     char        buffer[DEF_BUF_SIZE + 1];
-	
+
 	if (this->_HTMLfd == -1)
 		throw(RequestException({"invalid socket"}, 500));
 	ft_bzero(buffer, DEF_BUF_SIZE + 1);
@@ -118,7 +118,7 @@ int		HTTPresponse::getStatusCode( void ) const noexcept
 	return (this->_statusCode);
 }
 
-void	HTTPresponse::setHTMLfd( int HTMLfd ) 
+void	HTTPresponse::setHTMLfd( int HTMLfd )
 {
 	if (HTMLfd == -1)
 		throw(RequestException({"invalid socket"}, 500));

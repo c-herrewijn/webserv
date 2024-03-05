@@ -108,77 +108,53 @@ void			WebServer::loop( void )
 		// 							// STATIC_FILE (read)
 		// 							// CLIENT_CONNECTION (write)
 
-		auto iPollFd = this->_pollfds.begin();
-		while (nConn > 0)
+		int initialNrPollFds = this->_pollfds.size();
+		for(int i=0; i<initialNrPollFds; i++)
 		{
+			struct pollfd &iPollFd = this->_pollfds[i];
 			try {
-				if (iPollFd->revents & POLLIN) {
-					t_PollItem &pollItem = this->_pollitems[iPollFd->fd];
-					if (pollItem.pollState == WAITING_FOR_CONNECTION)
+				if (iPollFd.revents & POLLIN) {
+					t_PollItem &pollItem = this->_pollitems[iPollFd.fd];
+					if (pollItem.pollState == WAITING_FOR_CONNECTION) {
+						std::cerr << C_GREEN << "POLLIN - NEWCONNECTION - " << iPollFd.fd << C_RESET << std::endl;
 						handleNewConnections(pollItem);
 					else if (pollItem.pollState == READ_REQ_HEADER) {
-						request = new HTTPrequest;
-						request->setSocket(pollItem.fd);
-						request->parseHead();
-						// validation from configServer (chocko's validation), the validation has to set the maxBodyLength!
-						request->setServName(this->getHandler(request->getHost()).getPrimaryName());
-						request->setRoot(this->getHandler(request->getHost()).getParams().getRoot());
-						// request->setConfigServer(&this->getHandler(request->getHost()));
-						request->checkHeaders(1000000);	// has to be dynamic
-						if (request->isCGI()) {
-							if (request->hasBody())
-								pollItem.pollState = FORWARD_REQ_BODY_TO_CGI;
-							else
-								pollItem.pollState = READ_CGI_RESPONSE;
-						}
-						else
-						{
-							response = new HTTPresponse;
-							response->setSocket(pollItem.fd);
-							response->setServName(this->getHandler(request->getHost()).getPrimaryName());
-							int HTMLfd = open(request->getPath().c_str(), O_RDONLY);
-							response->setHTMLfd(HTMLfd);
-							_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
-							pollItem.pollState = READ_STATIC_FILE;
-							this->_responses.insert(std::pair<int, HTTPresponse*>(pollItem.fd, response));
-						}
-
-						this->_requests.insert(std::pair<int, HTTPrequest*>(pollItem.fd, request));
+						std::cerr << C_GREEN << "POLLIN - READ_REQ_HEADER - " << iPollFd.fd << C_RESET << std::endl;
+						readRequestHeaders(pollItem);
 					}
 					else if (pollItem.pollState == FORWARD_REQ_BODY_TO_CGI) {
-						// forward buffer to CGI
-						// write
+						std::cerr << C_GREEN << "POLLIN - FORWARD_REQ_BODY_TO_CGI - " << iPollFd.fd << C_RESET << std::endl;
 						// replace this logic
-						// response = _handleRequest(iPollFd->fd);
-						// response.writeContent(iPollFd->fd);
+						// response = _handleRequest(iPollFd.fd);
+						// response.writeContent(iPollFd.fd);
+						// response = _handleRequest(iPollFd.fd);
+						// response.writeContent(iPollFd.fd);
 						// if (response.getStatusCode() != 200)
 						// 	_dropConn(this->_pollfds[i--].fd);
 					}
 					else if (pollItem.pollState == READ_CGI_RESPONSE) {
+						std::cerr << C_GREEN << "POLLIN - READ_CGI_RESPONSE " << iPollFd.fd << C_RESET << std::endl;
+						readCGIResponses(pollItem);
+					}
+					else if (pollItem.pollState == READ_STATIC_FILE) {
+						std::cerr << C_GREEN << "POLLIN - READ_STATIC_FILE - " << iPollFd.fd << C_RESET << std::endl;
+						readStaticFiles(pollItem, emptyConns);
+					}
+				}
+				else if (iPollFd.revents & POLLOUT)
+				{
+					t_PollItem &pollItem = this->_pollitems[iPollFd.fd];
+					if (pollItem.pollState == FORWARD_REQ_BODY_TO_CGI) {
 						// replace this logic
-						// response = _handleRequest(iPollFd->fd);
-						// response.writeContent(iPollFd->fd);
+						// response = _handleRequest(iPollFd.fd);
+						// response.writeContent(iPollFd.fd);
 						// if (response.getStatusCode() != 200)
 						// 	_dropConn(this->_pollfds[i--].fd);
 					}
-					else if (pollItem.pollState == READ_STATIC_FILE) {
-						readStaticFiles(pollItem, emptyConns);
-					}
-					nConn--;
-				}
-				else if (iPollFd->revents & POLLOUT)
-				{
-					t_PollItem &pollItem = this->_pollitems[iPollFd->fd];
-					if (pollItem.pollState == FORWARD_REQ_BODY_TO_CGI) {
-						
-					}
 					else if (pollItem.pollState == WRITE_TO_CLIENT) {
-						response = this->_responses[pollItem.fd];
-						response->writeContent();
-						if (response->isDoneWriting())
-							emptyConns.push_back(pollItem.fd);
+						std::cerr << C_GREEN << "POLLOUT - WRITE_TO_CLIENT - " << iPollFd.fd << C_RESET << std::endl;
+						writeToClients( pollItem, emptyConns);
 					}
-					nConn--;
 				}
 				// else if (this->_pollfds[i].revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
 				// 	_dropConn(this->_pollfds[i--].fd);
@@ -186,9 +162,8 @@ void			WebServer::loop( void )
 			catch(const ServerException& e) {
 				std::cerr << e.what() << '\n';
 				// error handling
-				_dropConn(iPollFd->fd);
+				_dropConn(iPollFd.fd);
 			}
-			iPollFd++;
 		}
 		while (emptyConns.empty() == false)
 		{
@@ -332,8 +307,48 @@ void	WebServer::handleNewConnections( t_PollItem& item )
 
 void	WebServer::readRequestHeaders( t_PollItem& item )
 {
-	(void) item ;
-	; // todo
+	HTTPrequest 	*request;
+	HTTPresponse	*response;
+	int 			HTMLfd = -1;
+
+	request = new HTTPrequest;
+	request->setSocket(pollItem.fd);
+	request->parseHead();
+	request->setConfigServer(&this->getHandler(request->getHost()));
+	this->_requests.insert(std::pair<int, HTTPrequest*>(pollItem.fd, request));
+	response = new HTTPresponse;
+	response->setSocket(pollItem.fd);
+	response->setServName(request->getConfigServer().getPrimaryName());
+	this->_responses.insert(std::pair<int, HTTPresponse*>(pollItem.fd, response));
+
+	// validation from configServer (chocko's validation)
+	request->checkHeaders(1000000);	// has to be dynamic
+	if (request->isCGI()) {
+		CGI *cgiPtr = new CGI(*request);
+		request->cgi = cgiPtr;
+		this->_cgi.insert(std::pair<int, CGI*>(pollItem.fd, cgiPtr));
+		this->_addConn(request->cgi->getResponsePipe()[0], CGI_RESPONSE_PIPE, READ_CGI_RESPONSE);
+		request->cgi->run();
+		if (request->hasBody()) {
+			this->_addConn(request->cgi->getuploadPipe()[1], CGI_DATA_PIPE, FORWARD_REQ_BODY_TO_CGI);
+			pollItem.pollState = FORWARD_REQ_BODY_TO_CGI;
+		}
+		else {
+			pollItem.pollState = READ_CGI_RESPONSE;
+		}
+	}
+	else
+	{
+		if (request->getPath() == "/")		// NB: needs to be dynamic
+			HTMLfd = open("var/www/test.html", O_RDONLY);
+		else if (request->getPath() == "/favicon.ico")
+			HTMLfd = open("var/www/favicon.ico", O_RDONLY);
+		else
+			HTMLfd = open(request->getPath().c_str(), O_RDONLY);
+		response->setHTMLfd(HTMLfd);
+		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
+		pollItem.pollState = READ_STATIC_FILE;
+	}
 }
 
 void	WebServer::readStaticFiles( t_PollItem& currentPoll, std::vector<int>& emptyConns )
