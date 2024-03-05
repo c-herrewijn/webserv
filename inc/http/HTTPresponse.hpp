@@ -6,13 +6,13 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/29 17:31:44 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/28 20:10:46 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 #include <ctime>
-#include <cstring>				// ft_bzero
+#include <cstring>				// bzero
 #include <sys/types.h>        	// send, recv
 #include <sys/socket.h>       	// send, recv
 #include <unistd.h>				// read
@@ -44,6 +44,7 @@ class HTTPresponse : public HTTPstruct
 		int			getHTMLfd( void ) const noexcept;
 		bool		isDoneReadingHTML( void ) const noexcept;
 		bool		isDoneWriting( void ) const noexcept;
+		void		setServName(std::string) noexcept;
 
 	protected:
 		int			_statusCode, _HTMLfd;

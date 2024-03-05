@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/29 18:53:41 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/28 16:48:47 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,23 +72,6 @@ int		HTTPstruct::getSocket( void ) const noexcept
 	return (this->_socket);
 }
 
-void	HTTPstruct::setSocket( int newSocket )
-{
-	if (newSocket == -1)
-		throw(RequestException({"invalid socket"}, 500));
-	this->_socket = newSocket;
-}
-
-std::string const& HTTPstruct::getServName( void ) const noexcept
-{
-	return (this->_servName);
-}
-
-void	HTTPstruct::setServName( std::string nameServ) noexcept
-{
-	this->_servName = nameServ;
-}
-
 void	HTTPstruct::_setHeaders( std::string const& headers )
 {
 	size_t 		del1, del2;
@@ -116,6 +99,13 @@ void	HTTPstruct::_setBody( std::string const& strBody )
 		return ;
 	this->_hasBody = true;
     this->_body = strBody;
+}
+
+void	HTTPstruct::setSocket( int newSocket )
+{
+	if (newSocket == -1)
+		throw(RequestException({"invalid socket"}, 500));
+	this->_socket = newSocket;
 }
 
 void	HTTPstruct::_addHeader(std::string const& name, std::string const& content) noexcept

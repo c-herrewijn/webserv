@@ -6,16 +6,12 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/29 19:01:57 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/28 20:26:10 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPrequest.hpp"
-// #include "CGI.hpp"
-
-// NB: redesign unchunk logic
-// NB: modify how the body is read (a buffer is passed to the function and is filled with data)
-// NB: timeout --> how does it works?
+#include "CGI.hpp"
 
 void	HTTPrequest::parseHead( void )
 {
@@ -26,12 +22,13 @@ void	HTTPrequest::parseHead( void )
 
 	if (this->_socket == -1)
 		throw(RequestException({"invalid socket"}, 500));
-	ft_bzero(buffer, DEF_BUF_SIZE + 1);
+	bzero(buffer, DEF_BUF_SIZE + 1);
 	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-	if (charsRead < 0)
+	if (charsRead < 0 )
 		throw(RequestException({"unavailable socket"}, 500));
 	content = std::string(buffer);
 	delimiter = content.find(HTTP_TERM);
+	std::cout << "|" << content << "|\n";
 	if (delimiter == std::string::npos)
 		throw(RequestException({"no header terminator in request"}, 400));
 	head = content.substr(0, delimiter);
@@ -54,9 +51,9 @@ void	HTTPrequest::parseBody( void )
 	if (this->_hasBody == false)
 		return ;
 	else if (this->_isChunked == true)
-		readChunkedBody();
+		_readChunkedBody();
 	else
-		readPlainBody();
+		_readPlainBody();
 }
 
 // NB: needs to be refined
@@ -73,11 +70,6 @@ bool	HTTPrequest::isChunked( void ) const noexcept
 bool	HTTPrequest::isFileUpload( void ) const noexcept
 {
 	return (this->_isFileUpload);
-}
-
-bool	HTTPrequest::isEndConn( void ) const noexcept
-{
-	return (this->_endConn);
 }
 
 std::string	HTTPrequest::toString( void ) const noexcept
@@ -279,16 +271,6 @@ std::string		HTTPrequest::getHost( void ) const noexcept
 	return (hostStr.substr(0, delim));
 }
 
-std::string	const&	HTTPrequest::getBody( void ) const noexcept
-{
-	return (this->_body);
-}
-
-std::string	const&	HTTPrequest::getQueryRaw( void ) const noexcept
-{
-	return (this->_url.queryRaw);
-}
-
 std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 {
 	std::string boundary = "";
@@ -301,14 +283,30 @@ std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 	return (boundary);
 }
 
-std::string const&	HTTPrequest::getRoot( void ) const noexcept
+ConfigServer const&		HTTPrequest::getConfigServer( void ) const noexcept
 {
-	return (this->_root);
+    return (*(this->_configServer));
 }
 
-void 				HTTPrequest::setRoot(std::string const& root) noexcept
+void 	HTTPrequest::setConfigServer(ConfigServer const* config) noexcept
 {
-	this->_root = root;
+	this->_configServer = config;
+	this->_servName = config->getPrimaryName();
+}
+
+std::string	const&	HTTPrequest::getBody( void ) const noexcept
+{
+	return (this->_body);
+}
+
+std::string	const&	HTTPrequest::getQueryRaw( void ) const noexcept
+{
+	return (this->_url.queryRaw);
+}
+
+void	HTTPrequest::_setMaxBodySize( size_t maxSize) noexcept
+{
+	this->_maxBodySize = maxSize;
 }
 
 void	HTTPrequest::_setHead( std::string const& header )
@@ -495,8 +493,6 @@ void	HTTPrequest::checkHeaders( size_t maxBodyLength )
 		_setHostPort(this->_headers["Host"]);
 	else if (this->_headers["Host"].find(this->_url.host) == std::string::npos)
 		throw(RequestException({"hosts do not match"}, 412));
-	if (this->_headers.count("Connecton") != 0)
-		this->_endConn = this->_headers["Connection"] == "close";
 	if (this->_headers.count("Content-Length") == 0)
 	{
 		if (this->_headers.count("Transfer-Encoding") == 0)		// no body
@@ -524,8 +520,8 @@ void	HTTPrequest::checkHeaders( size_t maxBodyLength )
 		if (this->_headers.count("Content-Type") != 0)
 			this->_isFileUpload = this->_headers["Content-Type"].find("multipart/form-data; boundary=-") == 0;
 	}
-	if (contentLength > 0)
-		this->_contentLength = contentLength;
+	this->_contentLength = contentLength;
+	this->_maxBodySize = maxBodyLength;
 	this->_hasBody = true;
 }
 
@@ -553,109 +549,52 @@ std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
 	return (tmpChunkedBody);
 }
 
-std::string	HTTPrequest::_unchunkChunk( std::string const& chunkedChunk, std::string& remainder)
+//NB: add timeout error: 408
+void	HTTPrequest::_readPlainBody( void )
 {
-	size_t		sizeChunk=0, delimiter=0;
-	std::string	tmpChunkedBody = chunkedChunk;
-	std::string	unchunkedChunks;
+    ssize_t 	readChar = -1;
+    char        buffer[DEF_BUF_SIZE + 1];
+	std::string	body = this->_tmpBody;
+	size_t		countChars = this->_tmpBody.length();
 
-	while (true)
-	{
-		delimiter = tmpChunkedBody.find(HTTP_NL);
-		if (delimiter == std::string::npos)
-			throw(RequestException({"bad chunking"}, 400));
-		try {
-			sizeChunk = std::stoul(tmpChunkedBody.substr(0, delimiter), nullptr, 16);
-			if ((delimiter + sizeChunk + HTTP_NL.size() * 2) < tmpChunkedBody.size())
-			{
-				remainder = tmpChunkedBody;
-				break;
-			}
-		}
-		catch(const std::exception& e){
-			throw(RequestException({"bad chunking"}, 400));
-		}
-	}
-	return (unchunkedChunks);
-}
-
-void	HTTPrequest::readPlainBody( void )
-{
-    ssize_t 			readChar = -1;
-    char        		buffer[DEF_BUF_SIZE + 1];
-	static std::string	body = this->_tmpBody;
-	static size_t		countChars = this->_tmpBody.length();
-
-	static steady_clock::time_point 	lastRead = steady_clock::now();
-	steady_clock::time_point 			currentRead;
-	duration<double> 					time_span;
-
-	if (this->_gotFullBody)
-		throw(ServerException({"body already parsed"}));
-	else if (this->_socket == -1)
+	if (this->_socket == -1)
 		throw(RequestException({"invalid socket"}, 500));
-	ft_bzero(buffer, DEF_BUF_SIZE + 1);
-	readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-	if (readChar < 0 )
-		throw(RequestException({"unavailable socket"}, 500));
-	else if (readChar == 0)
+	while (countChars < this->_contentLength)
 	{
-		currentRead = steady_clock::now();
-		time_span = duration_cast<duration<int>>(currentRead - lastRead);
-		if (time_span.count() > MAX_TIMEOUT)
-			throw(RequestException({"timeout request"}, 408));
-	}
-	else
-	{
-		lastRead = steady_clock::now();
+		bzero(buffer, DEF_BUF_SIZE + 1);
+		readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+		if (readChar <= 0)
+			continue;
 		countChars += readChar;
 		if (countChars > this->_contentLength)
 			throw(RequestException({"content body is longer than expected"}, 413));
 		body += buffer;
-		// write buffer to CGI
-
-		if (countChars == this->_contentLength)
-			this->_gotFullBody = true;
 	}
+	HTTPstruct::_setBody(body);
 }
 
-void	HTTPrequest::readChunkedBody( void )
+//NB: add timeout error: 408
+void	HTTPrequest::_readChunkedBody( void )
 {
     ssize_t 	readChar = -1;
     char    	buffer[DEF_BUF_SIZE + 1];
-	static std::string body = this->_tmpBody;
-	size_t		countChars=this->_tmpBody.length();
-
-	static steady_clock::time_point 	lastRead = steady_clock::now();
-	steady_clock::time_point 			currentRead;
-	duration<double> 					time_span;
+	std::string body = this->_tmpBody;
+	size_t		delimiter=0, countChars=this->_tmpBody.length();
 
 	if (this->_socket == -1)
 		throw(RequestException({"invalid socket"}, 500));
-	ft_bzero(buffer, DEF_BUF_SIZE + 1);
-	readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-	if (readChar < 0 )
-		throw(RequestException({"unavailable socket"}, 500));
-	else if (readChar == 0)
+	do
 	{
-		currentRead = steady_clock::now();
-		time_span = duration_cast<duration<int>>(currentRead - lastRead);
-		if (time_span.count() > MAX_TIMEOUT)
-			throw(RequestException({"timeout request"}, 408));
-	}
-	else
-	{
-		lastRead = steady_clock::now();
+		bzero(buffer, DEF_BUF_SIZE + 1);
+		readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+		if (readChar <= 0)
+			continue;
 		countChars += readChar;
-		if (countChars > this->_contentLength)
+		if ((this->_maxBodySize != 0) and (countChars > this->_maxBodySize))
 			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
 		body += buffer;
-		if (std::string(buffer).find(HTTP_TERM) != std::string::npos)
-		{
-			this->_gotFullBody = true;
-			body = _unchunkBody(body);
-		}
-	}
-	// write unchunked body to CGI?
-	// HTTPstruct::_setBody(body);
+		delimiter = std::string(buffer).find(HTTP_TERM);
+	} while (delimiter != std::string::npos);
+	body = _unchunkBody(body.substr(0, delimiter + HTTP_TERM.size()));
+	HTTPstruct::_setBody(body);
 }

@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/29 17:32:03 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/28 20:09:52 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,7 +48,7 @@ void	HTTPresponse::readHTML( void )
 
 	if (this->_HTMLfd == -1)
 		throw(RequestException({"invalid socket"}, 500));
-	ft_bzero(buffer, DEF_BUF_SIZE + 1);
+	bzero(buffer, DEF_BUF_SIZE + 1);
 	readChar = read(this->_HTMLfd, buffer, DEF_BUF_SIZE);
 	if (readChar < 0)
 		throw(RequestException({"fd unavailable"}, 500));
@@ -138,6 +138,11 @@ bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept
 bool	HTTPresponse::isDoneWriting( void ) const noexcept
 {
 	return (this->_writtenResp);
+}
+
+void	HTTPresponse::setServName( std::string nameServ) noexcept
+{
+	this->_servName = nameServ;
 }
 
 void	HTTPresponse::_setHead( std::string const& strStatusCode)

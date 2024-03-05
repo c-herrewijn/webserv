@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "WebServer.hpp"
+#include "CGI.hpp"
 
 WebServer::WebServer ( std::vector<ConfigServer> const& servers ) : _servers(servers)
 {
@@ -67,8 +68,6 @@ void			WebServer::startListen( void )
 void			WebServer::loop( void )
 {
 	int					nConn = -1;
-	HTTPrequest 		*request;
-	HTTPresponse		*response;
 	std::vector<int>	emptyConns;
 
 	while (true)
@@ -118,6 +117,7 @@ void			WebServer::loop( void )
 					if (pollItem.pollState == WAITING_FOR_CONNECTION) {
 						std::cerr << C_GREEN << "POLLIN - NEWCONNECTION - " << iPollFd.fd << C_RESET << std::endl;
 						handleNewConnections(pollItem);
+					}
 					else if (pollItem.pollState == READ_REQ_HEADER) {
 						std::cerr << C_GREEN << "POLLIN - READ_REQ_HEADER - " << iPollFd.fd << C_RESET << std::endl;
 						readRequestHeaders(pollItem);
@@ -170,7 +170,6 @@ void			WebServer::loop( void )
 			_dropConn(emptyConns.back());
 			emptyConns.pop_back();
 		}
-
 	}
 }
 
@@ -222,7 +221,7 @@ void			WebServer::_listenTo( std::string const& hostname, std::string const& por
 	struct sockaddr_storage	hostIP;
 	int yes=1, listenSocket=-1;
 
-	ft_bzero(&filter, sizeof(struct addrinfo));
+	bzero(&filter, sizeof(struct addrinfo));
 	filter.ai_flags = AI_PASSIVE;
 	filter.ai_family = AF_UNSPEC;
 	filter.ai_protocol = IPPROTO_TCP;
@@ -305,7 +304,7 @@ void	WebServer::handleNewConnections( t_PollItem& item )
 	this->_addConn(connfd, CLIENT_CONNECTION, READ_REQ_HEADER);
 }
 
-void	WebServer::readRequestHeaders( t_PollItem& item )
+void	WebServer::readRequestHeaders( t_PollItem& pollItem )
 {
 	HTTPrequest 	*request;
 	HTTPresponse	*response;
@@ -378,14 +377,49 @@ void	WebServer::forwardRequestBodyToCGI( t_PollItem& item )
 	; // todo
 }
 
-void	WebServer::readCGIResponses( t_PollItem& item )
+void	WebServer::readCGIResponses( t_PollItem& pollItem )
 {
-	(void) item ;
-	; // todo
+	HTTPrequest *request = nullptr;
+	CGI         *cgi = nullptr;
+
+	for (auto& cgiMapItem : this->_cgi)
+	{
+		if (cgiMapItem.second->getResponsePipe()[0] == pollItem.fd)
+		{
+			cgi = cgiMapItem.second;
+			request = this->_requests[cgi->getRequestSocket()];
+			break;
+		}
+	}
+	if (request == nullptr || cgi == nullptr)
+	{
+		if (request == nullptr)
+			std::cerr << C_RED << "error: request not found" << C_RESET << std::endl;
+		if (cgi == nullptr)
+			std::cerr << C_RED << "error: cgi not found" << C_RESET << std::endl;
+	}
+	char buffer[DEF_BUF_SIZE];
+	int readChars = read(pollItem.fd, buffer, DEF_BUF_SIZE);
+	std::string newResponsePart(buffer, buffer + readChars);
+	request->cgi->appendResponse(newResponsePart);
+
+	// TODO: support partial reads, i.e. in case of very big CGI response
+	if (true) // TODO keep pipe open for consequtive reads if needed
+	{
+		close(request->cgi->getResponsePipe()[0]);
+		this->_pollitems[request->getSocket()].pollState = WRITE_TO_CLIENT;
+	}
 }
 
-void	WebServer::writeToClients( t_PollItem& item )
+void	WebServer::writeToClients( t_PollItem& pollItem, std::vector<int>& emptyConns )
 {
-	(void) item ;
-	; // todo
+	HTTPrequest *request = this->_requests[pollItem.fd];
+	HTTPresponse *response = this->_responses[pollItem.fd];
+	if (request->isCGI()) {
+		CGI *cgi = this->_cgi[pollItem.fd];
+		response->parseFromCGI(cgi->getResponse());
+	}
+	response->writeContent();
+	if (response->isDoneWriting())
+		emptyConns.push_back(pollItem.fd);
 }

@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/29 19:00:47 by faru          ########   odam.nl         */
+/*   Updated: 2024/02/28 19:14:54 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,13 +19,10 @@
 #include <limits>
 #include <fstream>
 #include <filesystem>
-#include <chrono>
 
 #include "HTTPstruct.hpp"
-// #include "HTTPresponse.hpp"
+#include "HTTPresponse.hpp"
 #include "ConfigServer.hpp"
-
-#define MAX_TIMEOUT	5		// seconds
 
 typedef enum HTTPmethod_s
 {
@@ -46,18 +43,18 @@ typedef struct HTTPurl_f
 
 } HTTPurl;
 
-using namespace std::chrono;
+class CGI;
 
 class HTTPrequest : public HTTPstruct
 {
 	public:
-		HTTPrequest( void ) : 
+		HTTPrequest( void ) :
 			HTTPstruct() ,
-			_contentLength(std::numeric_limits<size_t>::max()) ,
+			_maxBodySize(0) ,
+			_contentLength(0) ,
 			_isChunked(false),
 			_isFileUpload(false),
-			_endConn(false), 
-			_gotFullBody(false) {};
+			_endConn(false) {};
 		virtual ~HTTPrequest( void ) override {};
 
 		void			parseHead( void );
@@ -65,11 +62,9 @@ class HTTPrequest : public HTTPstruct
 		bool			isCGI( void ) const noexcept;
 		bool			isChunked( void ) const noexcept;
 		bool			isFileUpload( void ) const noexcept;
-		bool			isEndConn( void ) const noexcept;
+		bool			isEndConn( void ) const noexcept;		// NB: to implement
 		void			checkHeaders( size_t );
-		void			readPlainBody( void );
-		void			readChunkedBody( void );
-		// HTTPresponse	runCGI( void ) noexcept;
+		CGI *			cgi;
 
 		std::string	toString( void ) const noexcept override;
 
@@ -80,18 +75,20 @@ class HTTPrequest : public HTTPstruct
 		std::string	const& 	getBody( void ) const noexcept;
 		std::string	const&	getQueryRaw( void ) const noexcept;
 		std::string			getContentTypeBoundary( void ) const noexcept;
-		std::string const&	getRoot( void ) const noexcept;
-		void 				setRoot(std::string const&) noexcept;
+		ConfigServer const&	getConfigServer( void ) const noexcept;
+		void 				setConfigServer(ConfigServer const* config) noexcept;
 
 	protected:
 		HTTPmethod			_method;
 		HTTPurl				_url;
+		ConfigServer const*	_configServer;
 
-		size_t		_contentLength;
-		bool		_isChunked, _isFileUpload, _endConn, _gotFullBody;
-		std::string	_root;
+		size_t		_maxBodySize, _contentLength;
+		bool		_isChunked, _isFileUpload, _endConn;
 
+		void	_setMaxBodySize(size_t) noexcept;
 		void	_setHead( std::string const& ) override;
+
 		void	_setMethod( std::string const& );
 		void	_setURL( std::string const& );
 		void	_setScheme( std::string const& );
@@ -101,6 +98,7 @@ class HTTPrequest : public HTTPstruct
 		void	_setFragment( std::string const& );
 		void	_setVersion( std::string const& );
 
-		std::string	_unchunkChunk( std::string const&, std::string& );
 		std::string	_unchunkBody( std::string const& );
+		void		_readPlainBody( void );
+		void		_readChunkedBody( void );
 };

@@ -19,7 +19,6 @@
 #include <vector>
 
 #include "Exceptions.hpp"
-#include "utils.hpp"
 
 #define HTTP_DEF_PORT	80							// default port
 #define HTTP_SCHEME		std::string("HTTP")			// http scheme
@@ -47,11 +46,9 @@ class HTTPstruct
 
 		virtual std::string	toString( void ) const noexcept =0;
 
-		bool				hasBody( void) const noexcept;
-		int					getSocket( void ) const noexcept;
-		void				setSocket( int ) ;
-		std::string const& 	getServName( void ) const noexcept;
-		void				setServName( std::string ) noexcept;
+		bool	hasBody( void) const noexcept;
+		int		getSocket( void ) const noexcept;
+		void	setSocket( int ) ;
 
 	protected:
 		dict 		_headers;
