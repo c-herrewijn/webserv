@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/06 17:26:43 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/06 22:21:02 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -145,7 +145,7 @@ std::string 	HTTPrequest::getStrMethod( void ) const noexcept
 	}
 }
 
-path		HTTPrequest::getPath( void ) const noexcept
+t_path		HTTPrequest::getPath( void ) const noexcept
 {
 	return (this->_url.path);
 }
@@ -193,12 +193,12 @@ void 	HTTPrequest::setConfigServer(ConfigServer const* config) noexcept
 	this->_servName = config->getPrimaryName();
 }
 
-path	HTTPrequest::getRealPath( void ) const noexcept
+t_path	HTTPrequest::getRealPath( void ) const noexcept
 {
 	return (this->_realPath);
 }
 
-void 	HTTPrequest::setRealPath( path realPath ) noexcept
+void 	HTTPrequest::setRealPath( t_path realPath ) noexcept
 {
 	this->_realPath = realPath;
 }

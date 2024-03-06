@@ -71,14 +71,13 @@ int main(int ac, char **av)
 	}
 	std::cout << "Found " C_AZURE << servers.size() << C_RESET " available server\n";
 
-	WebServer	webserv(servers);
 	try
 	{
+		WebServer	webserv(servers);
 		webserv.startListen();
 		webserv.loop();
 	}
-	catch(const std::exception& e)
-	{
+	catch(const WebServerException& e) {
 		std::cerr << e.what() << '\n';
 		return (EXIT_FAILURE);
 	}

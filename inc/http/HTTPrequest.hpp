@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/06 15:56:51 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/06 22:02:24 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,7 @@
 #include "HTTPresponse.hpp"
 #include "ConfigServer.hpp"
 
-typedef std::filesystem::path path;
+typedef std::filesystem::path t_path;
 
 typedef enum HTTPmethod_s
 {
@@ -38,7 +38,7 @@ typedef struct HTTPurl_f
 	std::string	scheme;
 	std::string	host;
 	int			port;
-	path		path;
+	t_path		path;
 	dict		query;
 	std::string queryRaw;
 	std::string fragment;
@@ -72,21 +72,21 @@ class HTTPrequest : public HTTPstruct
 
 		HTTPmethod		 	getMethod( void ) const noexcept;
 		std::string		 	getStrMethod( void ) const noexcept;
-		path			 	getPath( void ) const noexcept;
+		t_path			 	getPath( void ) const noexcept;
 		std::string		 	getHost( void ) const noexcept;
 		std::string	const& 	getBody( void ) const noexcept;
 		std::string	const&	getQueryRaw( void ) const noexcept;
 		std::string			getContentTypeBoundary( void ) const noexcept;
 		ConfigServer const&	getConfigServer( void ) const noexcept;
 		void 				setConfigServer(ConfigServer const* config) noexcept;
-		path				getRealPath( void ) const noexcept;
-		void 				setRealPath( path ) noexcept;
+		t_path				getRealPath( void ) const noexcept;
+		void 				setRealPath( t_path ) noexcept;
 
 	protected:
 		HTTPmethod			_method;
 		HTTPurl				_url;
 		ConfigServer const*	_configServer;
-		path				_realPath;
+		t_path				_realPath;
 
 		size_t		_maxBodySize, _contentLength;
 		bool		_isChunked, _isFileUpload, _endConn;
