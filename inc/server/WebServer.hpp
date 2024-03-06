@@ -74,7 +74,7 @@ typedef struct PollItem
 	int				fd;
 	fdType          pollType;
     fdState         pollState;
-    bool			actionHappened;
+    bool			actionHappened;	// NB. still needed?
 
 } t_PollItem;
 
@@ -97,10 +97,10 @@ class WebServer
 		std::vector<ConfigServer>	 _servers;
 		std::vector<Listen>			 _listenAddress;
 		std::vector<struct pollfd>	 _pollfds;
-		std::map<int, t_PollItem>	 	_pollitems;
-		std::map<int, HTTPrequest*> 	_requests;
-		std::map<int, HTTPresponse*> 	_responses;
-		std::map<int, CGI*> 			_cgi;	// NOTE: the key is the client socket fd, not any of the cgi-pipes
+		std::unordered_map<int, t_PollItem>	 	_pollitems;
+		std::unordered_map<int, HTTPrequest*> 	_requests;
+		std::unordered_map<int, HTTPresponse*> 	_responses;
+		std::unordered_map<int, CGI*> 			_cgi;	// NOTE: the key is the client socket fd, not any of the cgi-pipes
 
 		void			_listenTo( std::string const&, std::string const& );
 		void			_addConn( int , fdType , fdState );
@@ -111,8 +111,9 @@ class WebServer
 		void			handleNewConnections( t_PollItem& ); // keep - DONE
 		void			readRequestHeaders( t_PollItem& ); // keep / rework
 		void			readStaticFiles( t_PollItem&, std::vector<int>& ); // keep / rework
-		void			forwardRequestBodyToCGI( t_PollItem& ); // split into: 'readRequestBody()' and 'writeRequestBodyToCGI()'
+		void			readRequestBody( t_PollItem& item );
 		void			readCGIResponses( t_PollItem&, std::vector<int>& ); // keep / rework
+		void			writeToCGI( t_PollItem& item );
 		void			writeToClients( t_PollItem&, std::vector<int>& );
 		void			redirectToErrorPage( t_PollItem&, std::vector<int>&, int ) noexcept;
 };
