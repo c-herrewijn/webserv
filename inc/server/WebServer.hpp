@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/05 23:47:06 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/06 17:00:01 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,12 @@
 #include "HTTPresponse.hpp"
 #include "Exceptions.hpp"
 #include "ConfigServer.hpp"
-#define BACKLOG 			10				        	// max pending connection queued up
+
+#define BACKLOG 				10		// max pending connection queued up
+#define HTML_ERROR_FOLDER		std::filesystem::path("var/www/errors")
+#define DEFAULT_ERROR_PAGE_PATH std::filesystem::path("var/www/errors/500.html")
+#define MAIN_PAGE_PATH	 		std::filesystem::path("var/www/test.html")
+#define FAVICON_PATH			std::filesystem::path("var/www/favicon.ico")
 
 enum fdType
 {
@@ -73,7 +78,6 @@ typedef struct PollItem
 
 } t_PollItem;
 
-// NB: non-blocking waitpid
 // NB: in case of terminating error child process must be killed with signals
 class WebServer
 {
@@ -101,6 +105,8 @@ class WebServer
 		void			_listenTo( std::string const&, std::string const& );
 		void			_addConn( int , fdType , fdState );
 		void			_dropConn( int ) noexcept;
+		std::string		_getHTMLfromCode( int ) const noexcept;
+		HTTPresponse*	_getResponseFromPollitem( t_PollItem const& ) noexcept;
 
 		void			handleNewConnections( t_PollItem& ); // keep - DONE
 		void			readRequestHeaders( t_PollItem& ); // keep / rework
@@ -108,4 +114,5 @@ class WebServer
 		void			forwardRequestBodyToCGI( t_PollItem& ); // split into: 'readRequestBody()' and 'writeRequestBodyToCGI()'
 		void			readCGIResponses( t_PollItem&, std::vector<int>& ); // keep / rework
 		void			writeToClients( t_PollItem&, std::vector<int>& );
+		void			redirectToErrorPage( t_PollItem&, std::vector<int>&, int ) noexcept;
 };

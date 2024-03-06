@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/06 11:00:13 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/06 17:14:19 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,10 +18,11 @@ void	HTTPresponse::parseFromStatic( void )
 	_addHeader("Server", this->_servName);
 	if (this->_tmpBody.empty() == false)
 	{
-		_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
-		_addHeader("Content-Type", this->_contentType);	// NB: do I need other formats?
 		if (this->_statusCode == 500)
 			this->_tmpBody = ERROR_500_CONTENT;
+		std::cout << this->_tmpBody << "\n";
+		_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
+		_addHeader("Content-Type", this->_contentType);
 		HTTPstruct::_setBody(this->_tmpBody);
 	}
 }
@@ -50,7 +51,7 @@ void	HTTPresponse::readHTML( void )
 	if (this->_gotFullHTML)
 		throw(ResponseException({"HTML already parsed"}, 500));
 	else if (this->_HTMLfd == -1)
-		throw(ResponseException({"invalid socket"}, 500));
+		throw(ResponseException({"invalid fd"}, 500));
 	bzero(buffer, DEF_BUF_SIZE);
 	readChar = read(this->_HTMLfd, buffer, DEF_BUF_SIZE);
 	if (readChar < 0)
@@ -66,10 +67,10 @@ void		HTTPresponse::writeContent( void )
     ssize_t 		readChar = -1;
 	size_t			charsToWrite = 0;
 
-	if (this->_writtenResp)
+	if (this->_responseDone)
 		throw(ResponseException({"response already sent"}, 500));
 	else if (this->_socket == -1)
-		throw(ResponseException({"invalid socket"}, 500));
+		throw(ResponseException({"invalid client socket"}, 500));
 	if ((toString().size() - written) < DEF_BUF_SIZE)
 		charsToWrite = toString().size() - written;
 	else
@@ -81,7 +82,7 @@ void		HTTPresponse::writeContent( void )
 	if (readChar < DEF_BUF_SIZE)
 	{
 		written = 0;
-		this->_writtenResp = true;
+		this->_responseDone = true;
 	}
 }
 
@@ -129,10 +130,20 @@ int		HTTPresponse::getStatusCode( void ) const noexcept
 	return (this->_statusCode);
 }
 
+void	HTTPresponse::setContentType( std::string contentType ) noexcept
+{
+	this->_contentType = contentType;
+}
+
+std::string		HTTPresponse::getContentType( void ) const noexcept
+{
+	return (this->_contentType);
+}
+
 void	HTTPresponse::setHTMLfd( int HTMLfd )
 {
 	if (HTMLfd == -1)
-		throw(ResponseException({"invalid socket"}, 500));
+		throw(ResponseException({"invalid fd"}, 500));
 	this->_HTMLfd = HTMLfd;
 }
 
@@ -148,7 +159,7 @@ bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept
 
 bool	HTTPresponse::isDoneWriting( void ) const noexcept
 {
-	return (this->_writtenResp);
+	return (this->_responseDone);
 }
 
 void	HTTPresponse::setServName( std::string nameServ) noexcept

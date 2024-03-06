@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/06 11:13:25 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/06 15:57:27 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,7 @@ void	HTTPrequest::parseHead( void )
 		throw(ServerException({"connection closed"}));
 	content = std::string(buffer, buffer + charsRead);
 	delimiter = content.find(HTTP_TERM);
-	// std::cout << "|" << content << "|\n";
+	std::cout << "|" << content << "|\n";
 	if (delimiter == std::string::npos)
 		throw(RequestException({"no header terminator in request"}, 400));
 	head = content.substr(0, delimiter);
@@ -61,7 +61,7 @@ void	HTTPrequest::parseBody( void )
 // NB: needs to be refined
 bool	HTTPrequest::isCGI( void ) const noexcept
 {
-	return (this->_url.path.extension().generic_string() == ".cgi");
+	return (this->_realPath.extension().generic_string() == ".cgi");
 }
 
 bool	HTTPrequest::isChunked( void ) const noexcept
@@ -90,7 +90,7 @@ std::string	HTTPrequest::toString( void ) const noexcept
 	strReq += this->_url.host;
 	strReq += ":";
 	strReq += std::to_string(this->_url.port);
-	strReq += getPath();
+	strReq += getPath().generic_string();
 	if (!this->_url.queryRaw.empty())
 	{
 		strReq += "?";
@@ -145,9 +145,9 @@ std::string 	HTTPrequest::getStrMethod( void ) const noexcept
 	}
 }
 
-std::string		HTTPrequest::getPath( void ) const noexcept
+path		HTTPrequest::getPath( void ) const noexcept
 {
-	return (this->_url.path.generic_string());
+	return (this->_url.path);
 }
 
 std::string		HTTPrequest::getHost( void ) const noexcept
@@ -158,6 +158,16 @@ std::string		HTTPrequest::getHost( void ) const noexcept
 	hostStr = this->_headers.at("Host");
 	delim = hostStr.find(':');
 	return (hostStr.substr(0, delim));
+}
+
+std::string	const&	HTTPrequest::getBody( void ) const noexcept
+{
+	return (this->_body);
+}
+
+std::string	const&	HTTPrequest::getQueryRaw( void ) const noexcept
+{
+	return (this->_url.queryRaw);
 }
 
 std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
@@ -183,14 +193,14 @@ void 	HTTPrequest::setConfigServer(ConfigServer const* config) noexcept
 	this->_servName = config->getPrimaryName();
 }
 
-std::string	const&	HTTPrequest::getBody( void ) const noexcept
+path	HTTPrequest::getRealPath( void ) const noexcept
 {
-	return (this->_body);
+	return (this->_realPath);
 }
 
-std::string	const&	HTTPrequest::getQueryRaw( void ) const noexcept
+void 	HTTPrequest::setRealPath( path realPath ) noexcept
 {
-	return (this->_url.queryRaw);
+	this->_realPath = realPath;
 }
 
 void	HTTPrequest::_setMaxBodySize( size_t maxSize) noexcept

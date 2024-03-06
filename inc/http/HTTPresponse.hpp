@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/06 11:00:14 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/06 13:34:03 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,15 +26,15 @@
 class HTTPresponse : public HTTPstruct
 {
 	public:
-		HTTPresponse( std::string contentType=STD_CONTENT_TYPE ) :
+		HTTPresponse( void ) :
 			HTTPstruct() ,
-			_statusCode(200) ,
+			_statusCode(200),
 			_HTMLfd(-1),
 			_gotFullHTML(false),
-			_writtenResp(false),
-			_contentType(contentType) {};
-		virtual ~HTTPresponse( void ) override {};
+			_responseDone(false),
+			_contentType(STD_CONTENT_TYPE) {};
 
+		virtual ~HTTPresponse( void ) override {};
 		void		parseFromStatic( void );
 		void		parseFromCGI( std::string const& );
 		void		readHTML( void );
@@ -43,6 +43,8 @@ class HTTPresponse : public HTTPstruct
 
 		void		setStatusCode( int ) noexcept;
 		int			getStatusCode( void ) const noexcept;
+		void		setContentType( std::string ) noexcept;
+		std::string	getContentType( void ) const noexcept;
 		void		setHTMLfd( int HTMLfd ) ;
 		int			getHTMLfd( void ) const noexcept;
 		bool		isDoneReadingHTML( void ) const noexcept;
@@ -51,7 +53,7 @@ class HTTPresponse : public HTTPstruct
 
 	protected:
 		int			_statusCode, _HTMLfd;
-		bool		_gotFullHTML, _writtenResp;
+		bool		_gotFullHTML, _responseDone;
 		std::string	_contentType;
 
 		void		_setHeaders( std::string const& ) override;

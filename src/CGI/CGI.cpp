@@ -42,8 +42,8 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(const HTTPrequest &req)
         "REMOTE_IDENT=",
         "REMOTE_USER=",
         "REQUEST_METHOD=" + method,
-        "SCRIPT_NAME=" + req.getPath().substr(req.getPath().find_last_of("/\\") + 1), // script name, e.g. myScript.cgi
-        "SCRIPT_FILENAME=" + req.getPath(), // script path relative to document root, e.g. /cgi-bin/myScript.cgi
+        "SCRIPT_NAME=" + req.getPath().generic_string().substr(req.getPath().generic_string().find_last_of("/\\") + 1), // script name, e.g. myScript.cgi
+        "SCRIPT_FILENAME=" + req.getPath().generic_string(), // script path relative to document root, e.g. /cgi-bin/myScript.cgi
         "SERVER_NAME=" + req.getConfigServer().getPrimaryName(),
         "SERVER_PORT=" + port,
         "SERVER_PROTOCOL=HTTP/1.1", // fixed
@@ -75,7 +75,7 @@ void CGI::run()
         close(this->_uploadPipe[1]);
         dup2(this->_uploadPipe[0], STDIN_FILENO); // read from pipe
 
-        std::string CGIfilePath = _req.getConfigServer().getParams().getRoot() + _req.getPath();
+        std::string CGIfilePath = _req.getConfigServer().getParams().getRoot() + _req.getPath().generic_string();
         std::string CGIfileName = CGIfilePath.substr(CGIfilePath.rfind("/")+1); // fully stripped, only used for execve
         char *argv[2] = {(char*)CGIfileName.c_str(), NULL};
         int res = execve(CGIfilePath.c_str(), argv, this->_CgiEnvCStyle);
