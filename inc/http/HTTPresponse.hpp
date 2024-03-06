@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/28 20:10:46 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/06 11:00:14 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,8 @@
 
 #include "HTTPstruct.hpp"
 #define STD_CONTENT_TYPE "text/html; charset=utf-8"
+#define ICO_CONTENT_TYPE "image/vnd.microsoft.icon"
+#define ERROR_500_CONTENT "<!DOCTYPE html>\r\n<html>\r\n\t<head>\r\n\t\t<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">\r\n\t\t<title>500 - Internal Server Error</title>\r\n\t\t<link href=\"main.css\" rel=\"stylesheet\" type=\"text/css\">\r\n\t</head>\r\n\r\n\t<body>\r\n\t\t<div id=\"app\">\r\n\t\t\t<div>500</div>\r\n\t\t\t<div class=\"txt\">\r\n\t\t\t\tInternal Server Error<span class=\"blink\">_</span>\r\n\t\t\t</div>\r\n\t\t</div>\r\n\t</body>\r\n</html>"
 
 class HTTPresponse : public HTTPstruct
 {
@@ -33,12 +35,13 @@ class HTTPresponse : public HTTPstruct
 			_contentType(contentType) {};
 		virtual ~HTTPresponse( void ) override {};
 
-		void		parseStaticHTML( int );
+		void		parseFromStatic( void );
 		void		parseFromCGI( std::string const& );
 		void		readHTML( void );
 		void		writeContent( void ) ;
 		std::string	toString( void ) const noexcept override;
 
+		void		setStatusCode( int ) noexcept;
 		int			getStatusCode( void ) const noexcept;
 		void		setHTMLfd( int HTMLfd ) ;
 		int			getHTMLfd( void ) const noexcept;
@@ -51,9 +54,8 @@ class HTTPresponse : public HTTPstruct
 		bool		_gotFullHTML, _writtenResp;
 		std::string	_contentType;
 
-		void		_setHead( std::string const& ) override;
 		void		_setHeaders( std::string const& ) override;
 		std::string	_mapStatusCode( int ) const ;
 		std::string	_getDateTime( void ) const noexcept;
-		std::string	_getStatusFromHeader( void ) const;
+		int			_getStatusFromHeader( void ) const;
 };

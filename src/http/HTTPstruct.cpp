@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/28 16:48:47 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/06 10:37:58 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,6 +61,12 @@
 // 	}
 // }
 
+HTTPstruct::HTTPstruct( void ) : _hasBody(false) , _socket(-1)
+{
+	this->_version.scheme = HTTP_SCHEME;
+	this->_version.major = 1;
+	this->_version.minor = 1;
+}
 
 bool	HTTPstruct::hasBody( void) const noexcept
 {

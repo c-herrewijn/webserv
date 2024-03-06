@@ -108,13 +108,13 @@ void			WebServer::loop( void )
 		// 							// STATIC_FILE (read)
 		// 							// CLIENT_CONNECTION (write)
 
-		int initialNrPollFds = this->_pollfds.size();
-		for(int i=0; i<initialNrPollFds; i++)
+		// int initialNrPollFds = this->_pollfds.size();		NB: why not iterate also on the new elements?
+		for(size_t i=0; i<this->_pollfds.size(); i++)
 		{
 			struct pollfd &iPollFd = this->_pollfds[i];
+			t_PollItem &pollItem = this->_pollitems[iPollFd.fd];
 			try {
 				if (iPollFd.revents & POLLIN) {
-					t_PollItem &pollItem = this->_pollitems[iPollFd.fd];
 					if (pollItem.pollState == WAITING_FOR_CONNECTION) {
 						std::cerr << C_GREEN << "POLLIN - NEWCONNECTION - " << iPollFd.fd << C_RESET << std::endl;
 						handleNewConnections(pollItem);
@@ -137,7 +137,6 @@ void			WebServer::loop( void )
 				}
 				else if (iPollFd.revents & POLLOUT)
 				{
-					t_PollItem &pollItem = this->_pollitems[iPollFd.fd];
 					if (pollItem.pollState == FORWARD_REQ_BODY_TO_CGI) {
 						;
 					}
@@ -149,10 +148,30 @@ void			WebServer::loop( void )
 				else if (iPollFd.revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
 					emptyConns.push_back(iPollFd.fd);
 			}
-			catch(const ServerException& e) {
+			catch (const ServerException& e) {
 				std::cerr << e.what() << '\n';
+				
 				// error handling
 				emptyConns.push_back(iPollFd.fd);
+			}
+			catch (const HTTPexception& e) {
+				std::cerr << e.what() << '\n';
+				HTTPresponse *response = this->_responses[iPollFd.fd];
+				response->setStatusCode(e.getStatus());
+				if (response->getStatusCode() != 500)
+				{
+					// mapping between error codes and HTML files (except 500)
+					// set HTML opening the correspondent HTML file
+					int HTMLfdError = open("path/to/html/static/error/file", O_RDONLY);
+					response->setHTMLfd(HTMLfdError);
+					_addConn(HTMLfdError, STATIC_FILE, READ_STATIC_FILE);
+					pollItem.pollState = READ_STATIC_FILE;
+				}
+				else
+				{
+					std::cout << "here\n";
+					pollItem.pollState = WRITE_TO_CLIENT;
+				}
 			}
 		}
 		while (emptyConns.empty() == false)
@@ -205,7 +224,7 @@ ConfigServer const&	WebServer::getDefaultServer( void ) const noexcept
 	return (this->_defaultServer);
 }
 
-void			WebServer::_listenTo( std::string const& hostname, std::string const& port )
+void	WebServer::_listenTo( std::string const& hostname, std::string const& port )
 {
 	struct addrinfo *tmp, *list, filter;
 	struct sockaddr_storage	hostIP;
@@ -246,7 +265,7 @@ void			WebServer::_listenTo( std::string const& hostname, std::string const& por
 	this->_addConn(listenSocket, LISTENER, WAITING_FOR_CONNECTION);
 }
 
-void			WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePollItem )
+void	WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePollItem )
 {
 	if (newSocket == -1)
 		throw(ServerException({"invalid file descriptor"}));
@@ -255,7 +274,7 @@ void			WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePo
 	this->_pollitems.insert(std::pair(newSocket, newPollitem));
 }
 
-void			WebServer::_dropConn(int toDrop) noexcept
+void	WebServer::_dropConn(int toDrop) noexcept
 {
 	shutdown(toDrop, SHUT_RDWR);
 	close(toDrop);
@@ -291,28 +310,26 @@ void	WebServer::readRequestHeaders( t_PollItem& pollItem )
 	CGI 			*cgiPtr = nullptr;
 	int 			HTMLfd = -1;
 
-	request = new HTTPrequest;		// NB: if something fails here this point needs to be manually
-	request->setSocket(pollItem.fd);
-	request->parseHead();
-	request->setConfigServer(&this->getHandler(request->getHost()));
+	request = new HTTPrequest;
 	this->_requests.insert(std::pair<int, HTTPrequest*>(pollItem.fd, request));
-	response = new HTTPresponse;
-	response->setSocket(pollItem.fd);
-	response->setServName(request->getConfigServer().getPrimaryName());
-	this->_responses.insert(std::pair<int, HTTPresponse*>(pollItem.fd, response));
-
+	request->setSocket(pollItem.fd);
+	request->parseHead();	// if 0 chars are read, the client has closed the connection
+	request->setConfigServer(&this->getHandler(request->getHost()));
 	// validation from configServer (chocko's validation)
 	request->checkHeaders(1000000);	// has to be dynamic
+	response = new HTTPresponse;
+	this->_responses.insert(std::pair<int, HTTPresponse*>(pollItem.fd, response));
+	response->setSocket(pollItem.fd);
+	response->setServName(request->getConfigServer().getPrimaryName());
 	if (request->isCGI()) {
 		cgiPtr = new CGI(*request);
-		// request->cgi = cgiPtr;
 		this->_cgi.insert(std::pair<int, CGI*>(pollItem.fd, cgiPtr));
 		this->_addConn(cgiPtr->getResponsePipe()[0], CGI_RESPONSE_PIPE, READ_CGI_RESPONSE);
 		cgiPtr->run();
 		if (request->hasBody()) {
 			this->_addConn(cgiPtr->getuploadPipe()[1], CGI_DATA_PIPE, FORWARD_REQ_BODY_TO_CGI);
 			pollItem.pollState = FORWARD_REQ_BODY_TO_CGI;
-		}
+		}		
 		else {
 			pollItem.pollState = READ_CGI_RESPONSE;
 		}
@@ -333,7 +350,7 @@ void	WebServer::readRequestHeaders( t_PollItem& pollItem )
 
 void	WebServer::readStaticFiles( t_PollItem& currentPoll, std::vector<int>& emptyConns )
 {
-	HTTPresponse	*response;
+	HTTPresponse	*response = nullptr;
 
 	for (auto& item : this->_responses)
 	{
@@ -343,6 +360,8 @@ void	WebServer::readStaticFiles( t_PollItem& currentPoll, std::vector<int>& empt
 			break ;
 		}
 	}
+	if (response == nullptr)
+		throw(ServerException({"response not found"}));
 	response->readHTML();
 	if (response->isDoneReadingHTML())
 	{
@@ -394,43 +413,43 @@ void	WebServer::forwardRequestBodyToCGI( t_PollItem& item )
 
 void	WebServer::readCGIResponses( t_PollItem& pollItem, std::vector<int>& emptyConns )
 {
-	// HTTPrequest *request = nullptr;
-	CGI         *cgi = nullptr;
+	CGI		*cgi = nullptr;
 
 	for (auto& cgiMapItem : this->_cgi)
 	{
 		if (cgiMapItem.second->getResponsePipe()[0] == pollItem.fd)
 		{
 			cgi = cgiMapItem.second;
-			// request = this->_requests[cgi->getRequestSocket()];
 			break;
 		}
 	}
-	// if (request == nullptr || cgi == nullptr)
-	// {
-	// 	if (request == nullptr)
-	// 		std::cerr << C_RED << "error: request not found" << C_RESET << std::endl;
-		if (cgi == nullptr)
-			std::cerr << C_RED << "error: cgi not found" << C_RESET << std::endl;
-	// }
-	char buffer[DEF_BUF_SIZE];
-	int readChars = read(pollItem.fd, buffer, DEF_BUF_SIZE);
-	std::string newResponsePart(buffer, buffer + readChars);
-	cgi->appendResponse(newResponsePart);
+	if (cgi == nullptr)
+		throw(ServerException({"cgi not found"}));
+	// NB: move this functionality inside CGI class?
+	ssize_t	readChars = -1;
+	char 	buffer[DEF_BUF_SIZE];
+	bzero(buffer, DEF_BUF_SIZE);
+	readChars = read(pollItem.fd, buffer, DEF_BUF_SIZE);
+	if (readChars < 0)
+		throw(CGIexception({"cgi pipe not available"}, 500));
+	cgi->appendResponse(std::string(buffer, buffer + readChars));
 
 	// TODO: support partial reads, i.e. in case of very big CGI response
+	// a logic to understand when the whole CGI response is received is necessary
+	// to know when to close the pipe connection
 	if (true) // TODO keep pipe open for consequtive reads if needed
 	{
+		HTTPresponse *response = this->_responses[cgi->getRequestSocket()];
+		response->parseFromCGI(cgi->getResponse());
 		emptyConns.push_back(pollItem.fd);
 		this->_pollitems[cgi->getRequestSocket()].pollState = WRITE_TO_CLIENT;
 	}
-	
 }
 
 void	WebServer::writeToClients( t_PollItem& pollItem, std::vector<int>& emptyConns )
 {
-	HTTPrequest *request = this->_requests[pollItem.fd];
-	HTTPresponse *response = this->_responses[pollItem.fd];
+	HTTPrequest 	*request = this->_requests[pollItem.fd];
+	HTTPresponse 	*response = this->_responses[pollItem.fd];
 
 	if (request->isCGI()) {
 		CGI *cgi = this->_cgi[pollItem.fd];
@@ -439,19 +458,17 @@ void	WebServer::writeToClients( t_PollItem& pollItem, std::vector<int>& emptyCon
 		this->_cgi.erase(pollItem.fd);
 	}
 	else
-		response->parseStaticHTML(200);
+		response->parseFromStatic();
 	response->writeContent();
-	if (request->isEndConn())
-	{
-		emptyConns.push_back(pollItem.fd);
-		std::cout << "dropping connection\n";
-	}
 	if (response->isDoneWriting())
 	{
+		if (request->isEndConn())
+			emptyConns.push_back(pollItem.fd);
+		else
+			this->_pollitems[pollItem.fd].pollState = READ_REQ_HEADER;
 		delete (response);
 		this->_responses.erase(pollItem.fd);
 		delete (request);
 		this->_requests.erase(pollItem.fd);
-		this->_pollitems[pollItem.fd].pollState = READ_REQ_HEADER;
 	}
 }

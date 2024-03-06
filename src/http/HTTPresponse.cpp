@@ -6,21 +6,22 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/06 00:37:09 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/06 11:00:13 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPresponse.hpp"
 
-void	HTTPresponse::parseStaticHTML( int code )
+void	HTTPresponse::parseFromStatic( void )
 {
-	_setHead(std::to_string(code));
 	_addHeader("Date", _getDateTime());
 	_addHeader("Server", this->_servName);
 	if (this->_tmpBody.empty() == false)
 	{
 		_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
 		_addHeader("Content-Type", this->_contentType);	// NB: do I need other formats?
+		if (this->_statusCode == 500)
+			this->_tmpBody = ERROR_500_CONTENT;
 		HTTPstruct::_setBody(this->_tmpBody);
 	}
 }
@@ -38,23 +39,23 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 	body = CGIresp.substr(delimiter);
 	HTTPstruct::_setBody(body);
 	_setHeaders(headers);
-	_setHead(_getStatusFromHeader());
+	setStatusCode(_getStatusFromHeader());
 }
 
 void	HTTPresponse::readHTML( void )
 {
     ssize_t 	readChar = -1;
-    char        buffer[DEF_BUF_SIZE + 1];
+    char        buffer[DEF_BUF_SIZE];
 
 	if (this->_gotFullHTML)
-		throw(RequestException({"HTML already parsed"}, 500));
+		throw(ResponseException({"HTML already parsed"}, 500));
 	else if (this->_HTMLfd == -1)
-		throw(RequestException({"invalid socket"}, 500));
-	bzero(buffer, DEF_BUF_SIZE + 1);
+		throw(ResponseException({"invalid socket"}, 500));
+	bzero(buffer, DEF_BUF_SIZE);
 	readChar = read(this->_HTMLfd, buffer, DEF_BUF_SIZE);
 	if (readChar < 0)
-		throw(RequestException({"fd unavailable"}, 500));
-	this->_tmpBody += buffer;
+		throw(ResponseException({"fd unavailable"}, 500));
+	this->_tmpBody += std::string(buffer, buffer + readChar);
 	if (readChar < DEF_BUF_SIZE)
 		this->_gotFullHTML = true;
 }
@@ -66,9 +67,9 @@ void		HTTPresponse::writeContent( void )
 	size_t			charsToWrite = 0;
 
 	if (this->_writtenResp)
-		throw(RequestException({"response already sent"}, 500));
+		throw(ResponseException({"response already sent"}, 500));
 	else if (this->_socket == -1)
-		throw(RequestException({"invalid socket"}, 500));
+		throw(ResponseException({"invalid socket"}, 500));
 	if ((toString().size() - written) < DEF_BUF_SIZE)
 		charsToWrite = toString().size() - written;
 	else
@@ -118,6 +119,11 @@ std::string	HTTPresponse::toString( void ) const noexcept
 	return (strResp);
 }
 
+void	HTTPresponse::setStatusCode( int statCode ) noexcept
+{
+	this->_statusCode = statCode;
+}
+
 int		HTTPresponse::getStatusCode( void ) const noexcept
 {
 	return (this->_statusCode);
@@ -126,7 +132,7 @@ int		HTTPresponse::getStatusCode( void ) const noexcept
 void	HTTPresponse::setHTMLfd( int HTMLfd )
 {
 	if (HTMLfd == -1)
-		throw(RequestException({"invalid socket"}, 500));
+		throw(ResponseException({"invalid socket"}, 500));
 	this->_HTMLfd = HTMLfd;
 }
 
@@ -150,20 +156,6 @@ void	HTTPresponse::setServName( std::string nameServ) noexcept
 	this->_servName = nameServ;
 }
 
-void	HTTPresponse::_setHead( std::string const& strStatusCode)
-{
-	this->_version.scheme = HTTP_SCHEME;
-	this->_version.major = 1;
-	this->_version.minor = 1;
-	try {
-		this->_statusCode = std::stoi(strStatusCode);
-	}
-	catch(const std::exception& e) {
-		std::cout << e.what() << '\n';
-		this->_statusCode = 500;
-	}
-}
-
 void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 {
 	HTTPstruct::_setHeaders(strHeaders);
@@ -179,7 +171,7 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 		}
 	}
 	catch(const std::out_of_range& e) {
-		throw(RequestException({"missing mandatory header(s) in CGI response"}, 500));
+		throw(ResponseException({"missing mandatory header(s) in CGI response"}, 500));
 	}
 }
 
@@ -278,9 +270,15 @@ std::string	HTTPresponse::_getDateTime( void ) const noexcept
 	return (std::string(buffer));
 }
 
-std::string	HTTPresponse::_getStatusFromHeader( void ) const
+int	HTTPresponse::_getStatusFromHeader( void ) const
 {
 	std::string	strStatus = this->_headers.at("Status");
 	size_t		delimiter = strStatus.find(HTTP_SP);
-	return (strStatus.substr(0, delimiter));
+	
+	try {
+		return(std::stoi(strStatus.substr(0, delimiter)));
+	}
+	catch(const std::exception& e) {
+		return (500);
+	}
 }

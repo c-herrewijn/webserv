@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/18 14:04:44 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/12 13:44:20 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/06 10:07:57 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,8 +59,8 @@ class ResponseException : public HTTPexception
 		ResponseException( std::initializer_list<std::string> const&, int ) noexcept;
 };
 
-class ExecException : public HTTPexception
+class CGIexception : public HTTPexception
 {
 	public:
-		ExecException( std::initializer_list<std::string> const&, int ) noexcept;
+		CGIexception( std::initializer_list<std::string> const&, int ) noexcept;
 };

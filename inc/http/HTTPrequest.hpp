@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/06 00:53:12 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/06 10:55:09 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -86,7 +86,7 @@ class HTTPrequest : public HTTPstruct
 		bool		_isChunked, _isFileUpload, _endConn;
 
 		void	_setMaxBodySize(size_t) noexcept;
-		void	_setHead( std::string const& ) override;
+		void	_setHead( std::string const& );
 
 		void	_setMethod( std::string const& );
 		void	_setURL( std::string const& );

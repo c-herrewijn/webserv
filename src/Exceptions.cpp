@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/18 14:04:58 by faru          #+#    #+#                 */
-/*   Updated: 2024/02/13 09:21:09 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/06 10:08:19 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,15 +53,15 @@ RequestException::RequestException( std::initializer_list<std::string> const& pr
 ResponseException::ResponseException( std::initializer_list<std::string> const& prompts, int status) noexcept
 	: HTTPexception(prompts, status)
 {
-	this->_msg = "response building error -";
+	this->_msg = "response error -";
 	for (std::string prompt : prompts)
 		this->_msg += " " + prompt;
 }
 
-ExecException::ExecException( std::initializer_list<std::string> const& prompts, int status) noexcept
+CGIexception::CGIexception( std::initializer_list<std::string> const& prompts, int status) noexcept
 	: HTTPexception(prompts, status)
 {
-	this->_msg = "request execution error -";
+	this->_msg = "cgi error -";
 	for (std::string prompt : prompts)
 		this->_msg += " " + prompt;
 }

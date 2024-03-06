@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/06 00:47:38 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/06 11:13:25 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,20 +15,20 @@
 
 void	HTTPrequest::parseHead( void )
 {
-	char		buffer[DEF_BUF_SIZE + 1];
+	char		buffer[DEF_BUF_SIZE];
 	std::string content, head, headers;
 	size_t		delimiter = std::string::npos;
 	ssize_t		charsRead = -1;
 
 	if (this->_socket == -1)
 		throw(RequestException({"invalid socket"}, 500));
-	bzero(buffer, DEF_BUF_SIZE + 1);
+	bzero(buffer, DEF_BUF_SIZE);
 	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
 	if (charsRead < 0 )
 		throw(RequestException({"unavailable socket"}, 500));
 	else if (charsRead == 0)
-		throw(RequestException({"nothing to read"}, 500));
-	content = std::string(buffer);
+		throw(ServerException({"connection closed"}));
+	content = std::string(buffer, buffer + charsRead);
 	delimiter = content.find(HTTP_TERM);
 	// std::cout << "|" << content << "|\n";
 	if (delimiter == std::string::npos)

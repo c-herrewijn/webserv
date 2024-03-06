@@ -41,7 +41,7 @@ typedef struct HTTPversion_f
 class HTTPstruct
 {
 	public:
-		HTTPstruct( void ) : _hasBody(false) , _socket(-1) {}
+		HTTPstruct( void );
 		virtual	~HTTPstruct( void ) {};
 
 		virtual std::string	toString( void ) const noexcept =0;
@@ -57,7 +57,6 @@ class HTTPstruct
 		bool		_hasBody;
 		int			_socket;
 
-		virtual void	_setHead( std::string const& )=0;
 		virtual void	_setHeaders( std::string const& );
 		virtual void	_setBody( std::string const& );
 
