@@ -123,6 +123,7 @@ size_t RequestValidate::getStatusCode() const
 
 std::filesystem::path	RequestValidate::getExecPath() const
 {
+	execDir = execDir.lexically_normal();
 	return (execDir);
 }
 
@@ -250,6 +251,7 @@ void	RequestValidate::_initTargetDir(void)
 bool	RequestValidate::_handleFolder(void)
 {
 	std::filesystem::path dirPath = std::filesystem::path(validParams->getRoot()) / targetDir;
+	dirPath /= "";
 	execDir = dirPath;
 	if (!std::filesystem::exists(dirPath) ||
 	!std::filesystem::is_directory(dirPath))
@@ -264,6 +266,7 @@ bool	RequestValidate::_handleFolder(void)
 bool	RequestValidate::_handleFile(void)
 {
 	std::filesystem::path dirPath = std::filesystem::path(validParams->getRoot()) / targetDir;
+	dirPath /= "";
 	std::filesystem::path filePath = dirPath / targetFile;
 
 	// check filePath
