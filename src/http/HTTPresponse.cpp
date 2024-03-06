@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/06 17:14:19 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/06 17:39:48 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,11 +16,10 @@ void	HTTPresponse::parseFromStatic( void )
 {
 	_addHeader("Date", _getDateTime());
 	_addHeader("Server", this->_servName);
+	if (this->_statusCode == 500)
+		this->_tmpBody = ERROR_500_CONTENT;
 	if (this->_tmpBody.empty() == false)
 	{
-		if (this->_statusCode == 500)
-			this->_tmpBody = ERROR_500_CONTENT;
-		std::cout << this->_tmpBody << "\n";
 		_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
 		_addHeader("Content-Type", this->_contentType);
 		HTTPstruct::_setBody(this->_tmpBody);

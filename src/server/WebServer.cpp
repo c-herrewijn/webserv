@@ -441,12 +441,11 @@ void	WebServer::readCGIResponses( t_PollItem& pollItem, std::vector<int>& emptyC
 	}
 	if (cgi == nullptr)
 		throw(ServerException({"cgi not found"}));
-	// NB: move this functionality inside CGI class?
 	ssize_t	readChars = -1;
 	char 	buffer[DEF_BUF_SIZE];
 	bzero(buffer, DEF_BUF_SIZE);
 	readChars = read(pollItem.fd, buffer, DEF_BUF_SIZE);
-	if (readChars < 0)	// NB set < 0
+	if (readChars < 0)
 		throw(CGIexception({"cgi pipe not available"}, 500));
 	cgi->appendResponse(std::string(buffer, buffer + readChars));
 
@@ -474,10 +473,7 @@ void	WebServer::writeToClients( t_PollItem& pollItem, std::vector<int>& emptyCon
 		this->_cgi.erase(pollItem.fd);
 	}
 	else
-	{
 		response->parseFromStatic();
-		std::cout << "error 500\n|" << response->toString() << "|\n";
-	}
 	response->writeContent();
 	if (response->isDoneWriting())
 	{
@@ -496,18 +492,28 @@ void	WebServer::redirectToErrorPage( t_PollItem& pollItem, std::vector<int>& emp
 {
 	HTTPresponse	*response = nullptr;
 	HTTPrequest		*request = nullptr;
+	CGI				*cgi = nullptr;
 	std::string		HTMLpath;
 	int				HTMLfd = -1;
 
 	response = _getResponseFromPollitem(pollItem);
-	if (response == nullptr)	// NB: todo
-	{}
+	if (response == nullptr)	// that should never happen
+	{
+		emptyConns.push_back(pollItem.fd);
+		return ;
+	}
 	request = this->_requests[response->getSocket()];
 	response->setStatusCode(statusCode);
-	if ((pollItem.pollType == STATIC_FILE) or
-		(pollItem.pollType == CGI_DATA_PIPE) or
-		(pollItem.pollType == CGI_RESPONSE_PIPE))
+	if (pollItem.pollType == STATIC_FILE)
 		emptyConns.push_back(pollItem.fd);
+	else if ((pollItem.pollType == CGI_DATA_PIPE) or
+		(pollItem.pollType == CGI_RESPONSE_PIPE))
+	{
+		emptyConns.push_back(pollItem.fd);
+		cgi = this->_cgi[response->getSocket()];
+		delete (cgi);
+		this->_cgi.erase(response->getSocket());
+	}
 	HTMLpath = _getHTMLfromCode(response->getStatusCode());
 	request->setRealPath(HTMLpath);
 	if (statusCode != 500)

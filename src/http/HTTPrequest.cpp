@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/06 15:57:27 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/06 17:26:43 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,7 @@ void	HTTPrequest::parseHead( void )
 		throw(ServerException({"connection closed"}));
 	content = std::string(buffer, buffer + charsRead);
 	delimiter = content.find(HTTP_TERM);
-	std::cout << "|" << content << "|\n";
+	// std::cout << "|" << content << "|\n";
 	if (delimiter == std::string::npos)
 		throw(RequestException({"no header terminator in request"}, 400));
 	head = content.substr(0, delimiter);
