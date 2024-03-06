@@ -125,6 +125,7 @@ void			WebServer::loop( void )
 					}
 					else if (pollItem.pollState == FORWARD_REQ_BODY_TO_CGI) {
 						std::cerr << C_GREEN << "POLLIN - FORWARD_REQ_BODY_TO_CGI - " << iPollFd.fd << C_RESET << std::endl;
+						readRequestBody(pollItem);
 					}
 					else if (pollItem.pollState == READ_CGI_RESPONSE) {
 						std::cerr << C_GREEN << "POLLIN - READ_CGI_RESPONSE " << iPollFd.fd << C_RESET << std::endl;
@@ -138,7 +139,8 @@ void			WebServer::loop( void )
 				else if (iPollFd.revents & POLLOUT)
 				{
 					if (pollItem.pollState == FORWARD_REQ_BODY_TO_CGI) {
-						;
+						std::cerr << C_GREEN << "POLLOUT - FORWARD_REQ_BODY_TO_CGI - " << iPollFd.fd << C_RESET << std::endl;
+						writeToCGI(pollItem);
 					}
 					else if (pollItem.pollState == WRITE_TO_CLIENT) {
 						std::cerr << C_GREEN << "POLLOUT - WRITE_TO_CLIENT - " << iPollFd.fd << C_RESET << std::endl;
@@ -370,10 +372,30 @@ void	WebServer::readStaticFiles( t_PollItem& currentPoll, std::vector<int>& empt
 	}
 }
 
-void	WebServer::forwardRequestBodyToCGI( t_PollItem& item )
+// what is the triggering poll item?
+void	WebServer::readRequestBody( t_PollItem& socket )
 {
-	(void) item ;
-	; // todo
+	std::cout << "readRequestBody - socketFd: " << socket.fd <<std::endl; // debug
+	// TODO: only needs to be done when (request->_tmpBody == "")
+}
+
+void	WebServer::writeToCGI( t_PollItem& pollItem)
+{
+	std::cout << "cgiUploadPipeFd - socketFd: " << pollItem.fd <<std::endl; // debug
+	HTTPrequest *request = nullptr;
+	for (auto& cgiMapItem : this->_cgi) {
+		if (cgiMapItem.second->getuploadPipe()[1] == pollItem.fd) {
+			request = this->_requests[cgiMapItem.first];
+			break;
+		}
+	}
+	if (request != nullptr) {
+		std::string tmpBody = request->getTmpBody();
+		if (tmpBody != "") {
+			write(pollItem.fd, tmpBody.data(), tmpBody.length());
+			request->setTmpBody("");
+		}
+	}
 }
 
 void	WebServer::readCGIResponses( t_PollItem& pollItem, std::vector<int>& emptyConns )

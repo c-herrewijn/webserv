@@ -69,7 +69,7 @@ typedef struct PollItem
 	int				fd;
 	fdType          pollType;
     fdState         pollState;
-    bool			actionHappened;
+    bool			actionHappened;	// NB. still needed?
 
 } t_PollItem;
 
@@ -105,7 +105,8 @@ class WebServer
 		void			handleNewConnections( t_PollItem& ); // keep - DONE
 		void			readRequestHeaders( t_PollItem& ); // keep / rework
 		void			readStaticFiles( t_PollItem&, std::vector<int>& ); // keep / rework
-		void			forwardRequestBodyToCGI( t_PollItem& ); // split into: 'readRequestBody()' and 'writeRequestBodyToCGI()'
+		void			readRequestBody( t_PollItem& item );
 		void			readCGIResponses( t_PollItem&, std::vector<int>& ); // keep / rework
+		void			writeToCGI( t_PollItem& item );
 		void			writeToClients( t_PollItem&, std::vector<int>& );
 };

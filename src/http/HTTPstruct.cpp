@@ -99,12 +99,22 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 	} while (del1 != std::string::npos);
 }
 
+std::string	HTTPstruct::getTmpBody( void )
+{
+	return this->_tmpBody;
+}
+
 void	HTTPstruct::_setBody( std::string const& strBody )
 {
     if (strBody.empty())
 		return ;
 	this->_hasBody = true;
     this->_body = strBody;
+}
+
+void	HTTPstruct::setTmpBody( std::string const& tmpBody )
+{
+    this->_tmpBody = tmpBody;
 }
 
 void	HTTPstruct::setSocket( int newSocket )
