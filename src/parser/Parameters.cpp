@@ -15,6 +15,8 @@
 Parameters::Parameters(void)
 {
 	this->root = DEF_ROOT;
+	this->cgi_allowed = DEF_CGI_ALLOWED;
+	this->cgi_extension = DEF_CGI_EXTENTION;
 	for (int tmp = 0; tmp < M_SIZE; tmp++)
 		allowedMethods[tmp] = 0;
 	max_size = static_cast<std::uintmax_t>(DEF_SIZE) * 1024 * 1024 * 1024;
@@ -34,7 +36,9 @@ Parameters::Parameters(const Parameters& copy) :
 	root(copy.root),
 	error_pages(copy.error_pages),
 	returns(copy.returns),
-	allowedMethods(copy.allowedMethods)
+	allowedMethods(copy.allowedMethods),
+	cgi_extension(copy.cgi_extension),
+	cgi_allowed(copy.cgi_allowed)
 {
 
 }
@@ -53,8 +57,37 @@ Parameters&	Parameters::operator=(const Parameters& assign)
 		root = assign.root;
 		error_pages = assign.error_pages;
 		returns = assign.returns;
+		cgi_extension = assign.cgi_extension;
+		cgi_allowed = assign.cgi_allowed;
 	}
 	return (*this);
+}
+
+void	Parameters::_parseCgiExtension(std::vector<std::string>& block)
+{
+	block.erase(block.begin());
+	if (block.front().find_first_not_of("abcdefghijklmnoprstuvyzwqxABCDEFGHIJKLMNOPRSTUVYZWQX") != std::string::npos)
+		throw ParserException({"Only alpha characters expected in cgi_extension: '" + block.front() + "'"});
+	cgi_extension = block.front();
+	block.erase(block.begin());
+	if (block.front() != ";")
+		throw ParserException({"Unexpected element in cgi_extension: '" + block.front() + "', a ';' is expected"});
+	block.erase(block.begin());
+}
+
+void	Parameters::_parseCgiAllowed(std::vector<std::string>& block)
+{
+	block.erase(block.begin());
+	if (block.front() == "true")
+		cgi_allowed = true;
+	else if (block.front() == "false")
+		cgi_allowed = false;
+	else
+		throw ParserException({"Unexpected element in cgi_allowed: '" + block.front() + "'"});
+	block.erase(block.begin());
+	if (block.front() != ";")
+		throw ParserException({"Unexpected element in cgi_allowed: '" + block.front() + "', a ';' is expected"});
+	block.erase(block.begin());
 }
 
 void	Parameters::_parseAllowedMethod(std::vector<std::string>& block)
@@ -247,6 +280,16 @@ void	Parameters::_parseReturn(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
+const std::string& Parameters::getCgiExtension(void) const
+{
+	return (cgi_extension);
+}
+
+const bool& Parameters::getCgiAllowed(void) const
+{
+	return (cgi_allowed);
+}
+
 const std::bitset<M_SIZE>&	Parameters::getAllowedMethods(void) const
 {
 	return (allowedMethods);
@@ -328,6 +371,10 @@ void	Parameters::fill(std::vector<std::string>& block)
 		_parseReturn(block);
 	else if (block.front() == "allowMethods")
 		_parseAllowedMethod(block);
+	else if (block.front() == "cgi_extension")
+		_parseCgiExtension(block);
+	else if (block.front() == "cgi_allowed")
+		_parseCgiAllowed(block);
 	else
 		throw ParserException({"'" + block.front() + "' is not a valid parameter"});
 }
@@ -340,24 +387,4 @@ void Parameters::setBlockIndex(size_t ref)
 const size_t& Parameters::getBlockIndex(void) const
 {
 	return (this->block_index);
-}
-
-std::ostream& operator<<(std::ostream& os, const Parameters& params)
-{
-    size_t indentation = params.getBlockIndex();
-	os << std::string(indentation, '\t') << "root " << params.getRoot() << ";\n";
-	os << std::string(indentation, '\t') << "client_max_body_size " << params.getMaxSize() << ";\n";
-	os << std::string(indentation, '\t') << "autoindex " << (params.getAutoindex() ? "true" : "false") << ";\n";
-	os << std::string(indentation, '\t') << "index " << params.getIndex() << ";\n";
-    // Print allowMethods
-    os << std::string(indentation + 1, '\t') << "allowMethods " << params.allowedMethods << ";\n";
-
-	const auto& errorPages = params.getErrorPages();
-	for (const auto& entry : errorPages)
-		os << std::string(indentation, '\t') << "error_page " << entry.first << " " << entry.second << ";\n";
-
-	const auto& returns = params.getReturns();
-	for (const auto& entry : returns)
-		os << std::string(indentation, '\t') << "return " << entry.first << " " << entry.second << ";\n";
-	return os;
 }

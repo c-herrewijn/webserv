@@ -30,6 +30,8 @@
 # define DEF_SIZE 10
 # define DEF_ROOT "/html"
 # define MAX_SIZE 20
+# define DEF_CGI_ALLOWED false
+# define DEF_CGI_EXTENTION "cgi"
 
 class Parameters
 {
@@ -53,6 +55,8 @@ class Parameters
 		const bool& 									getAutoindex(void) const;
 		const std::string& 								getRoot(void) const;
 		const std::bitset<M_SIZE>&						getAllowedMethods(void) const;
+		const std::string& 								getCgiExtension(void) const;
+		const bool& 									getCgiAllowed(void) const;
 
 	private:
 		size_t 									block_index;
@@ -63,6 +67,8 @@ class Parameters
 		std::unordered_map<size_t, std::string>	error_pages;	// Same status codes will be overwriten
 		std::unordered_map<size_t, std::string>	returns;	// Same reponse codes are overwriten by the last
 		std::bitset<M_SIZE> 					allowedMethods;	// Allowed methods
+		std::string								cgi_extension;	// extention .py .sh
+		bool									cgi_allowed;	// Check for permissions
 
 		void	_parseRoot(std::vector<std::string>& block);
 		void	_parseBodySize(std::vector<std::string>& block);
@@ -71,8 +77,8 @@ class Parameters
 		void	_parseErrorPage(std::vector<std::string>& block);
 		void	_parseReturn(std::vector<std::string>& block);
 		void	_parseAllowedMethod(std::vector<std::string>& block);
-
-	    friend std::ostream& operator<<(std::ostream& os, const Parameters& params);
+		void	_parseCgiExtension(std::vector<std::string>& block);
+		void	_parseCgiAllowed(std::vector<std::string>& block);
 };
 
 #endif

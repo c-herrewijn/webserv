@@ -136,25 +136,3 @@ const size_t& Location::getBlockIndex(void) const
 {
 	return (this->block_index);
 }
-
-std::ostream& operator<<(std::ostream& os, const Location& location)
-{
-    size_t indentation = location.getBlockIndex();
-    // Print the opening line for the current location
-    os << std::string(indentation, '\t') << "location " << location.getURL() << " {\n";
-
-    // Print location params
-    os << location.getParams();
-
-    // Print Nested Locations
-    const auto& nestedLocations = location.getNested();
-	for (const auto& nested : nestedLocations) {
-		// Recursively call operator<< for each nested location
-		os << nested;
-	}
-
-    // Print the closing line for the current location
-    os << std::string(indentation, '\t') << "}\n";
-    
-    return os;
-}

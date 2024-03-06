@@ -19,43 +19,48 @@
 # include <fstream>
 // filesystem management
 # include <filesystem>
+# include "Exceptions.hpp"
 
 class RequestValidate
 {
 	private:
-		HTTPrequest*				request;
-		ConfigServer*				config;
 		Location*					validLocation;
 		Parameters*					validParams;
-		bool						autoIndex;
-		bool						cgi;
 		std::string					targetDir;
 		std::string					targetFile;
-		size_t						statusCode;
 		std::vector<std::string>	folders;
+
+		HTTPrequest*				request;
+		ConfigServer*				config;
+		size_t						statusCode;
 		std::filesystem::path		execDir;
+		bool						autoIndex;
+		bool						cgi;
 
-		const std::vector<std::string>&	getFolders() const;
-		Location*						getValidLocation() const;
-		Parameters*						getValidParams() const;
+		Location*			_getValidLocation() const;
+		Parameters*			_getValidParams() const;
+		const std::string&	_getTargetDir() const;
+		const std::string&	_getTargetFile() const;
 
-		void		setTargetFile(const std::string& file);
-		void		setValidParams(const Parameters* params);
-		void		setTargetDir(const std::string& dir);
-		void		setStatusCode(const size_t& code);
-		void		setAutoIndex(bool index);
-		void		separateFolders(std::string const& input, std::vector<std::string>& output);
-		Location*	diveLocation(Location& cur, std::vector<std::string>::iterator itDirectory);
-		void		initElements(void);
-		void		initValidLocation(void);
-		void		initTargetDir(void);
-		bool		handleFolder(void);
-		bool		handleFile(void);
-		void		handleStatus(void);
-		bool		handleServerPages(void);
+		void		_setTargetFile(const std::string& file);
+		void		_setValidParams(const Parameters* params);
+		void		_setTargetDir(const std::string& dir);
+		void		_setStatusCode(const size_t& code);
+		void		_setAutoIndex(bool index);
 
-		bool		handleReturns(void);
-		bool		handleErrorCode(void);
+		void		_separateFolders(std::string const& input, std::vector<std::string>& output);
+		Location*	_diveLocation(Location& cur, std::vector<std::string>::iterator itDirectory);
+
+		void		_initElements(void);
+		void		_initValidLocation(void);
+		void		_initTargetDir(void);
+
+		bool		_handleFolder(void);
+		bool		_handleFile(void);
+		void		_handleStatus(void);
+		bool		_handleReturns(void);
+		bool		_handleErrorCode(void);
+		bool		_handleServerPages(void);
 	public:
 		RequestValidate(ConfigServer* conf, HTTPrequest& req);
 		RequestValidate(void);
@@ -63,16 +68,13 @@ class RequestValidate
 		RequestValidate&	operator=(const RequestValidate& assign);
 		virtual ~RequestValidate(void);
 
-		// Getter functions
 		HTTPrequest*			getRequest() const;
 		ConfigServer*			getConfig() const;
+		bool					getCGI() const;
 		bool					getAutoIndex() const;
-		const std::string&		getTargetDir() const;
-		const std::string&		getTargetFile() const;
 		size_t					getStatusCode() const;
-		std::filesystem::path	getTargetPath() const;
+		std::filesystem::path	getExecPath() const;
 
-		// Setter functions
 		void setRequest(HTTPrequest* req);
 		void setConfig(ConfigServer* conf);
 };

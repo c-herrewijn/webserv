@@ -43,7 +43,6 @@ class Location
 		std::string				URL; // Default "location" param
 		Parameters				params; // Local values to use. If default it will be a copy of "server" context
 		std::vector<Location> 	nested; // Possible nested locations
-    friend std::ostream& operator<<(std::ostream& os, const Location& location);
 };
 
 #endif
