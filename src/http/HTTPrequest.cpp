@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/06 22:21:02 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/06 23:19:14 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -392,6 +392,8 @@ void	HTTPrequest::checkHeaders( size_t maxBodyLength )
 		_setHostPort(this->_headers["Host"]);
 	else if (this->_headers["Host"].find(this->_url.host) == std::string::npos)
 		throw(RequestException({"hosts do not match"}, 412));
+	if (this->_headers.count("Connecton") != 0)
+		this->_endConn = this->_headers["Connection"] == "close";
 	if (this->_headers.count("Content-Length") == 0)
 	{
 		if (this->_headers.count("Transfer-Encoding") == 0)		// no body
@@ -497,3 +499,134 @@ void	HTTPrequest::_readChunkedBody( void )
 	body = _unchunkBody(body.substr(0, delimiter + HTTP_TERM.size()));
 	HTTPstruct::_setBody(body);
 }
+
+// std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
+// {
+// 	size_t		sizeChunk=0, delimiter=0;
+// 	std::string	tmpChunkedBody = chunkedBody;
+
+// 	if (chunkedBody.find(HTTP_TERM) == std::string::npos)
+// 		throw(RequestException({"no body terminator"}, 400));
+// 	do
+// 	{
+// 		delimiter = tmpChunkedBody.find(HTTP_NL);
+// 		if (delimiter == std::string::npos)
+// 			throw(RequestException({"bad chunking"}, 400));
+// 		try {
+// 			sizeChunk = std::stoul(tmpChunkedBody.substr(0, delimiter), nullptr, 16);
+// 			this->_body += tmpChunkedBody.substr(delimiter + HTTP_NL.size(), sizeChunk);
+// 			tmpChunkedBody = tmpChunkedBody.substr(delimiter + sizeChunk + HTTP_NL.size() * 2);
+// 		}
+// 		catch(const std::exception& e){
+// 			throw(RequestException({"bad chunking"}, 400));
+// 		}
+// 	} while (sizeChunk != 0);
+// 	return (tmpChunkedBody);
+// }
+
+// std::string	HTTPrequest::_unchunkChunk( std::string const& chunkedChunk, std::string& remainder)
+// {
+// 	size_t		sizeChunk=0, delimiter=0;
+// 	std::string	tmpChunkedBody = chunkedChunk;
+// 	std::string	unchunkedChunks;
+
+// 	while (true)
+// 	{
+// 		delimiter = tmpChunkedBody.find(HTTP_NL);
+// 		if (delimiter == std::string::npos)
+// 			throw(RequestException({"bad chunking"}, 400));
+// 		try {
+// 			sizeChunk = std::stoul(tmpChunkedBody.substr(0, delimiter), nullptr, 16);
+// 			if ((delimiter + sizeChunk + HTTP_NL.size() * 2) < tmpChunkedBody.size())
+// 			{
+// 				remainder = tmpChunkedBody;
+// 				break;
+// 			}
+// 		}
+// 		catch(const std::exception& e){
+// 			throw(RequestException({"bad chunking"}, 400));
+// 		}
+// 	}
+// 	return (unchunkedChunks);
+// }
+
+// void	HTTPrequest::readPlainBody( void )
+// {
+//     ssize_t 			readChar = -1;
+//     char        		buffer[DEF_BUF_SIZE + 1];
+// 	static std::string	body = this->_tmpBody;
+// 	static size_t		countChars = this->_tmpBody.length();
+
+// 	static steady_clock::time_point 	lastRead = steady_clock::now();
+// 	steady_clock::time_point 			currentRead;
+// 	duration<double> 					time_span;
+
+// 	if (this->_gotFullBody)
+// 		throw(ServerException({"body already parsed"}));
+// 	else if (this->_socket == -1)
+// 		throw(RequestException({"invalid socket"}, 500));
+// 	ft_bzero(buffer, DEF_BUF_SIZE + 1);
+// 	readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+// 	if (readChar < 0 )
+// 		throw(RequestException({"unavailable socket"}, 500));
+// 	else if (readChar == 0)
+// 	{
+// 		currentRead = steady_clock::now();
+// 		time_span = duration_cast<duration<int>>(currentRead - lastRead);
+// 		if (time_span.count() > MAX_TIMEOUT)
+// 			throw(RequestException({"timeout request"}, 408));
+// 	}
+// 	else
+// 	{
+// 		lastRead = steady_clock::now();
+// 		countChars += readChar;
+// 		if (countChars > this->_contentLength)
+// 			throw(RequestException({"content body is longer than expected"}, 413));
+// 		body += buffer;
+// 		// write buffer to CGI
+
+// 		if (countChars == this->_contentLength)
+// 			this->_gotFullBody = true;
+// 	}
+// }
+
+// void	HTTPrequest::readChunkedBody( void )
+// {
+//     ssize_t 	readChar = -1;
+//     char    	buffer[DEF_BUF_SIZE + 1];
+// 	static std::string body = this->_tmpBody;
+// 	size_t		countChars=this->_tmpBody.length();
+
+// 	static steady_clock::time_point 	lastRead = steady_clock::now();
+// 	steady_clock::time_point 			currentRead;
+// 	duration<double> 					time_span;
+
+// 	if (this->_socket == -1)
+// 		throw(RequestException({"invalid socket"}, 500));
+// 	ft_bzero(buffer, DEF_BUF_SIZE + 1);
+// 	readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+// 	if (readChar < 0 )
+// 		throw(RequestException({"unavailable socket"}, 500));
+// 	else if (readChar == 0)
+// 	{
+// 		currentRead = steady_clock::now();
+// 		time_span = duration_cast<duration<int>>(currentRead - lastRead);
+// 		if (time_span.count() > MAX_TIMEOUT)
+// 			throw(RequestException({"timeout request"}, 408));
+// 	}
+// 	else
+// 	{
+// 		lastRead = steady_clock::now();
+// 		countChars += readChar;
+// 		if (countChars > this->_contentLength)
+// 			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
+// 		body += buffer;
+// 		if (std::string(buffer).find(HTTP_TERM) != std::string::npos)
+// 		{
+// 			this->_gotFullBody = true;
+// 			body = _unchunkBody(body);
+// 		}
+// 	}
+// 	// write unchunked body to CGI?
+// 	// HTTPstruct::_setBody(body);
+// }

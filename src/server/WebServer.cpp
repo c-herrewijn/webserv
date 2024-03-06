@@ -54,7 +54,7 @@ WebServer::~WebServer ( void ) noexcept
 	}
 }
 
-void			WebServer::startListen( void ) noexcept
+void			WebServer::startListen( void )
 {
 	for (auto const& listAddress : this->_listenAddress)
 	{
@@ -65,9 +65,12 @@ void			WebServer::startListen( void ) noexcept
 			std::cout << e.what() << '\n';
 		}
 	}
+	if (this->_pollfds.empty() == true)
+		throw(ServerException({"no available host:port in the configuration provided"}));
 }
 
-void			WebServer::loop( void ) noexcept
+// NB: update for codes 20X
+void			WebServer::loop( void )
 {
 	int					nConn = -1;
 	std::vector<int>	emptyConns;
@@ -78,10 +81,7 @@ void			WebServer::loop( void ) noexcept
 		if (nConn < 0)
 		{
 			if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
-			{
-				std::cerr << "poll failed\n";
-				break ;
-			}
+				throw(ServerException({"poll failed"}));
 		}
 		else if (nConn == 0)
 			continue ;

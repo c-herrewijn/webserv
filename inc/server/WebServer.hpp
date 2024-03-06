@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/06 22:55:59 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/06 23:05:10 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -85,8 +85,8 @@ class WebServer
 		WebServer ( std::vector<ConfigServer> const& );
 		~WebServer ( void ) noexcept;
 
-		void			startListen( void ) noexcept;
-		void			loop( void ) noexcept;
+		void			startListen( void );
+		void			loop( void );
 
 		std::string			getAddress( const struct sockaddr_storage*) const noexcept ;
 		ConfigServer const&	getHandler( std::string const& ) const noexcept;
