@@ -93,10 +93,10 @@ class WebServer
 		std::vector<ConfigServer>	 _servers;
 		std::vector<Listen>			 _listenAddress;
 		std::vector<struct pollfd>	 _pollfds;
-		std::map<int, t_PollItem>	 	_pollitems;
-		std::map<int, HTTPrequest*> 	_requests;
-		std::map<int, HTTPresponse*> 	_responses;
-		std::map<int, CGI*> 			_cgi;	// NOTE: the key is the client socket fd, not any of the cgi-pipes
+		std::unordered_map<int, t_PollItem>	 	_pollitems;
+		std::unordered_map<int, HTTPrequest*> 	_requests;
+		std::unordered_map<int, HTTPresponse*> 	_responses;
+		std::unordered_map<int, CGI*> 			_cgi;	// NOTE: the key is the client socket fd, not any of the cgi-pipes
 
 		void			_listenTo( std::string const&, std::string const& );
 		void			_addConn( int , fdType , fdState );

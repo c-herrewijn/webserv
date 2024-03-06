@@ -150,7 +150,7 @@ void			WebServer::loop( void )
 			}
 			catch (const ServerException& e) {
 				std::cerr << e.what() << '\n';
-				
+
 				// error handling
 				emptyConns.push_back(iPollFd.fd);
 			}
@@ -329,7 +329,7 @@ void	WebServer::readRequestHeaders( t_PollItem& pollItem )
 		if (request->hasBody()) {
 			this->_addConn(cgiPtr->getuploadPipe()[1], CGI_DATA_PIPE, FORWARD_REQ_BODY_TO_CGI);
 			pollItem.pollState = FORWARD_REQ_BODY_TO_CGI;
-		}		
+		}
 		else {
 			pollItem.pollState = READ_CGI_RESPONSE;
 		}
@@ -375,41 +375,6 @@ void	WebServer::forwardRequestBodyToCGI( t_PollItem& item )
 	(void) item ;
 	; // todo
 }
-
-// void	WebServer::readCGIResponses_bk( t_PollItem& pollItem )
-// {
-// 	HTTPrequest *request = nullptr;
-// 	CGI         *cgi = nullptr;
-//
-// 	for (auto& cgiMapItem : this->_cgi)
-// 	{
-// 		if (cgiMapItem.second->getResponsePipe()[0] == pollItem.fd)
-// 		{
-// 			cgi = cgiMapItem.second;
-// 			request = this->_requests[cgi->getRequestSocket()];
-// 			break;
-// 		}
-// 	}
-// 	if (request == nullptr || cgi == nullptr)
-// 	{
-// 		if (request == nullptr)
-// 			std::cerr << C_RED << "error: request not found" << C_RESET << std::endl;
-// 		if (cgi == nullptr)
-// 			std::cerr << C_RED << "error: cgi not found" << C_RESET << std::endl;
-// 	}
-// 	char buffer[DEF_BUF_SIZE];
-// 	int readChars = read(pollItem.fd, buffer, DEF_BUF_SIZE);
-// 	std::string newResponsePart(buffer, buffer + readChars);
-// 	request->cgi->appendResponse(newResponsePart);
-//
-// 	// TODO: support partial reads, i.e. in case of very big CGI response
-// 	if (true) // TODO keep pipe open for consequtive reads if needed
-// 	{
-// 		close(request->cgi->getResponsePipe()[0]);
-// 		this->_pollitems[request->getSocket()].pollState = WRITE_TO_CLIENT;
-// 	}
-//
-// }
 
 void	WebServer::readCGIResponses( t_PollItem& pollItem, std::vector<int>& emptyConns )
 {
