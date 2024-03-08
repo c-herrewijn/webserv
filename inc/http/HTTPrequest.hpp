@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/06 22:02:24 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/08 15:13:14 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,9 +45,6 @@ typedef struct HTTPurl_f
 
 } HTTPurl;
 
-
-class CGI;
-
 class HTTPrequest : public HTTPstruct
 {
 	public:
@@ -65,7 +62,7 @@ class HTTPrequest : public HTTPstruct
 		bool			isCGI( void ) const noexcept;
 		bool			isChunked( void ) const noexcept;
 		bool			isFileUpload( void ) const noexcept;
-		bool			isEndConn( void ) const noexcept;		// NB: to implement
+		bool			isEndConn( void ) const noexcept;
 		void			checkHeaders( size_t );
 
 		std::string	toString( void ) const noexcept override;
