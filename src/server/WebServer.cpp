@@ -417,10 +417,15 @@ void	WebServer::writeToCGI( t_PollItem& pollItem)
 		}
 	}
 	if (request != nullptr) {
+		close(this->_cgi[request->getSocket()]->getuploadPipe()[0]);
 		std::string tmpBody = request->getTmpBody();
 		if (tmpBody != "") {
 			write(pollItem.fd, tmpBody.data(), tmpBody.length());
 			request->setTmpBody("");
+
+			// drop from pollList after writing is done
+			close(this->_cgi[request->getSocket()]->getuploadPipe()[1]);
+			// NB.: add to the emptyCon list 
 		}
 	}
 }

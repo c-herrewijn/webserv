@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/06 23:05:10 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/08 15:17:06 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,6 +42,7 @@
 #include "HTTPresponse.hpp"
 #include "Exceptions.hpp"
 #include "ConfigServer.hpp"
+#include "CGI.hpp"
 
 #define BACKLOG 				10		// max pending connection queued up
 #define HTML_ERROR_FOLDER		std::filesystem::path("var/www/errors")
