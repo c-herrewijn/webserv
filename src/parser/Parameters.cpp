@@ -12,7 +12,16 @@
 
 #include "Parameters.hpp"
 
-Parameters::Parameters(void) { this->root = DEF_ROOT; }
+Parameters::Parameters(void)
+{
+	this->root = DEF_ROOT;
+	this->cgi_allowed = DEF_CGI_ALLOWED;
+	this->cgi_extension = DEF_CGI_EXTENTION;
+	for (int tmp = 0; tmp < M_SIZE; tmp++)
+		allowedMethods[tmp] = 0;
+	max_size = static_cast<std::uintmax_t>(DEF_SIZE) * 1024 * 1024 * 1024;
+
+}
 
 Parameters::~Parameters(void)
 {
@@ -23,27 +32,90 @@ Parameters::Parameters(const Parameters& copy) :
 	block_index(copy.block_index),
 	max_size(copy.max_size),
 	autoindex(copy.autoindex),
-	indexes(copy.indexes),
+	index(copy.index),
 	root(copy.root),
 	error_pages(copy.error_pages),
-	returns(copy.returns)
+	returns(copy.returns),
+	allowedMethods(copy.allowedMethods),
+	cgi_extension(copy.cgi_extension),
+	cgi_allowed(copy.cgi_allowed)
 {
 
 }
 
 Parameters&	Parameters::operator=(const Parameters& assign)
 {
-	indexes.clear();
-	error_pages.clear();
-	returns.clear();
-	block_index = assign.block_index;
-	max_size = assign.max_size;
-	autoindex = assign.autoindex;
-	indexes = assign.indexes;
-	root = assign.root;
-	error_pages = assign.error_pages;
-	returns = assign.returns;
+	if (this != &assign)
+	{
+		error_pages.clear();
+		returns.clear();
+		allowedMethods = assign.allowedMethods;
+		block_index = assign.block_index;
+		max_size = assign.max_size;
+		autoindex = assign.autoindex;
+		index = assign.index;
+		root = assign.root;
+		error_pages = assign.error_pages;
+		returns = assign.returns;
+		cgi_extension = assign.cgi_extension;
+		cgi_allowed = assign.cgi_allowed;
+	}
 	return (*this);
+}
+
+void	Parameters::_parseCgiExtension(std::vector<std::string>& block)
+{
+	block.erase(block.begin());
+	if (block.front().find_first_not_of("abcdefghijklmnoprstuvyzwqxABCDEFGHIJKLMNOPRSTUVYZWQX") != std::string::npos)
+		throw ParserException({"Only alpha characters expected in cgi_extension: '" + block.front() + "'"});
+	cgi_extension = block.front();
+	block.erase(block.begin());
+	if (block.front() != ";")
+		throw ParserException({"Unexpected element in cgi_extension: '" + block.front() + "', a ';' is expected"});
+	block.erase(block.begin());
+}
+
+void	Parameters::_parseCgiAllowed(std::vector<std::string>& block)
+{
+	block.erase(block.begin());
+	if (block.front() == "true")
+		cgi_allowed = true;
+	else if (block.front() == "false")
+		cgi_allowed = false;
+	else
+		throw ParserException({"Unexpected element in cgi_allowed: '" + block.front() + "'"});
+	block.erase(block.begin());
+	if (block.front() != ";")
+		throw ParserException({"Unexpected element in cgi_allowed: '" + block.front() + "', a ';' is expected"});
+	block.erase(block.begin());
+}
+
+void	Parameters::_parseAllowedMethod(std::vector<std::string>& block)
+{
+	block.erase(block.begin());
+	while (1)
+	{
+		if (block.front() == "GET")
+		{
+			allowedMethods[M_GET] = 1;
+			block.erase(block.begin());
+		}
+		else if (block.front() == "POST")
+		{
+			allowedMethods[M_POST] = 1;
+			block.erase(block.begin());
+		}
+		else if (block.front() == "DELETE")
+		{
+			allowedMethods[M_DELETE] = 1;
+			block.erase(block.begin());
+		}
+		else if (block.front() == ";")
+			break ;
+		else
+			throw ParserException({"'" + block.front() + "' is not a valid element in allowMethods parameters"});
+	}
+	block.erase(block.begin());
 }
 
 void	Parameters::_parseRoot(std::vector<std::string>& block)
@@ -51,6 +123,8 @@ void	Parameters::_parseRoot(std::vector<std::string>& block)
 	block.erase(block.begin());
 	if (block.front() == ";")
 		throw ParserException({"'root' can't have an empty parameter"});
+	if (block.front().front() != '/')
+		throw ParserException({"'root' must begin with a '/' '" + block.front() + "'"});
 	setRoot(block.front());
 	block.erase(block.begin());
 	if (block.front() != ";")
@@ -58,6 +132,40 @@ void	Parameters::_parseRoot(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
+static void	capSize(uintmax_t& value, char* type)
+{
+
+	if (type == nullptr)
+		return ;
+    switch (*type) {
+        case 'G':
+            if (value > MAX_SIZE)
+			{
+                std::cerr << "Warning: Size '" + std::to_string(value) + *type + "' is capped to 20G" << std::endl;
+                value = MAX_SIZE;
+            }
+            break;
+        case 'M':
+            if (value > MAX_SIZE * 1024)
+			{
+                std::cerr << "Warning: Size '" + std::to_string(value) + *type + "' is capped to 20G" << std::endl;
+                value = MAX_SIZE * 1024;
+            }
+            break;
+        case 'K':
+            if (value > MAX_SIZE * 1024 * 1024)
+			{
+                std::cerr << "Warning: Size '" + std::to_string(value) + *type + "' is capped to 20G" << std::endl;
+                value = MAX_SIZE * 1024 * 1024;
+            }
+            break;
+        default:
+            std::cerr << "Error: Invalid size type." << std::endl;
+            break;
+    }
+}
+
+// size must be stored as uint. max size can be 20G, value must be clamped 0-20G
 void	Parameters::_parseBodySize(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
@@ -67,17 +175,14 @@ void	Parameters::_parseBodySize(std::vector<std::string>& block)
 		throw ParserException({"'client_max_body_size' must have a digit as first value in parameter"});
 	errno = 0;
 	char*	endPtr = NULL;
-	long convertedValue = std::strtol(block.front().c_str(), &endPtr, 10);
-	if ((errno == ERANGE && (convertedValue == LONG_MAX || convertedValue < 0)) ||
-		(errno != 0 && convertedValue == 0))
-		throw ParserException({"'" + block.front() + "' resulted in overflow or underflow\n'client_max_body_size' must be formated as '(unsigned int)/(type=K|M|G)'"});
-	else if (endPtr == block.front())
-		throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)|(type=K||M||G)'"});
-	if (endPtr and *endPtr and *endPtr != 'K' and *endPtr != 'M' and *endPtr != 'G')
-	{
-		std::cout << "|" << (int) *endPtr << "|\n";
-		throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)|(type=K||M||G)'"});
-	}
+	uintmax_t convertedValue = std::strtoul(block.front().c_str(), &endPtr, 10);
+	if (errno == ERANGE)
+		throw ParserException({"'" + block.front() + "' resulted in overflow or underflow\n'client_max_body_size' must be formated as '(unsigned int)(type=K|M|G)'"});
+	else if (endPtr == NULL || *endPtr == '\0')
+		throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)(type=K||M||G)': " + block.front()});
+	if (!endPtr || (*endPtr != 'K' && *endPtr != 'M' && *endPtr != 'G'))
+		throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)(type=K||M||G)': " + block.front()});
+	capSize(convertedValue, endPtr);
 	setSize(convertedValue, endPtr);
 	block.erase(block.begin());
 	if (block.front() != ";")
@@ -106,19 +211,16 @@ void	Parameters::_parseIndex(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == ";")
-		throw ParserException({"'index' can't have an empty parameter"});
-	while (1)
-	{
-		if (block.front().find_first_of(" ") != std::string::npos)
-			throw ParserException({"'index' parameter '" + block.front() + "' has a space in it"});
-		addIndex(block.front());
-		block.erase(block.begin());
-		if (block.front() == ";")
-		{
-			block.erase(block.begin());
-			break ;
-		}
-	}
+		throw ParserException({"After index expected a file"});
+	if (block.front().front() != '/')
+		throw ParserException({"File name for index must start with a '/': " + block.front()});
+	if (block.front().find_first_of('/') != block.front().find_last_of('/'))
+		throw ParserException({"'index' must be file '" + block.front() + "'"});
+	this->index = block.front();
+	block.erase(block.begin());
+	if (block.front() != ";")
+		throw ParserException({"After 'index' file a ';' expected '" + block.front() + "'"});
+	block.erase(block.begin());
 }
 
 void	Parameters::_parseErrorPage(std::vector<std::string>& block)
@@ -141,6 +243,8 @@ void	Parameters::_parseErrorPage(std::vector<std::string>& block)
 		throw ParserException({"After error_page code expected a file '" + block.front() + "'"});
 	if (block.front().front() != '/')
 		throw ParserException({"File name for error_page must start with a '/': " + block.front()});
+	if (block.front().find_first_of('/') != block.front().find_last_of('/'))
+		throw ParserException({"'error_page' must be file '" + block.front() + "'"});
 	error_pages[code] = block.front();
 	block.erase(block.begin());
 	if (block.front() != ";")
@@ -163,28 +267,40 @@ void	Parameters::_parseReturn(std::vector<std::string>& block)
 	} catch (const std::out_of_range& e) {
 		throw ParserException({"given value is out of range: " + block.front()});
 	}
-	if (block.front() != ";")
-	    returns[(size_t)code] = block.front();
-	else
-		returns[(size_t)code] = "";
+	if (block.front() == ";")
+		throw ParserException({"After return code expected a file '" + block.front() + "'"});
+	if (block.front().front() != '/')
+		throw ParserException({"File name for return must start with a '/': " + block.front()});
+	if (block.front().find_first_of('/') != block.front().find_last_of('/'))
+		throw ParserException({"'return' must be file '" + block.front() + "'"});
+	returns[(size_t)code] = block.front();
 	block.erase(block.begin());
 	if (block.front() != ";")
-		throw ParserException({"'return' keyword can have maximum 2 parameters"});
+		throw ParserException({"'return' keyword must have 2 parameters"});
 	block.erase(block.begin());
 }
 
-void	Parameters::addIndex(const std::string& val)
+const std::string& Parameters::getCgiExtension(void) const
 {
-	if (indexes.find(val) == indexes.end())
-		indexes.insert(val);
+	return (cgi_extension);
 }
 
-const std::unordered_set<std::string>& Parameters::getIndexes(void) const
+const bool& Parameters::getCgiAllowed(void) const
 {
-	return (indexes);
+	return (cgi_allowed);
 }
 
-size_t Parameters::getMaxSize(void) const
+const std::bitset<M_SIZE>&	Parameters::getAllowedMethods(void) const
+{
+	return (allowedMethods);
+}
+
+const std::string& Parameters::getIndex(void) const
+{
+	return (this->index);
+}
+
+std::uintmax_t Parameters::getMaxSize(void) const
 {
 	return (max_size);
 }
@@ -214,7 +330,8 @@ void	Parameters::setAutoindex(bool status)
 	autoindex = status;
 }
 
-void	Parameters::setSize(long val, char *order)
+// this must be updated. size must be stored as bytes
+void	Parameters::setSize(uintmax_t val, char *order)
 {
 	this->max_size = val;
 
@@ -252,6 +369,12 @@ void	Parameters::fill(std::vector<std::string>& block)
 		_parseErrorPage(block);
 	else if (block.front() == "return")
 		_parseReturn(block);
+	else if (block.front() == "allowMethods")
+		_parseAllowedMethod(block);
+	else if (block.front() == "cgi_extension")
+		_parseCgiExtension(block);
+	else if (block.front() == "cgi_allowed")
+		_parseCgiAllowed(block);
 	else
 		throw ParserException({"'" + block.front() + "' is not a valid parameter"});
 }
@@ -264,29 +387,4 @@ void Parameters::setBlockIndex(size_t ref)
 const size_t& Parameters::getBlockIndex(void) const
 {
 	return (this->block_index);
-}
-
-std::ostream& operator<<(std::ostream& os, const Parameters& params)
-{
-    size_t indentation = params.getBlockIndex();
-	os << std::string(indentation, '\t') << "root " << params.getRoot() << ";\n";
-	os << std::string(indentation, '\t') << "client_max_body_size " << params.getMaxSize() << ";\n";
-	os << std::string(indentation, '\t') << "autoindex " << (params.getAutoindex() ? "true" : "false") << ";\n";
-	os << std::string(indentation, '\t') << "index";
-	const auto& indexes = params.getIndexes();
-	for (const auto& index : indexes)
-		os << " " << index;
-	os << ";\n";
-	const auto& errorPages = params.getErrorPages();
-	for (const auto& entry : errorPages)
-	{
-		os << std::string(indentation, '\t') << "error_page " << entry.first << " " << entry.second << ";\n";
-	}
-
-	const auto& returns = params.getReturns();
-	for (const auto& entry : returns) {
-		os << std::string(indentation, '\t') << "return " << entry.first << " " << entry.second << ";\n";
-	}
-
-	return os;
 }

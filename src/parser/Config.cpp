@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "Config.hpp"
+#include "ConfigServer.hpp"
 
 Config::Config(void) {}
 

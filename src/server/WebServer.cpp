@@ -365,17 +365,25 @@ void	WebServer::readRequestHeaders( t_PollItem& pollItem )
 	}
 	else
 	{
+		// std::cout << "1" << "\n";
 		if (request->getRealPath() == "/")		// NB: should be done by validation
 			request->setRealPath(MAIN_PAGE_PATH);
 		else if (request->getRealPath().extension() == ".ico")	// NB: should be done by validation
 		{
+		// std::cout << "2" << "\n";
 			response->setContentType(ICO_CONTENT_TYPE);	// NB: should be done by validation
 			request->setRealPath(FAVICON_PATH);
 		}
 		else if ((request->getRealPath().filename() == "main.css"))	// NB: should be done by validation
 			request->setRealPath(t_path("var/www/main.css"));
 		else if (! std::filesystem::exists(request->getRealPath()))		// NB: should be done by validation
+		{
+		// std::cout << "3" << "\n";	
+			// std::cout << request->getRealPath() << '\n';
 			throw(RequestException({"path not found"}, 404));
+		}
+
+		// std::cout << "4" << "\n";
 		HTMLfd = open(request->getRealPath().c_str(), O_RDONLY);
 		response->setHTMLfd(HTMLfd);
 		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);

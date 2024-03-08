@@ -23,10 +23,6 @@ ConfigServer&	ConfigServer::operator=(const ConfigServer& assign)
 		names = assign.names;
 		locations = assign.locations;
 		params = assign.params;
-
-		cgi_directory = assign.cgi_directory;
-		cgi_extension = assign.cgi_extension;
-		cgi_allowed = assign.cgi_allowed;
 	}
 	return (*this);
 }
@@ -43,53 +39,9 @@ ConfigServer::ConfigServer(const ConfigServer& copy) :
 	listens(copy.listens),
 	names(copy.names),
 	params(copy.params),
-	locations(copy.locations),
-	cgi_directory(copy.cgi_directory),
-	cgi_extension(copy.cgi_extension),
-	cgi_allowed(copy.cgi_allowed)
+	locations(copy.locations)
 {
 
-}
-
-void	ConfigServer::_parseCgiDir(std::vector<std::string>& block)
-{
-	block.erase(block.begin());
-	if (block.front().find(' ') != std::string::npos)
-		throw ParserException({"Unexpected element in cgi_directory: '" + block.front() + "'"});
-	if (block.front().front() != '/')
-		throw ParserException({"Directories must begin with a '/''" + block.front() + "'"});
-	cgi_directory = block.front();
-	block.erase(block.begin());
-	if (block.front() != ";")
-		throw ParserException({"Unexpected element in cgi_directory: '" + block.front() + "', a ';' is expected"});
-	block.erase(block.begin());
-}
-
-void	ConfigServer::_parseCgiExtension(std::vector<std::string>& block)
-{
-	block.erase(block.begin());
-	if (block.front().find(' ') != std::string::npos)
-		throw ParserException({"Unexpected element in cgi_extension: '" + block.front() + "'"});
-	cgi_extension = block.front();
-	block.erase(block.begin());
-	if (block.front() != ";")
-		throw ParserException({"Unexpected element in cgi_extension: '" + block.front() + "', a ';' is expected"});
-	block.erase(block.begin());
-}
-
-void	ConfigServer::_parseCgiAllowed(std::vector<std::string>& block)
-{
-	block.erase(block.begin());
-	if (block.front() == "true")
-		cgi_allowed = true;
-	else if (block.front() == "false")
-		cgi_allowed = false;
-	else
-		throw ParserException({"Unexpected element in cgi_allowed: '" + block.front() + "'"});
-	block.erase(block.begin());
-	if (block.front() != ";")
-		throw ParserException({"Unexpected element in cgi_allowed: '" + block.front() + "', a ';' is expected"});
-	block.erase(block.begin());
 }
 
 void	ConfigServer::_parseListen(std::vector<std::string>& block)
@@ -149,12 +101,6 @@ void	ConfigServer::_fillServer(std::vector<std::string>& block)
 			_parseListen(block);
 		else if (*it == "server_name")
 			_parseServerName(block);
-		else if (*it == "cgi_directory")
-			_parseCgiDir(block);
-		else if (*it == "cgi_extension")
-			_parseCgiExtension(block);
-		else if (*it == "cgi_allowed")
-			_parseCgiAllowed(block);
 		else if (*it == "location")
 		{
 			index = it;
@@ -199,12 +145,6 @@ void	ConfigServer::parseBlock(std::vector<std::string>& block)
 	_fillServer(block);
 }
 
-// int	ConfigServer::validateRequest(HTTPrequest& req) const
-// {
-// 	(void) req;
-// 	return (200);
-// }
-
 const std::vector<Listen>& ConfigServer::getListens(void) const
 {
 	return (listens);
@@ -228,66 +168,4 @@ const Parameters&	ConfigServer::getParams(void) const
 const std::vector<Location>&	ConfigServer::getLocations() const
 {
 	return (locations);
-}
-
-const std::string& ConfigServer::getCgiDir(void) const
-{
-	return (cgi_directory);
-}
-
-const std::string& ConfigServer::getCgiExtension(void) const
-{
-	return (cgi_extension);
-}
-
-const bool& ConfigServer::getCgiAllowed(void) const
-{
-	return (cgi_allowed);
-}
-
-std::ostream& operator<<(std::ostream& os, const ConfigServer& server) {
-    os << "server {\n";
-
-    // Print Listens
-    const auto& listens = server.getListens();
-    for (const auto& listen : listens) {
-        os << "\t" << listen;
-    }
-
-    os << "\tserver_name";
-    const auto& names = server.getNames();
-    for (const auto& name : names) {
-        os << " " << name;
-    }
-    os << ";\n";
-
-    os << "\tcgi_extension " << server.getCgiExtension() << ";\n";
-    os << "\tcgi_directory " << server.getCgiDir() << ";\n";
-    os << "\tcgi_allowed " << (server.getCgiAllowed() ? "true" : "false") << ";\n";
-
-    os << "\troot " << server.getParams().getRoot() << ";\n";
-    os << "\tclient_max_body_size " << server.getParams().getMaxSize() << ";\n";
-    os << "\tautoindex " << (server.getParams().getAutoindex() ? "on" : "off") << ";\n";
-
-    const auto& indexes = server.getParams().getIndexes();
-    for (const auto& index : indexes) {
-        os << "\tindex " << index << ";\n";
-    }
-
-    const auto& errorPages = server.getParams().getErrorPages();
-    for (const auto& entry : errorPages) {
-        os << "\terror_page " << entry.first << " " << entry.second << ";\n";
-    }
-
-    const auto& returns = server.getParams().getReturns();
-    for (const auto& entry : returns) {
-        os << "\treturn " << entry.first << " " << entry.second << ";\n";
-    }
-
-    const auto& locations = server.getLocations();
-    for (const auto& location : locations) {
-        os  << location;
-    }
-    os << "}\n";
-    return os;
 }

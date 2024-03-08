@@ -53,8 +53,6 @@ class Listen
 		void	_fillFull(std::vector<std::string>& block);
 		void	_fillIp(std::vector<std::string>& block);
 		void	_fillPort(std::vector<std::string>& block);
-		
-		friend std::ostream& operator<<(std::ostream& os, const Listen& listen);
 };
 
 #endif
