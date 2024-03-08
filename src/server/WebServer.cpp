@@ -132,7 +132,7 @@ void			WebServer::loop( void )
 				emptyConns.push_back(iPollFd.fd);
 			}
 			catch (const HTTPexception& e) {
-				std::cerr << e.what() << '\n';
+				// std::cerr << e.what() << '\n';
 				redirectToErrorPage(pollItem, emptyConns, e.getStatus());
 			}
 		}
