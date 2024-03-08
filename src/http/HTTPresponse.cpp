@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/06 17:39:48 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/08 17:44:59 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -129,14 +129,9 @@ int		HTTPresponse::getStatusCode( void ) const noexcept
 	return (this->_statusCode);
 }
 
-void	HTTPresponse::setContentType( std::string contentType ) noexcept
+void	HTTPresponse::updateContentType( std::string newContentType ) noexcept
 {
-	this->_contentType = contentType;
-}
-
-std::string		HTTPresponse::getContentType( void ) const noexcept
-{
-	return (this->_contentType);
+	this->_contentType = newContentType;
 }
 
 void	HTTPresponse::setHTMLfd( int HTMLfd )

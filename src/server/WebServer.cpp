@@ -73,7 +73,6 @@ void			WebServer::startListen( void )
 void			WebServer::loop( void )
 {
 	int					nConn = -1;
-	std::vector<int>	emptyConns;
 
 	while (true)
 	{
@@ -105,11 +104,11 @@ void			WebServer::loop( void )
 					}
 					else if (pollItem.pollState == READ_CGI_RESPONSE) {
 						std::cerr << C_GREEN << "POLLIN - READ_CGI_RESPONSE " << iPollFd.fd << C_RESET << std::endl;
-						readCGIResponses(pollItem, emptyConns);
+						readCGIResponses(pollItem);
 					}
 					else if (pollItem.pollState == READ_STATIC_FILE) {
 						std::cerr << C_GREEN << "POLLIN - READ_STATIC_FILE - " << iPollFd.fd << C_RESET << std::endl;
-						readStaticFiles(pollItem, emptyConns);
+						readStaticFiles(pollItem);
 					}
 				}
 				else if (iPollFd.revents & POLLOUT)
@@ -120,27 +119,23 @@ void			WebServer::loop( void )
 					}
 					else if (pollItem.pollState == WRITE_TO_CLIENT) {
 						std::cerr << C_GREEN << "POLLOUT - WRITE_TO_CLIENT - " << iPollFd.fd << C_RESET << std::endl;
-						writeToClients(pollItem, emptyConns);
+						writeToClients(pollItem);
 					}
 				}
 				else if (iPollFd.revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
-					emptyConns.push_back(iPollFd.fd);
+					this->_emptyConns.push_back(iPollFd.fd);
 			}
 			catch (const ServerException& e) {
 				std::cerr << e.what() << '\n';
 				// error handling
-				emptyConns.push_back(iPollFd.fd);
+				this->_emptyConns.push_back(iPollFd.fd);
 			}
 			catch (const HTTPexception& e) {
 				// std::cerr << e.what() << '\n';
-				redirectToErrorPage(pollItem, emptyConns, e.getStatus());
+				redirectToErrorPage(pollItem, e.getStatus());
 			}
 		}
-		while (emptyConns.empty() == false)
-		{
-			_dropConn(emptyConns.back());
-			emptyConns.pop_back();
-		}
+		_clearEmptyConns();
 	}
 }
 
@@ -270,6 +265,16 @@ void	WebServer::_dropConn(int toDrop) noexcept
 
 }
 
+void	WebServer::_clearEmptyConns( void ) noexcept
+{
+	while (this->_emptyConns.empty() == false)
+	{
+		_dropConn(this->_emptyConns.back());
+		this->_emptyConns.pop_back();
+	}
+
+}
+
 std::string	WebServer::_getHTMLfromCode( int code ) const noexcept
 {
 	std::filesystem::path	HTMLfolder = HTML_ERROR_FOLDER;
@@ -335,21 +340,25 @@ void	WebServer::readRequestHeaders( t_PollItem& pollItem )
 	CGI 			*cgiPtr = nullptr;
 	int 			HTMLfd = -1;
 
-	request = new HTTPrequest;
+	request = new HTTPrequest(pollItem.fd);
+	response = new HTTPresponse(pollItem.fd);
 	this->_requests.insert(std::pair<int, HTTPrequest*>(pollItem.fd, request));
-	request->setSocket(pollItem.fd);
-	response = new HTTPresponse;
 	this->_responses.insert(std::pair<int, HTTPresponse*>(pollItem.fd, response));
-	response->setSocket(pollItem.fd);
-	response->setServName(getDefaultServer().getPrimaryName());
-	response->setContentType(STD_CONTENT_TYPE);
+	
+	response->setServName(this->getDefaultServer().getPrimaryName());
+	
 	request->parseHead();
-	request->setConfigServer(&this->getHandler(request->getHost()));
+	
+	request->setConfigServer(&this->getHandler(request->getHost()));	// NB: needs to change
 	response->setServName(request->getConfigServer().getPrimaryName());
+	
 	// validation from configServer (chocko's validation)
 	// variable HTTPrequest.realPath must be updated!
+	
 	request->checkHeaders(1000000);	// has to be dynamic
-	request->setRealPath(request->getPath());	// realPath should be givien from validation
+	// request->setExecPath(request->getPath());	// realPath should be givien from validation
+
+
 	if (request->isCGI()) {
 		cgiPtr = new CGI(*request);
 		this->_cgi.insert(std::pair<int, CGI*>(pollItem.fd, cgiPtr));
@@ -365,33 +374,38 @@ void	WebServer::readRequestHeaders( t_PollItem& pollItem )
 	}
 	else
 	{
-		// std::cout << "1" << "\n";
-		if (request->getRealPath() == "/")		// NB: should be done by validation
-			request->setRealPath(MAIN_PAGE_PATH);
-		else if (request->getRealPath().extension() == ".ico")	// NB: should be done by validation
-		{
-		// std::cout << "2" << "\n";
-			response->setContentType(ICO_CONTENT_TYPE);	// NB: should be done by validation
-			request->setRealPath(FAVICON_PATH);
-		}
-		else if ((request->getRealPath().filename() == "main.css"))	// NB: should be done by validation
-			request->setRealPath(t_path("var/www/main.css"));
-		else if (! std::filesystem::exists(request->getRealPath()))		// NB: should be done by validation
-		{
-		// std::cout << "3" << "\n";	
-			// std::cout << request->getRealPath() << '\n';
-			throw(RequestException({"path not found"}, 404));
-		}
+		// // std::cout << "1" << "\n";
+		// if (request->getExecPath() == "/")		// NB: should be done by validation
+		// 	request->setExecPath(MAIN_PAGE_PATH);
+		// else if (request->getExecPath().extension() == ".ico")	// NB: should be done by validation
+		// {
+		// // std::cout << "2" << "\n";
+		// 	response->updateContentType(ICO_CONTENT_TYPE);	// NB: should be done by validation
+		// 	request->setExecPath(FAVICON_PATH);
+		// }
+		// else if ((request->getExecPath().filename() == "main.css"))	// NB: should be done by validation
+		// 	request->setExecPath(t_path("var/www/main.css"));
+		// else if (! std::filesystem::exists(request->getExecPath()))		// NB: should be done by validation
+		// {
+		// // std::cout << "3" << "\n";	
+		// 	// std::cout << request->getExecPath() << '\n';
+		// 	throw(RequestException({"path not found"}, 404));
+		// }
 
-		// std::cout << "4" << "\n";
-		HTMLfd = open(request->getRealPath().c_str(), O_RDONLY);
+		// // std::cout << "4" << "\n";
+
+		// is path a file:
+		//	yes:
+		//	no: reading ls
+
+		HTMLfd = open(request->getExecPath().c_str(), O_RDONLY);
 		response->setHTMLfd(HTMLfd);
 		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
 		pollItem.pollState = READ_STATIC_FILE;
 	}
 }
 
-void	WebServer::readStaticFiles( t_PollItem& currentPoll, std::vector<int>& emptyConns )
+void	WebServer::readStaticFiles( t_PollItem& currentPoll )
 {
 	int 			socket = _getSocketFromPollitem(currentPoll);
 	HTTPresponse	*response = nullptr;
@@ -402,7 +416,7 @@ void	WebServer::readStaticFiles( t_PollItem& currentPoll, std::vector<int>& empt
 	response->readHTML();
 	if (response->isDoneReadingHTML())
 	{
-		emptyConns.push_back(currentPoll.fd);
+		this->_emptyConns.push_back(currentPoll.fd);
 		this->_pollitems[response->getSocket()].pollState = WRITE_TO_CLIENT;
 	}
 }
@@ -438,7 +452,7 @@ void	WebServer::writeToCGI( t_PollItem& pollItem)
 	}
 }
 
-void	WebServer::readCGIResponses( t_PollItem& pollItem, std::vector<int>& emptyConns )
+void	WebServer::readCGIResponses( t_PollItem& pollItem )
 {
 	int 			socket = _getSocketFromPollitem(pollItem);
 	CGI				*cgi = nullptr;
@@ -462,12 +476,12 @@ void	WebServer::readCGIResponses( t_PollItem& pollItem, std::vector<int>& emptyC
 	{
 		response = this->_responses[socket];
 		response->parseFromCGI(cgi->getResponse());
-		emptyConns.push_back(pollItem.fd);
+		this->_emptyConns.push_back(pollItem.fd);
 		this->_pollitems[socket].pollState = WRITE_TO_CLIENT;
 	}
 }
 
-void	WebServer::writeToClients( t_PollItem& pollItem, std::vector<int>& emptyConns )
+void	WebServer::writeToClients( t_PollItem& pollItem )
 {
 	HTTPrequest 	*request = this->_requests[pollItem.fd];
 	HTTPresponse 	*response = this->_responses[pollItem.fd];
@@ -486,7 +500,7 @@ void	WebServer::writeToClients( t_PollItem& pollItem, std::vector<int>& emptyCon
 	if (response->isDoneWriting())
 	{
 		if (request->isEndConn())
-			emptyConns.push_back(pollItem.fd);
+			this->_emptyConns.push_back(pollItem.fd);
 		else
 			this->_pollitems[pollItem.fd].pollState = READ_REQ_HEADER;
 		delete (response);
@@ -496,7 +510,7 @@ void	WebServer::writeToClients( t_PollItem& pollItem, std::vector<int>& emptyCon
 	}
 }
 
-void	WebServer::redirectToErrorPage( t_PollItem& pollItem, std::vector<int>& emptyConns, int statusCode ) noexcept
+void	WebServer::redirectToErrorPage( t_PollItem& pollItem, int statusCode ) noexcept
 {
 	HTTPresponse	*response = nullptr;
 	HTTPrequest		*request = nullptr;
@@ -506,18 +520,18 @@ void	WebServer::redirectToErrorPage( t_PollItem& pollItem, std::vector<int>& emp
 
 	if (socket == -1)	// that should never happen
 	{
-		emptyConns.push_back(pollItem.fd);
+		this->_emptyConns.push_back(pollItem.fd);
 		return ;
 	}
 	request = this->_requests.at(socket);
 	response = this->_responses.at(socket);
 	response->setStatusCode(statusCode);
 	if (pollItem.pollType == STATIC_FILE)
-		emptyConns.push_back(pollItem.fd);
+		this->_emptyConns.push_back(pollItem.fd);
 	else if ((pollItem.pollType == CGI_DATA_PIPE) or
 		(pollItem.pollType == CGI_RESPONSE_PIPE))
 	{
-		emptyConns.push_back(pollItem.fd);
+		this->_emptyConns.push_back(pollItem.fd);
 		if (this->_cgi[socket])
 		{
 			delete (this->_cgi[socket]);
@@ -525,7 +539,7 @@ void	WebServer::redirectToErrorPage( t_PollItem& pollItem, std::vector<int>& emp
 		}
 	}
 	HTMLpath = _getHTMLfromCode(response->getStatusCode());
-	request->setRealPath(HTMLpath);
+	request->setExecPath(HTMLpath);
 	if (statusCode != 500)
 	{
 		HTMLfd = open(HTMLpath.c_str(), O_RDONLY);

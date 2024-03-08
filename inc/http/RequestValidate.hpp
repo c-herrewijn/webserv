@@ -12,30 +12,36 @@
 
 #ifndef REQUESTVALIDATE_HPP
 # define REQUESTVALIDATE_HPP
-# include "HTTPrequest.hpp"
+# include "HTTPstruct.hpp"
 # include "ConfigServer.hpp"
 // Needed for file size calculation
 # include <iostream>
 # include <fstream>
 // filesystem management
-# include <filesystem>
+// # include <filesystem>
 # include "Exceptions.hpp"
 
 class RequestValidate
 {
 	private:
+		HTTPmethod					requestMethod;
+		t_path						requestPath;
+
+		t_path						execPath;
+		bool						_autoIndex;
+		bool						_isCGI;
+		bool						_isFile;
+		
+
 		Location*					validLocation;
 		Parameters*					validParams;
 		std::string					targetDir;
 		std::string					targetFile;
 		std::vector<std::string>	folders;
 
-		HTTPrequest*				request;
-		ConfigServer*				config;
+		ConfigServer const*			config;
 		size_t						statusCode;
-		std::filesystem::path		execDir;
-		bool						autoIndex;
-		bool						cgi;
+		t_path						execDir;
 
 		Location*			_getValidLocation() const;
 		Parameters*			_getValidParams() const;
@@ -51,7 +57,6 @@ class RequestValidate
 		void		_separateFolders(std::string const& input, std::vector<std::string>& output);
 		Location*	_diveLocation(Location& cur, std::vector<std::string>::iterator itDirectory);
 
-		void		_initElements(void);
 		void		_initValidLocation(void);
 		void		_initTargetDir(void);
 
@@ -61,22 +66,21 @@ class RequestValidate
 		bool		_handleReturns(void);
 		bool		_handleErrorCode(void);
 		bool		_handleServerPages(void);
+
 	public:
-		RequestValidate(ConfigServer* conf, HTTPrequest& req);
 		RequestValidate(void);
-		RequestValidate(const RequestValidate& copy);
-		RequestValidate&	operator=(const RequestValidate& assign);
-		virtual ~RequestValidate(void);
 
-		HTTPrequest*			getRequest() const;
-		ConfigServer*			getConfig() const;
-		bool					getCGI() const;
-		bool					getAutoIndex() const;
-		size_t					getStatusCode() const;
-		std::filesystem::path	getExecPath() const;
-
-		void setRequest(HTTPrequest* req);
-		void setConfig(ConfigServer* conf);
+		void	setConfig( ConfigServer const* );
+		void	setMethod( HTTPmethod );
+		void	setPath( t_path const& );
+	
+		t_path const&	getExecPath( void ) const;
+		int				getStatusCode( void ) const;
+		bool			isCGI() const;
+		bool			isAutoIndex() const;
+		bool			isFile() const;
+		void			solvePath( void );
+		virtual 		~RequestValidate(void) {};
 };
 
 #endif

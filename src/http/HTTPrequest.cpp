@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/06 23:19:14 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/08 18:57:28 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,8 +20,6 @@ void	HTTPrequest::parseHead( void )
 	size_t		delimiter = std::string::npos;
 	ssize_t		charsRead = -1;
 
-	if (this->_socket == -1)
-		throw(RequestException({"invalid socket"}, 500));
 	bzero(buffer, DEF_BUF_SIZE);
 	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
 	if (charsRead < 0 )
@@ -58,10 +56,9 @@ void	HTTPrequest::parseBody( void )
 		_readPlainBody();
 }
 
-// NB: needs to be refined
 bool	HTTPrequest::isCGI( void ) const noexcept
 {
-	return (this->_realPath.extension().generic_string() == ".cgi");
+	return (this->_validator.isCGI());
 }
 
 bool	HTTPrequest::isChunked( void ) const noexcept
@@ -124,6 +121,19 @@ std::string	HTTPrequest::toString( void ) const noexcept
 		strReq += this->_body;
 	return (strReq);
 }
+
+// HTTPtmp const&		HTTPrequest::getValidation( void ) const noexcept
+// {
+// 	return (this->_validation);
+// }
+
+// void				HTTPrequest::setValidation( HTTPtmp const& input) noexcept
+// {
+// 	this->_validation.autoindexEnabled = input.autoindexEnabled;
+// 	this->_validation.cgiEnabled = input.cgiEnabled;
+// 	this->_validation.execPath = input.execPath;
+// 	this->_validation.statusCode = input.statusCode;
+// }
 
 HTTPmethod		HTTPrequest::getMethod( void ) const noexcept
 {
@@ -191,16 +201,17 @@ void 	HTTPrequest::setConfigServer(ConfigServer const* config) noexcept
 {
 	this->_configServer = config;
 	this->_servName = config->getPrimaryName();
+	this->_validator.setConfig(config);
 }
 
-t_path	HTTPrequest::getRealPath( void ) const noexcept
+t_path	HTTPrequest::getExecPath( void ) const noexcept
 {
-	return (this->_realPath);
+	return (this->_execPath);
 }
 
-void 	HTTPrequest::setRealPath( t_path realPath ) noexcept
+void 	HTTPrequest::setExecPath( t_path realPath ) noexcept
 {
-	this->_realPath = realPath;
+	this->_execPath = realPath;
 }
 
 void	HTTPrequest::_setMaxBodySize( size_t maxSize) noexcept
@@ -240,6 +251,7 @@ void    HTTPrequest::_setMethod( std::string const& strMethod )
 		throw(RequestException({"unsupported HTTP method:", strMethod}, 501));
 	else
 		throw(RequestException({"unknown HTTP method:", strMethod}, 400));
+	this->_validator.setMethod(this->_method);
 }
 
 void	HTTPrequest::_setURL( std::string const& strURL )
@@ -269,6 +281,10 @@ void	HTTPrequest::_setURL( std::string const& strURL )
 		tmpURL = tmpURL.substr(delimiter);
 	}
 	_setPath(tmpURL);
+	this->_validator.solvePath();
+	if (this->_validator.getStatusCode() == 500)
+		throw(RequestException({"server is corrupted"}, 500));
+	this->_execPath = this->_validator.getExecPath();
 }
 
 void	HTTPrequest::_setScheme( std::string const& strScheme )
@@ -314,6 +330,7 @@ void	HTTPrequest::_setPath( std::string const& strPath )
 	del1 = tmpPath.find('?');
 	del2 = tmpPath.find('#');
 	this->_url.path = tmpPath.substr(0, std::min(del1, del2));
+	this->_validator.setPath(this->_url.path);
 	if (del1 != std::string::npos)
 	{
 		tmpPath = tmpPath.substr(del1);
@@ -458,8 +475,6 @@ void	HTTPrequest::_readPlainBody( void )
 	std::string	body = this->_tmpBody;
 	size_t		countChars = this->_tmpBody.length();
 
-	if (this->_socket == -1)
-		throw(RequestException({"invalid socket"}, 500));
 	while (countChars < this->_contentLength)
 	{
 		bzero(buffer, DEF_BUF_SIZE + 1);
@@ -482,8 +497,6 @@ void	HTTPrequest::_readChunkedBody( void )
 	std::string body = this->_tmpBody;
 	size_t		delimiter=0, countChars=this->_tmpBody.length();
 
-	if (this->_socket == -1)
-		throw(RequestException({"invalid socket"}, 500));
 	do
 	{
 		bzero(buffer, DEF_BUF_SIZE + 1);

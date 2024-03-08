@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/06 17:29:51 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/08 17:39:55 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,8 +26,8 @@
 class HTTPresponse : public HTTPstruct
 {
 	public:
-		HTTPresponse( void ) :
-			HTTPstruct() ,
+		HTTPresponse( int socket ) :
+			HTTPstruct(socket) ,
 			_statusCode(200),
 			_HTMLfd(-1),
 			_gotFullHTML(false),
@@ -43,8 +43,8 @@ class HTTPresponse : public HTTPstruct
 
 		void		setStatusCode( int ) noexcept;
 		int			getStatusCode( void ) const noexcept;
-		void		setContentType( std::string ) noexcept;
-		std::string	getContentType( void ) const noexcept;
+		void		updateContentType( std::string ) noexcept;
+		// std::string	getContentType( void ) const noexcept;
 		void		setHTMLfd( int HTMLfd ) ;
 		int			getHTMLfd( void ) const noexcept;
 		bool		isDoneReadingHTML( void ) const noexcept;

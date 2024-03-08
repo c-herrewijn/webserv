@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/06 10:37:58 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/08 17:34:06 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,11 +61,13 @@
 // 	}
 // }
 
-HTTPstruct::HTTPstruct( void ) : _hasBody(false) , _socket(-1)
+HTTPstruct::HTTPstruct( int socket ) : _hasBody(false)
 {
 	this->_version.scheme = HTTP_SCHEME;
 	this->_version.major = 1;
 	this->_version.minor = 1;
+	if (socket < 0)
+		throw(ServerException({"invalid socket"}));
 }
 
 bool	HTTPstruct::hasBody( void) const noexcept
@@ -76,6 +78,16 @@ bool	HTTPstruct::hasBody( void) const noexcept
 int		HTTPstruct::getSocket( void ) const noexcept
 {
 	return (this->_socket);
+}
+
+std::string const&	HTTPstruct::getTmpBody( void )
+{
+	return (this->_tmpBody);
+}
+
+void	HTTPstruct::setTmpBody( std::string const& tmpBody )
+{
+    this->_tmpBody = tmpBody;
 }
 
 void	HTTPstruct::_setHeaders( std::string const& headers )
@@ -99,29 +111,12 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 	} while (del1 != std::string::npos);
 }
 
-std::string	HTTPstruct::getTmpBody( void )
-{
-	return this->_tmpBody;
-}
-
 void	HTTPstruct::_setBody( std::string const& strBody )
 {
     if (strBody.empty())
 		return ;
 	this->_hasBody = true;
     this->_body = strBody;
-}
-
-void	HTTPstruct::setTmpBody( std::string const& tmpBody )
-{
-    this->_tmpBody = tmpBody;
-}
-
-void	HTTPstruct::setSocket( int newSocket )
-{
-	if (newSocket == -1)
-		throw(RequestException({"invalid socket"}, 500));
-	this->_socket = newSocket;
 }
 
 void	HTTPstruct::_addHeader(std::string const& name, std::string const& content) noexcept

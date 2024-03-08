@@ -17,6 +17,7 @@
 #include <map>
 #include <algorithm>
 #include <vector>
+#include <filesystem>
 
 #include "Exceptions.hpp"
 
@@ -31,6 +32,15 @@
 
 typedef std::map<std::string, std::string> dict;
 
+typedef std::filesystem::path t_path;
+
+typedef enum HTTPmethod_s
+{
+	HTTP_GET,
+	HTTP_POST,
+	HTTP_DELETE,
+} HTTPmethod;
+
 typedef struct HTTPversion_f
 {
 	std::string	scheme;
@@ -41,15 +51,15 @@ typedef struct HTTPversion_f
 class HTTPstruct
 {
 	public:
-		HTTPstruct( void );
+		HTTPstruct( int );
 		virtual	~HTTPstruct( void ) {};
 
 		virtual std::string	toString( void ) const noexcept =0;
-		bool			hasBody( void) const noexcept;
-		int				getSocket( void ) const noexcept;
-		void			setSocket( int ) ;
-		virtual void	setTmpBody( std::string const& );
-		std::string		getTmpBody( void );
+		bool				hasBody( void) const noexcept;
+
+		int					getSocket( void ) const noexcept;
+		std::string const&	getTmpBody( void );
+		virtual void		setTmpBody( std::string const& );
 
 	protected:
 		dict 		_headers;

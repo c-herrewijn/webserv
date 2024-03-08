@@ -24,7 +24,6 @@
 # include "Exceptions.hpp"
 
 # define DEF_CONF std::string("default/default.conf")
-
 # define DEF_NAME std::string("localhost")
 
 class ConfigServer
