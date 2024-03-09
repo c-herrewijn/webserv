@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/09 03:25:56 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/09 03:58:19 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -230,6 +230,8 @@ t_path	HTTPrequest::getRealPath( void ) const noexcept
 		return (MAIN_PAGE_PATH);
 	else if (this->_url.path.extension() == ".ico")	// NB: should be done by validation, update content-type of response
 		return (FAVICON_PATH);
+	else if (this->_url.path.extension() == ".cgi")
+		return (t_path("/home/fra/Codam/webserv/var/www") / this->_url.path);
 	else
 		return (this->_url.path);
 	// return (this->_realPath):

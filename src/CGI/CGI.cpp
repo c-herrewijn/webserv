@@ -67,7 +67,7 @@ void CGI::run()
         dup2(this->_uploadPipe[0], STDIN_FILENO); // read from pipe
 
         std::string CGIfilePath = _req.getRealPath().generic_string();
-        std::string CGIfileName = CGIfilePath.substr(CGIfilePath.rfind("/")+1); // fully stripped, only used for execve
+        std::string CGIfileName = _req.getRealPath().filename().generic_string(); // fully stripped, only used for execve
         char *argv[2] = {(char*)CGIfileName.c_str(), NULL};
         int res = execve(CGIfilePath.c_str(), argv, this->_CgiEnvCStyle);
         if (res != 0)

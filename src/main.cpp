@@ -48,7 +48,7 @@ std::vector<ConfigServer>	parseServers(std::string const& fileName)
 int main(int ac, char **av)
 {
 	std::vector<ConfigServer> servers;
-
+	std::cout << av[0] << '\n';
 	if (ac == 1)
 	{
 		std::cout << "No argument provided, using default configuration in " C_GREEN << DEF_CONF << C_RESET "\n";

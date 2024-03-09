@@ -395,7 +395,6 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	else
 	{
 		HTMLfd = open(request->getRealPath().c_str(), O_RDONLY);
-		std::cout << request->getRealPath() << '\n';
 		response->setHTMLfd(HTMLfd);
 		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
 		this->_pollitems[clientSocket].pollState = READ_STATIC_FILE;
