@@ -6,18 +6,40 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/08 18:57:28 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/09 03:03:42 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPrequest.hpp"
 #include "CGI.hpp"
 
-void	HTTPrequest::parseHead( void )
+int	HTTPrequest::parseMain( void ) noexcept
+{
+	std::string	strHead, strHeaders, strBody;
+
+	try {
+		_parseHeads(strHead, strHeaders, strBody);
+		_setHead(strHead);
+		_setHeaders(strHeaders);
+	}
+	catch(const HTTPexception& e) {
+		std::cout << e.what() << '\n';
+		return (e.getStatus());
+	}
+	catch(const std::exception& e) {
+		std::cout << e.what() << '\n';
+		return (500);
+	}
+	if (strBody.empty() == false)
+		this->_tmpBody = strBody;
+	return (200);
+}
+
+void	HTTPrequest::_parseHeads( std::string& strHead, std::string& strHeaders, std::string& strBody )
 {
 	char		buffer[DEF_BUF_SIZE];
-	std::string content, head, headers;
-	size_t		delimiter = std::string::npos;
+	std::string content;
+	size_t		endHead=0, endReq=0;
 	ssize_t		charsRead = -1;
 
 	bzero(buffer, DEF_BUF_SIZE);
@@ -27,22 +49,17 @@ void	HTTPrequest::parseHead( void )
 	else if (charsRead == 0)
 		throw(ServerException({"connection closed"}));
 	content = std::string(buffer, buffer + charsRead);
-	delimiter = content.find(HTTP_TERM);
-	// std::cout << "|" << content << "|\n";
-	if (delimiter == std::string::npos)
-		throw(RequestException({"no header terminator in request"}, 400));
-	head = content.substr(0, delimiter);
-	delimiter += HTTP_TERM.size();
-	if ((delimiter + 1) < content.size())
-		this->_tmpBody = content.substr(delimiter);
-	delimiter = head.find(HTTP_NL);
-	if (delimiter != std::string::npos)
-	{
-		headers = head.substr(delimiter + HTTP_NL.size()) + HTTP_NL;
-		head = head.substr(0, delimiter);
-		HTTPstruct::_setHeaders(headers);
-	}
-	_setHead(head);
+	endReq = content.find(HTTP_TERM);		// look for head + headers
+	if (endReq == std::string::npos)
+		throw(RequestException({"no headers terminator in request"}, 400));
+	endHead = content.find(HTTP_NL);		// look for headers
+	if (endHead >= endReq)
+		throw(RequestException({"no headers in request"}, 400));
+	strHead = content.substr(0, endHead);
+	strHeaders = content.substr(endHead + HTTP_NL.size(), endReq - endHead - 1) + HTTP_NL;
+	endReq += HTTP_TERM.size();
+	if ((endReq + 1) < content.size())		// if there's a piece of the body
+		strBody = content.substr(endReq);
 }
 
 // NB: needs to change
@@ -56,9 +73,51 @@ void	HTTPrequest::parseBody( void )
 		_readPlainBody();
 }
 
+int		HTTPrequest::validateRequest( ConfigServer const& configServer ) noexcept
+{
+	int statusCode = 200;
+
+	// if (request->getRealPath() == "/")		// NB: should be done by validation
+	// 	request->setExecPath(MAIN_PAGE_PATH);
+	// else if (request->getRealPath().extension() == ".ico")	// NB: should be done by validation
+	// {
+	// 	response->updateContentType(ICO_CONTENT_TYPE);	// NB: should be done by validation
+	// 	request->setExecPath(FAVICON_PATH);
+	// }
+	// else if ((request->getRealPath().filename() == "main.css"))	// NB: should be done by validation
+	// 	request->setExecPath(t_path("var/www/main.css"));
+	// else if (! std::filesystem::exists(request->getRealPath()))		// NB: should be done by validation
+	// {
+	// 	// std::cout << request->getRealPath() << '\n';
+	// 	throw(RequestException({"path not found"}, 404));
+	// }
+		
+	this->_validator.setConfig(configServer);
+	this->_validator.setMethod(this->_method);
+	this->_validator.setPath(this->_url.path);
+	this->_validator.solvePath();
+	statusCode = this->_validator.getStatusCode();
+	if (statusCode >= 400)
+		return (statusCode);
+	this->_realPath = this->_validator.getRealPath();
+	this->_maxBodySize = this->_validator.getMaxBodySize();
+	try {
+		_checkMaxBodySize();
+	}
+	catch(const RequestException& e) {
+		statusCode = e.getStatus();
+	}
+	return (statusCode);
+}
+
 bool	HTTPrequest::isCGI( void ) const noexcept
 {
 	return (this->_validator.isCGI());
+}
+
+bool	HTTPrequest::isAutoIndex( void ) const noexcept
+{
+	return (this->_validator.isAutoIndex());
 }
 
 bool	HTTPrequest::isChunked( void ) const noexcept
@@ -122,19 +181,6 @@ std::string	HTTPrequest::toString( void ) const noexcept
 	return (strReq);
 }
 
-// HTTPtmp const&		HTTPrequest::getValidation( void ) const noexcept
-// {
-// 	return (this->_validation);
-// }
-
-// void				HTTPrequest::setValidation( HTTPtmp const& input) noexcept
-// {
-// 	this->_validation.autoindexEnabled = input.autoindexEnabled;
-// 	this->_validation.cgiEnabled = input.cgiEnabled;
-// 	this->_validation.execPath = input.execPath;
-// 	this->_validation.statusCode = input.statusCode;
-// }
-
 HTTPmethod		HTTPrequest::getMethod( void ) const noexcept
 {
 	return (this->_method);
@@ -192,31 +238,9 @@ std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 	return (boundary);
 }
 
-ConfigServer const&		HTTPrequest::getConfigServer( void ) const noexcept
+t_path	HTTPrequest::getRealPath( void ) const noexcept
 {
-    return (*(this->_configServer));
-}
-
-void 	HTTPrequest::setConfigServer(ConfigServer const* config) noexcept
-{
-	this->_configServer = config;
-	this->_servName = config->getPrimaryName();
-	this->_validator.setConfig(config);
-}
-
-t_path	HTTPrequest::getExecPath( void ) const noexcept
-{
-	return (this->_execPath);
-}
-
-void 	HTTPrequest::setExecPath( t_path realPath ) noexcept
-{
-	this->_execPath = realPath;
-}
-
-void	HTTPrequest::_setMaxBodySize( size_t maxSize) noexcept
-{
-	this->_maxBodySize = maxSize;
+	return (this->_realPath);
 }
 
 void	HTTPrequest::_setHead( std::string const& header )
@@ -224,13 +248,13 @@ void	HTTPrequest::_setHead( std::string const& header )
 	std::istringstream	stream(header);
 	std::string 		method, url, version;
 
-	if (! std::getline(stream, method, ' '))
+	if (! std::getline(stream, method, HTTP_SP))
 		throw(RequestException({"invalid header:", header}, 400));
 	_setMethod(method);
-	if (! std::getline(stream, url, ' '))
+	if (! std::getline(stream, url, HTTP_SP))
 		throw(RequestException({"invalid header:", header}, 400));
 	_setURL(url);
-	if (! std::getline(stream, version, ' '))
+	if (! std::getline(stream, version, HTTP_SP))
 		throw(RequestException({"invalid header:", header}, 400));
 	_setVersion(version);
 }
@@ -281,10 +305,6 @@ void	HTTPrequest::_setURL( std::string const& strURL )
 		tmpURL = tmpURL.substr(delimiter);
 	}
 	_setPath(tmpURL);
-	this->_validator.solvePath();
-	if (this->_validator.getStatusCode() == 500)
-		throw(RequestException({"server is corrupted"}, 500));
-	this->_execPath = this->_validator.getExecPath();
 }
 
 void	HTTPrequest::_setScheme( std::string const& strScheme )
@@ -324,21 +344,20 @@ void	HTTPrequest::_setHostPort( std::string const& strURL )
 
 void	HTTPrequest::_setPath( std::string const& strPath )
 {
-	size_t		del1, del2;
+	size_t		queryPos, fragmentPos;
 	std::string	tmpPath=strPath;
 
-	del1 = tmpPath.find('?');
-	del2 = tmpPath.find('#');
-	this->_url.path = tmpPath.substr(0, std::min(del1, del2));
-	this->_validator.setPath(this->_url.path);
-	if (del1 != std::string::npos)
+	queryPos = tmpPath.find('?');
+	fragmentPos = tmpPath.find('#');
+	this->_url.path = tmpPath.substr(0, std::min(queryPos, fragmentPos));
+	if (queryPos != std::string::npos)
 	{
-		tmpPath = tmpPath.substr(del1);
+		tmpPath = tmpPath.substr(queryPos);
 		_setQuery(tmpPath);
 	}
-	if (del2 != std::string::npos)
+	if (fragmentPos != std::string::npos)
 	{
-		tmpPath = tmpPath.substr(del2);
+		tmpPath = tmpPath.substr(fragmentPos);
 		_setFragment(tmpPath);
 	}
 }
@@ -399,9 +418,26 @@ void	HTTPrequest::_setVersion( std::string const& strVersion )
 		throw(RequestException({"unsupported HTTP version:", strVersion}, 505));
 }
 
-void	HTTPrequest::checkHeaders( size_t maxBodyLength )
+void	HTTPrequest::_checkMaxBodySize( void )
+{
+	if ((hasBody() == false) or (this->_maxBodySize == 0))
+		return;
+	if (isChunked() == true)
+	{
+		if (this->_maxBodySize < this->_tmpBody.size())
+			throw(RequestException({"Content-Length longer than config max body length"}, 413));
+	}
+	else
+	{
+		if (this->_maxBodySize < this->_contentLength)
+			throw(RequestException({"Content-Length longer than config max body length"}, 413));
+	}
+}
+
+void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 {
 	size_t	contentLength = 0;
+	HTTPstruct::_setHeaders(strHeaders);
 
 	if (this->_headers.count("Host") == 0)
 		throw(RequestException({"no Host header"}, 412));
@@ -416,12 +452,7 @@ void	HTTPrequest::checkHeaders( size_t maxBodyLength )
 		if (this->_headers.count("Transfer-Encoding") == 0)		// no body
 			return ;
 		else if (this->_headers.at("Transfer-Encoding") == "chunked")
-		{
-			if ((maxBodyLength > 0) and (this->_tmpBody.size() > maxBodyLength))
-				throw(RequestException({"Content-Length is longer than maximum allowed"}, 413));
 			this->_isChunked = true;
-			contentLength = maxBodyLength;
-		}
 	}
 	else
 	{
@@ -431,15 +462,15 @@ void	HTTPrequest::checkHeaders( size_t maxBodyLength )
 		catch (const std::exception& e) {
 			throw(RequestException({"invalid Content-Length"}, 400));
 		}
-		if ((maxBodyLength > 0) and (contentLength > maxBodyLength))
-			throw(RequestException({"Content-Length is longer than maximum allowed"}, 413));
-		else if (this->_tmpBody.size() > contentLength)
-			throw(RequestException({"body is longer than expected"}, 413));
+		if (this->_tmpBody.size() > contentLength)
+			throw(RequestException({"body is longer than Content-Length"}, 400));
 		if (this->_headers.count("Content-Type") != 0)
-			this->_isFileUpload = this->_headers["Content-Type"].find("multipart/form-data; boundary=-") == 0;
+		{
+			if (this->_headers["Content-Type"].find("multipart/form-data; boundary=-") == 0)
+				this->_isFileUpload = true;
+		}
 	}
 	this->_contentLength = contentLength;
-	this->_maxBodySize = maxBodyLength;
 	this->_hasBody = true;
 }
 

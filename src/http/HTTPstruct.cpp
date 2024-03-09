@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/08 17:34:06 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/09 02:48:47 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,6 +68,7 @@ HTTPstruct::HTTPstruct( int socket ) : _hasBody(false)
 	this->_version.minor = 1;
 	if (socket < 0)
 		throw(ServerException({"invalid socket"}));
+	this->_socket = socket;
 }
 
 bool	HTTPstruct::hasBody( void) const noexcept
@@ -78,6 +79,16 @@ bool	HTTPstruct::hasBody( void) const noexcept
 int		HTTPstruct::getSocket( void ) const noexcept
 {
 	return (this->_socket);
+}
+
+std::string const&	HTTPstruct::getServName( void ) const noexcept
+{
+	return(this->_servName);
+}
+
+void	HTTPstruct::setServName( std::string nameServ) noexcept
+{
+	this->_servName = nameServ;
 }
 
 std::string const&	HTTPstruct::getTmpBody( void )

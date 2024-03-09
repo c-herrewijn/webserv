@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/08 17:39:55 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/09 01:45:46 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,6 +38,7 @@ class HTTPresponse : public HTTPstruct
 		void		parseFromStatic( void );
 		void		parseFromCGI( std::string const& );
 		void		readHTML( void );
+		void		readContentDirectory( t_path const&);
 		void		writeContent( void ) ;
 		std::string	toString( void ) const noexcept override;
 
@@ -49,7 +50,6 @@ class HTTPresponse : public HTTPstruct
 		int			getHTMLfd( void ) const noexcept;
 		bool		isDoneReadingHTML( void ) const noexcept;
 		bool		isDoneWriting( void ) const noexcept;
-		void		setServName(std::string) noexcept;
 
 	protected:
 		int			_statusCode, _HTMLfd;

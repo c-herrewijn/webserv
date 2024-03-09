@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/08 17:14:38 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/09 02:15:17 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,11 +88,7 @@ class WebServer
 
 		void			startListen( void );
 		void			loop( void );
-
-		std::string			getAddress( const struct sockaddr_storage*) const noexcept ;
-		ConfigServer const&	getHandler( std::string const& ) const noexcept;
-		ConfigServer const&	getDefaultServer( void ) const noexcept;
-
+		
 	private:
 		ConfigServer				 _defaultServer;
 		std::vector<ConfigServer>	 _servers;
@@ -105,18 +101,22 @@ class WebServer
 		std::vector<int>						_emptyConns;
 
 		void			_listenTo( std::string const&, std::string const& );
+		void			_readData( int );
+		void			_writeData( int );
 		void			_addConn( int , fdType , fdState );
 		void			_dropConn( int ) noexcept;
 		void			_clearEmptyConns( void ) noexcept;
+		std::string			_getAddress( const struct sockaddr_storage*) const noexcept ;
+		ConfigServer const&	_getHandler( std::string const& ) noexcept;
+		ConfigServer const&	_getDefaultHandler( void ) noexcept;
 		std::string		_getHTMLfromCode( int ) const noexcept;
-		int				_getSocketFromPollitem( t_PollItem const& ) noexcept;
-
-		void			handleNewConnections( t_PollItem& ); // keep - DONE
-		void			readRequestHeaders( t_PollItem& ); // keep / rework
-		void			readStaticFiles( t_PollItem& ); // keep / rework
-		void			readRequestBody( t_PollItem& item );
-		void			readCGIResponses( t_PollItem& ); // keep / rework
-		void			writeToCGI( t_PollItem& item );
-		void			writeToClients( t_PollItem& );
-		void			redirectToErrorPage( t_PollItem&, int ) noexcept;
+		int				_getSocketFromFd( int ) noexcept;
+		void			handleNewConnections( int ); // keep - DONE
+		void			readRequestHeaders( int ); // keep / rework
+		void			readStaticFiles( int ); // keep / rework
+		void			readRequestBody( int );
+		void			readCGIResponses( int ); // keep / rework
+		void			writeToCGI( int item );
+		void			writeToClients( int );
+		void			redirectToErrorPage( int, int ) noexcept;
 };

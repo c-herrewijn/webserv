@@ -17,6 +17,7 @@
 # include <unordered_set>
 # include <unordered_map>
 # include <climits>
+# include <cstdint>
 # include <stdexcept>
 # include <iostream>
 # include <bitset>

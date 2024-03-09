@@ -25,7 +25,7 @@
 #define HTTP_SCHEME		std::string("HTTP")			// http scheme
 #define HTTP_TERM		std::string("\r\n\r\n")		// http terminator
 #define HTTP_NL			std::string("\r\n")			// http delimiter
-#define HTTP_SP			std::string(" ")			// shortcut for space
+#define HTTP_SP			' '							// shortcut for space
 #define DEF_BUF_SIZE 	8192
 
 // void	testReqs( void );
@@ -58,6 +58,8 @@ class HTTPstruct
 		bool				hasBody( void) const noexcept;
 
 		int					getSocket( void ) const noexcept;
+		std::string const&	getServName( void ) const noexcept;
+		void				setServName(std::string) noexcept;
 		std::string const&	getTmpBody( void );
 		virtual void		setTmpBody( std::string const& );
 

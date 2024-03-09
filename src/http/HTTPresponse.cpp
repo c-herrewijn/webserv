@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/08 17:44:59 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/09 02:34:06 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,6 +58,11 @@ void	HTTPresponse::readHTML( void )
 	this->_tmpBody += std::string(buffer, buffer + readChar);
 	if (readChar < DEF_BUF_SIZE)
 		this->_gotFullHTML = true;
+}
+
+void	HTTPresponse::readContentDirectory( t_path const& pathDir)
+{
+	(void) pathDir;
 }
 
 void		HTTPresponse::writeContent( void )
@@ -154,11 +159,6 @@ bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept
 bool	HTTPresponse::isDoneWriting( void ) const noexcept
 {
 	return (this->_responseDone);
-}
-
-void	HTTPresponse::setServName( std::string nameServ) noexcept
-{
-	this->_servName = nameServ;
 }
 
 void	HTTPresponse::_setHeaders( std::string const& strHeaders )

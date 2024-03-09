@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/08 19:07:45 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/09 01:56:32 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,14 +36,6 @@ typedef struct HTTPurl_f
 
 } HTTPurl;
 
-// typedef struct HTTPtmp_f
-// {
-// 	bool	autoindexEnabled;		// NB: i can retrive this value from Location (right?)
-// 	bool	cgiEnabled;				// NB: i can retrive this value from Location (right?)
-// 	int		statusCode;				// maybe not necessary
-// 	t_path	execPath;
-// } HTTPtmp;
-
 class HTTPrequest : public HTTPstruct
 {
 	public:
@@ -56,19 +48,18 @@ class HTTPrequest : public HTTPstruct
 			_endConn(false) {};
 		virtual ~HTTPrequest( void ) override {};
 
-		void			parseHead( void );
+		int				parseMain( void ) noexcept;
 		void			parseBody( void );
+		int				validateRequest( ConfigServer const& ) noexcept;
 		bool			isCGI( void ) const noexcept;
+		bool			isAutoIndex( void ) const noexcept;
 		bool			isChunked( void ) const noexcept;
 		bool			isFileUpload( void ) const noexcept;
 		bool			isEndConn( void ) const noexcept;
 
-		void			checkHeaders( size_t );
 
 		std::string	toString( void ) const noexcept override;
 
-		// HTTPtmp const&		getValidation( void ) const noexcept;
-		// void				setValidation( HTTPtmp const& ) noexcept;
 		HTTPmethod		 	getMethod( void ) const noexcept;
 		std::string		 	getStrMethod( void ) const noexcept;
 		t_path			 	getPath( void ) const noexcept;
@@ -76,24 +67,20 @@ class HTTPrequest : public HTTPstruct
 		std::string	const& 	getBody( void ) const noexcept;
 		std::string	const&	getQueryRaw( void ) const noexcept;
 		std::string			getContentTypeBoundary( void ) const noexcept;
-		ConfigServer const&	getConfigServer( void ) const noexcept;
-		void 				setConfigServer(ConfigServer const* config) noexcept;
-		t_path				getExecPath( void ) const noexcept;
-		void 				setExecPath( t_path ) noexcept;
+		t_path				getRealPath( void ) const noexcept;
 
 	protected:
 		HTTPmethod			_method;
 		HTTPurl				_url;
-		ConfigServer const*	_configServer;
-		t_path				_execPath;
-		// HTTPtmp				_validation;
+		t_path				_realPath;
 		RequestValidate		_validator;
 
 		size_t		_maxBodySize, _contentLength;
 		bool		_isChunked, _isFileUpload, _endConn;
 
-		void	_setMaxBodySize(size_t) noexcept;
+		void	_parseHeads( std::string&, std::string&, std::string& );
 		void	_setHead( std::string const& );
+		void	_setHeaders(std::string const& ) override;
 
 		void	_setMethod( std::string const& );
 		void	_setURL( std::string const& );
@@ -104,6 +91,7 @@ class HTTPrequest : public HTTPstruct
 		void	_setFragment( std::string const& );
 		void	_setVersion( std::string const& );
 
+		void		_checkMaxBodySize( void );
 		std::string	_unchunkBody( std::string const& );
 		void		_readPlainBody( void );
 		void		_readChunkedBody( void );
