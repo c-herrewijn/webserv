@@ -33,7 +33,7 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(const HTTPrequest &req)
         "REMOTE_IDENT=",
         "REMOTE_USER=",
         "REQUEST_METHOD=" + req.getStrMethod(),
-        "SCRIPT_NAME=" + req.getRealPath().generic_string().substr(req.getRealPath().generic_string().find_last_of("/\\") + 1), // script name, e.g. myScript.cgi
+        "SCRIPT_NAME=" + req.getRealPath().filename().generic_string(), // script name, e.g. myScript.cgi
         "SCRIPT_FILENAME=" + req.getRealPath().generic_string(), // script path relative to document root, e.g. /cgi-bin/myScript.cgi
         "SERVER_NAME=" + req.getServName(),
         "SERVER_PORT=" + req.getPort(),
