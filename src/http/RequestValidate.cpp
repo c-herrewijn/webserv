@@ -28,7 +28,6 @@
 
 RequestValidate::RequestValidate(void)
 {
-	// request = nullptr;
 	config = nullptr;
 	validLocation = nullptr;
 	validParams = nullptr;
@@ -113,7 +112,7 @@ int RequestValidate::getStatusCode() const
 	return (statusCode);
 }
 
-t_path const&	RequestValidate::getExecPath() const
+t_path const&	RequestValidate::getRealPath() const
 {
 	execDir.lexically_normal();
 	return (execDir);
@@ -153,7 +152,7 @@ void	RequestValidate::_initValidLocation(void)
 	std::vector<std::string>::iterator	it;
 
 	_separateFolders(targetDir, folders);
-	for (auto location : config->getLocations())
+	for (auto location : config.getLocations())
 	{
 		it = folders.begin();
 		valid = _diveLocation(location, it);
@@ -354,7 +353,7 @@ void	RequestValidate::_handleStatus(void)
 		return ;
 	if (_handleErrorCode())
 		return ;
-	_setValidParams(&config->getParams());
+	_setValidParams(&config.getParams());
 	if (_handleErrorCode())
 		return ;
 	if (_handleServerPages())
@@ -363,9 +362,7 @@ void	RequestValidate::_handleStatus(void)
 	_setStatusCode(500); // handleInternal();
 }
 
-
-
-void	RequestValidate::setConfig( ConfigServer const* configServ)
+void	RequestValidate::setConfig( ConfigServer const& configServ)
 {
 	this->config = configServ;
 }
@@ -387,7 +384,7 @@ void	RequestValidate::solvePath(void)
 		return (_setStatusCode(404));
 	_setStatusCode(200);
 	// default params
-	_setValidParams(&config->getParams());
+	_setValidParams(&config.getParams());
 	// set asked file
 	_setTargetFile( this->requestPath.filename());
 	// save path except file

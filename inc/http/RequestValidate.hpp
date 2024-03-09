@@ -27,19 +27,19 @@ class RequestValidate
 		HTTPmethod					requestMethod;
 		t_path						requestPath;
 
-		t_path						execPath;
+		t_path						_realPath;
 		bool						_autoIndex;
 		bool						_isCGI;
 		bool						_isFile;
+		size_t						_maxBodySize;
 		
-
 		Location*					validLocation;
 		Parameters*					validParams;
 		std::string					targetDir;
 		std::string					targetFile;
 		std::vector<std::string>	folders;
 
-		ConfigServer const*			config;
+		ConfigServer				config;
 		size_t						statusCode;
 		t_path						execDir;
 
@@ -70,12 +70,13 @@ class RequestValidate
 	public:
 		RequestValidate(void);
 
-		void	setConfig( ConfigServer const* );
+		void	setConfig( ConfigServer const& );
 		void	setMethod( HTTPmethod );
 		void	setPath( t_path const& );
 	
-		t_path const&	getExecPath( void ) const;
+		t_path const&	getRealPath( void ) const;
 		int				getStatusCode( void ) const;
+		size_t			getMaxBodySize( void ) const;
 		bool			isCGI() const;
 		bool			isAutoIndex() const;
 		bool			isFile() const;
