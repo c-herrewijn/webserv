@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/09 03:03:42 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/09 03:25:56 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,43 +76,29 @@ void	HTTPrequest::parseBody( void )
 int		HTTPrequest::validateRequest( ConfigServer const& configServer ) noexcept
 {
 	int statusCode = 200;
-
-	// if (request->getRealPath() == "/")		// NB: should be done by validation
-	// 	request->setExecPath(MAIN_PAGE_PATH);
-	// else if (request->getRealPath().extension() == ".ico")	// NB: should be done by validation
-	// {
-	// 	response->updateContentType(ICO_CONTENT_TYPE);	// NB: should be done by validation
-	// 	request->setExecPath(FAVICON_PATH);
-	// }
-	// else if ((request->getRealPath().filename() == "main.css"))	// NB: should be done by validation
-	// 	request->setExecPath(t_path("var/www/main.css"));
-	// else if (! std::filesystem::exists(request->getRealPath()))		// NB: should be done by validation
-	// {
-	// 	// std::cout << request->getRealPath() << '\n';
-	// 	throw(RequestException({"path not found"}, 404));
-	// }
 		
 	this->_validator.setConfig(configServer);
-	this->_validator.setMethod(this->_method);
-	this->_validator.setPath(this->_url.path);
-	this->_validator.solvePath();
-	statusCode = this->_validator.getStatusCode();
-	if (statusCode >= 400)
-		return (statusCode);
-	this->_realPath = this->_validator.getRealPath();
-	this->_maxBodySize = this->_validator.getMaxBodySize();
-	try {
-		_checkMaxBodySize();
-	}
-	catch(const RequestException& e) {
-		statusCode = e.getStatus();
-	}
+	// this->_validator.setMethod(this->_method);
+	// this->_validator.setPath(this->_url.path);
+	// this->_validator.solvePath();
+	// statusCode = this->_validator.getStatusCode();
+	// if (statusCode >= 400)
+	// 	return (statusCode);
+	// this->_realPath = this->_validator.getRealPath();
+	// this->_maxBodySize = this->_validator.getMaxBodySize();
+	// try {
+	// 	_checkMaxBodySize();
+	// }
+	// catch(const RequestException& e) {
+	// 	statusCode = e.getStatus();
+	// }
 	return (statusCode);
 }
 
 bool	HTTPrequest::isCGI( void ) const noexcept
 {
-	return (this->_validator.isCGI());
+	// return (this->_validator.isCGI());
+	return (this->_url.path.extension() == ".cgi");
 }
 
 bool	HTTPrequest::isAutoIndex( void ) const noexcept
@@ -206,14 +192,14 @@ t_path		HTTPrequest::getPath( void ) const noexcept
 	return (this->_url.path);
 }
 
-std::string		HTTPrequest::getHost( void ) const noexcept
+std::string const&		HTTPrequest::getHost( void ) const noexcept
 {
-	std::string hostStr;
-	size_t		delim;
+	return (this->_url.host);
+}
 
-	hostStr = this->_headers.at("Host");
-	delim = hostStr.find(':');
-	return (hostStr.substr(0, delim));
+std::string		HTTPrequest::getPort( void ) const noexcept
+{
+	return (std::to_string(this->_url.port));
 }
 
 std::string	const&	HTTPrequest::getBody( void ) const noexcept
@@ -240,7 +226,13 @@ std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 
 t_path	HTTPrequest::getRealPath( void ) const noexcept
 {
-	return (this->_realPath);
+	if (this->_url.path == "/")		// NB: should be done by validation
+		return (MAIN_PAGE_PATH);
+	else if (this->_url.path.extension() == ".ico")	// NB: should be done by validation, update content-type of response
+		return (FAVICON_PATH);
+	else
+		return (this->_url.path);
+	// return (this->_realPath):
 }
 
 void	HTTPrequest::_setHead( std::string const& header )

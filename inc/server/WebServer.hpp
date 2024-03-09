@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/09 02:15:17 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/09 03:07:58 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,8 +47,6 @@
 #define BACKLOG 				10		// max pending connection queued up
 #define HTML_ERROR_FOLDER		std::filesystem::path("var/www/errors")
 #define DEFAULT_ERROR_PAGE_PATH std::filesystem::path("var/www/errors/500.html")
-#define MAIN_PAGE_PATH	 		std::filesystem::path("var/www/test.html")
-#define FAVICON_PATH			std::filesystem::path("var/www/favicon.ico")
 
 enum fdType
 {

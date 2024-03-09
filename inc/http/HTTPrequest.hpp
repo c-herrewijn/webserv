@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/09 01:56:32 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/09 03:26:04 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,9 @@
 #include "HTTPresponse.hpp"
 #include "ConfigServer.hpp"
 #include "RequestValidate.hpp"
+
+#define MAIN_PAGE_PATH	 		std::filesystem::path("var/www/test.html")
+#define FAVICON_PATH			std::filesystem::path("var/www/favicon.ico")
 
 typedef struct HTTPurl_f
 {
@@ -63,7 +66,8 @@ class HTTPrequest : public HTTPstruct
 		HTTPmethod		 	getMethod( void ) const noexcept;
 		std::string		 	getStrMethod( void ) const noexcept;
 		t_path			 	getPath( void ) const noexcept;
-		std::string		 	getHost( void ) const noexcept;
+		std::string const&	getHost( void ) const noexcept;
+		std::string		 	getPort( void ) const noexcept;
 		std::string	const& 	getBody( void ) const noexcept;
 		std::string	const&	getQueryRaw( void ) const noexcept;
 		std::string			getContentTypeBoundary( void ) const noexcept;

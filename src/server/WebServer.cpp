@@ -97,11 +97,11 @@ void			WebServer::loop( void )
 					this->_emptyConns.push_back(pollfdItem.fd);
 			}
 			catch (const ServerException& e) {
-				// std::cerr << e.what() << '\n';
+				std::cerr << e.what() << '\n';
 				this->_emptyConns.push_back(pollfdItem.fd);
 			}
 			catch (const HTTPexception& e) {
-				// std::cerr << e.what() << '\n';
+				std::cerr << e.what() << '\n';
 				redirectToErrorPage(pollfdItem.fd, e.getStatus());
 			}
 		}
@@ -395,6 +395,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	else
 	{
 		HTMLfd = open(request->getRealPath().c_str(), O_RDONLY);
+		std::cout << request->getRealPath() << '\n';
 		response->setHTMLfd(HTMLfd);
 		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
 		this->_pollitems[clientSocket].pollState = READ_STATIC_FILE;
@@ -492,6 +493,7 @@ void	WebServer::writeToClients( int clientSocket )
 	}
 	else
 		response->parseFromStatic();
+	// std::cout << "|" << response->toString() << "|\n";
 	response->writeContent();
 	if (response->isDoneWriting())
 	{
@@ -518,6 +520,7 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 		this->_emptyConns.push_back(genericFd);
 		return ;
 	}
+	std::cout  << "error redirected\n";
 	response = this->_responses.at(clientSocket);
 	response->setStatusCode(statusCode);
 	if (this->_pollitems[genericFd].pollType == STATIC_FILE)

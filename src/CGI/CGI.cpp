@@ -20,15 +20,6 @@ CGI::~CGI() {
 
 std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(const HTTPrequest &req)
 {
-    // split "Host" in addr and port. TODO: error handling via try/catch
-    std::istringstream ss(req.getHost());
-    std::string addr;
-    std::string port;
-    std::getline(ss, addr, ':');
-    std::getline(ss, port);
-
-    std::string method = req.getStrMethod();
-
     std::array<std::string, CGI_ENV_SIZE> CGIEnv {
         "AUTH_TYPE=",
         "CONTENT_LENGTH=" + std::to_string(this->_req.getBody().length()),
@@ -37,15 +28,15 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(const HTTPrequest &req)
         "PATH_INFO=",
         "PATH_TRANSLATED=",
         "QUERY_STRING=" + req.getQueryRaw(),
-        "REMOTE_ADDR=" + addr,
+        "REMOTE_ADDR=" + req.getHost(),
         "REMOTE_HOST=",
         "REMOTE_IDENT=",
         "REMOTE_USER=",
-        "REQUEST_METHOD=" + method,
+        "REQUEST_METHOD=" + req.getStrMethod(),
         "SCRIPT_NAME=" + req.getRealPath().generic_string().substr(req.getRealPath().generic_string().find_last_of("/\\") + 1), // script name, e.g. myScript.cgi
         "SCRIPT_FILENAME=" + req.getRealPath().generic_string(), // script path relative to document root, e.g. /cgi-bin/myScript.cgi
         "SERVER_NAME=" + req.getServName(),
-        "SERVER_PORT=" + port,
+        "SERVER_PORT=" + req.getPort(),
         "SERVER_PROTOCOL=HTTP/1.1", // fixed
         "SERVER_SOFTWARE=WebServServer/1.0", // fixed
         "HTTP_COOKIE=", // TODO
