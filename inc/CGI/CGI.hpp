@@ -3,6 +3,7 @@
 
 # define CGI_ENV_SIZE 19
 # define CGI_READ_BUFFER_SIZE 10000
+# define ROOT std::string("/home/fra/Codam/webserv/var/www")
 
 # include <array>
 # include <string>

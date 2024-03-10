@@ -486,6 +486,8 @@ void	WebServer::writeToClients( int clientSocket )
 		throw(ServerException({"request or response not found"}));
 	if (request->isCGI()) {
 		CGI *cgi = this->_cgi[clientSocket];
+		if (!cgi)	// that should never happen
+			throw(ServerException({"cgi not found"}));
 		response->parseFromCGI(cgi->getResponse());
 		delete (cgi);
 		this->_cgi.erase(clientSocket);
