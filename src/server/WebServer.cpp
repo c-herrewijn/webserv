@@ -360,13 +360,15 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	CGI 			*cgiPtr = nullptr;
 	int 			HTMLfd = -1;
 	fdState			nextState;
+	ConfigServer	handler;
 
 	request = new HTTPrequest(clientSocket);
 	response = new HTTPresponse(clientSocket);
 	this->_requests.insert(std::pair<int, HTTPrequest*>(clientSocket, request));
 	this->_responses.insert(std::pair<int, HTTPresponse*>(clientSocket, response));
 	request->parseMain();
-	request->validateRequest(_getHandler(request->getHost()));
+	handler = _getHandler(request->getHost());
+	request->validateRequest(&handler);
 	if (request->isAutoIndex())
 	{
 		response->readContentDirectory(request->getRealPath());

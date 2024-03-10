@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/10 23:32:21 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/10 23:46:51 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,11 +62,11 @@ void	HTTPrequest::parseBody( void )
 		_readPlainBody();
 }
 
-void		HTTPrequest::validateRequest( ConfigServer const& configServer )
+void		HTTPrequest::validateRequest( ConfigServer const* configServer )
 {
 	int statusCode = 200;
 	
-	this->_servName = configServer.getPrimaryName();
+	this->_servName = configServer->getPrimaryName();
 	this->_validator.setConfig(configServer);
 	this->_validator.setMethod(this->_method);
 	this->_validator.setPath(this->_url.path);

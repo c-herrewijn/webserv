@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/10 23:20:11 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/10 23:43:09 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,7 +53,7 @@ class HTTPrequest : public HTTPstruct
 
 		void			parseMain( void );
 		void			parseBody( void );
-		void			validateRequest( ConfigServer const& );
+		void			validateRequest( ConfigServer const* );
 		bool			isCGI( void ) const noexcept;
 		bool			isAutoIndex( void ) const noexcept;
 		bool			isChunked( void ) const noexcept;

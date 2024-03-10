@@ -78,9 +78,9 @@ std::unordered_map<size_t, std::string>	RequestValidate::getErrPages( void ) con
 // ╔════════════════════════════════╗
 // ║			SETTER PART			║
 // ╚════════════════════════════════╝
-void	RequestValidate::setConfig( ConfigServer const& configServ)
+void	RequestValidate::setConfig( ConfigServer const* configServ)
 {
-	this->_requestConfig = &configServ;
+	this->_requestConfig = configServ;
 }
 
 void	RequestValidate::setMethod( HTTPmethod method )

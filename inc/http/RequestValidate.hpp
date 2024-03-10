@@ -58,7 +58,7 @@ class RequestValidate
 		RequestValidate( void );
 		virtual	~RequestValidate( void );
 
-		void	setConfig( ConfigServer const& );
+		void	setConfig( ConfigServer const* );
 		void	setMethod( HTTPmethod );
 		void	setPath( t_path const& );
 		void	solvePath( void );
