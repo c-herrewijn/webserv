@@ -65,6 +65,16 @@ bool	RequestValidate::isCGI( void ) const
 	return (_isCGI);
 }
 
+t_path	RequestValidate::getRoot( void ) const
+{
+	return (t_path(this->_validParams->getRoot()));
+}
+
+std::unordered_map<size_t, std::string>	RequestValidate::getErrPages( void ) const
+{
+	return (this->_validParams->getErrorPages());
+}
+
 // ╔════════════════════════════════╗
 // ║			SETTER PART			║
 // ╚════════════════════════════════╝

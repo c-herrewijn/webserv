@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/09 02:34:06 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/10 23:13:42 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,8 +16,6 @@ void	HTTPresponse::parseFromStatic( void )
 {
 	_addHeader("Date", _getDateTime());
 	_addHeader("Server", this->_servName);
-	if (this->_statusCode == 500)
-		this->_tmpBody = ERROR_500_CONTENT;
 	if (this->_tmpBody.empty() == false)
 	{
 		_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
@@ -49,6 +47,12 @@ void	HTTPresponse::readHTML( void )
 
 	if (this->_gotFullHTML)
 		throw(ResponseException({"HTML already parsed"}, 500));
+	else if (this->_statusCode == 500)
+	{
+		this->_gotFullHTML = true;
+		this->_tmpBody = ERROR_500_CONTENT;
+		return ;
+	}
 	else if (this->_HTMLfd == -1)
 		throw(ResponseException({"invalid fd"}, 500));
 	bzero(buffer, DEF_BUF_SIZE);

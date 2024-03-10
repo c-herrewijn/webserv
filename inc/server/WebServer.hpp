@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/09 03:07:58 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/10 23:30:56 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,8 +73,6 @@ typedef struct PollItem
 	int				fd;
 	fdType          pollType;
     fdState         pollState;
-    bool			actionHappened;	// NB. still needed?
-
 } t_PollItem;
 
 // NB: in case of terminating error child process must be killed with signals

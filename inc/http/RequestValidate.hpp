@@ -63,13 +63,15 @@ class RequestValidate
 		void	setPath( t_path const& );
 		void	solvePath( void );
 
-		Parameters*		getValidParams( void ) const;
-		t_path const&	getRealPath( void ) const;
-		std::uintmax_t	getMaxBodySize( void ) const;
-		int				getStatusCode( void ) const;
-		bool			isAutoIndex( void ) const;
-		bool			isFile( void ) const;
-		bool			isCGI( void ) const;
+		Parameters*								getValidParams( void ) const;
+		t_path const&							getRealPath( void ) const;
+		std::uintmax_t							getMaxBodySize( void ) const;
+		int										getStatusCode( void ) const;
+		t_path									getRoot( void ) const;
+		std::unordered_map<size_t, std::string>	getErrPages( void ) const;
+		bool									isAutoIndex( void ) const;
+		bool									isFile( void ) const;
+		bool									isCGI( void ) const;
 };
 
 #endif

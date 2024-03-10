@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/09 03:40:35 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/10 23:20:11 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,9 +51,9 @@ class HTTPrequest : public HTTPstruct
 			_endConn(false) {};
 		virtual ~HTTPrequest( void ) override {};
 
-		int				parseMain( void ) noexcept;
+		void			parseMain( void );
 		void			parseBody( void );
-		int				validateRequest( ConfigServer const& ) noexcept;
+		void			validateRequest( ConfigServer const& );
 		bool			isCGI( void ) const noexcept;
 		bool			isAutoIndex( void ) const noexcept;
 		bool			isChunked( void ) const noexcept;
@@ -73,11 +73,11 @@ class HTTPrequest : public HTTPstruct
 		std::string			getContentTypeBoundary( void ) const noexcept;
 		t_path				getRealPath( void ) const noexcept;
 
-
 	protected:
 		HTTPmethod			_method;
 		HTTPurl				_url;
-		t_path				_realPath;
+		t_path				_realPath, _root;
+		std::unordered_map<size_t, std::string>	_errPages;
 		RequestValidate		_validator;
 
 		size_t		_maxBodySize, _contentLength;
@@ -96,7 +96,7 @@ class HTTPrequest : public HTTPstruct
 		void	_setFragment( std::string const& );
 		void	_setVersion( std::string const& );
 
-		void		_checkMaxBodySize( void );
+		void		_checkMaxBodySize( size_t );
 		std::string	_unchunkBody( std::string const& );
 		void		_readPlainBody( void );
 		void		_readChunkedBody( void );

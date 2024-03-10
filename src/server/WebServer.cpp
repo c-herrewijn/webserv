@@ -104,8 +104,13 @@ void			WebServer::loop( void )
 				std::cerr << e.what() << '\n';
 				redirectToErrorPage(pollfdItem.fd, e.getStatus());
 			}
-		}
+			catch(const std::exception& e) {
+				std::cerr << e.what() << '\n';
+				redirectToErrorPage(pollfdItem.fd, 500);
+				this->_emptyConns.push_back(pollfdItem.fd);
+			}
 		_clearEmptyConns();
+		}
 	}
 }
 
@@ -220,8 +225,9 @@ void	WebServer::_readData( int readFd )
 			std::cerr << C_GREEN << "POLLIN - READ_STATIC_FILE - " << readFd << C_RESET << std::endl;
 			readStaticFiles(readFd);
 			break;
+
 		default:
-			break;
+			break;		// NB: or throw exception?
 	}
 }
 
@@ -240,7 +246,7 @@ void	WebServer::_writeData( int writeFd )
 			break;
 
 		default:
-			break;
+			break;		// NB: or throw exception?
 	}
 }
 
@@ -249,7 +255,7 @@ void	WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePoll
 	if (newSocket == -1)
 		throw(ServerException({"invalid file descriptor"}));
 	this->_pollfds.push_back({newSocket, POLLIN | POLLOUT, 0});
-	t_PollItem newPollitem = {newSocket, typePollItem, statePollItem, false};
+	t_PollItem newPollitem = {newSocket, typePollItem, statePollItem};
 	this->_pollitems.insert(std::pair(newSocket, newPollitem));
 }
 
@@ -265,26 +271,19 @@ void	WebServer::_dropConn(int toDrop) noexcept
 			break;
 		}
 	}
-	if (this->_pollitems[toDrop].pollType == CLIENT_CONNECTION)
-	{
-		if (this->_requests[toDrop])
-		{
-			delete this->_requests[toDrop];
-			this->_requests.erase(toDrop);
-		}
-		if (this->_responses[toDrop])
-		{
-			delete this->_responses[toDrop];
-			this->_responses.erase(toDrop);
-		}
-		if (this->_cgi[toDrop])
-		{
-			delete this->_cgi[toDrop];
-			this->_cgi.erase(toDrop);
-		}
-	}
+	if ((this->_pollitems[toDrop].pollType == CGI_DATA_PIPE) or
+		(this->_pollitems[toDrop].pollType == CGI_RESPONSE_PIPE))
+		{}						//NB: close pipes properly
+	if (this->_requests[toDrop])
+		delete this->_requests[toDrop];
+	this->_requests.erase(toDrop);
+	if (this->_responses[toDrop])
+		delete this->_responses[toDrop];
+	this->_responses.erase(toDrop);
+	if (this->_cgi[toDrop])
+		delete this->_cgi[toDrop];
+	this->_cgi.erase(toDrop);
 	this->_pollitems.erase(toDrop);
-
 }
 
 void	WebServer::_clearEmptyConns( void ) noexcept
@@ -294,7 +293,6 @@ void	WebServer::_clearEmptyConns( void ) noexcept
 		_dropConn(this->_emptyConns.back());
 		this->_emptyConns.pop_back();
 	}
-
 }
 
 std::string	WebServer::_getHTMLfromCode( int code ) const noexcept
@@ -360,45 +358,40 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	HTTPrequest 	*request = nullptr;
 	HTTPresponse	*response = nullptr;
 	CGI 			*cgiPtr = nullptr;
-	int 			statusReq=200, HTMLfd = -1;
-	ConfigServer	handler;
+	int 			HTMLfd = -1;
+	fdState			nextState;
 
 	request = new HTTPrequest(clientSocket);
 	response = new HTTPresponse(clientSocket);
 	this->_requests.insert(std::pair<int, HTTPrequest*>(clientSocket, request));
 	this->_responses.insert(std::pair<int, HTTPresponse*>(clientSocket, response));
-	statusReq = request->parseMain();
-	handler = _getHandler(request->getHost());
-	response->setServName(handler.getPrimaryName());
-	if (statusReq < 400)
-		statusReq = request->validateRequest(handler);
-	if (statusReq >= 400)
-		throw(RequestException({"parsing request failed"}, statusReq));
+	request->parseMain();
+	request->validateRequest(_getHandler(request->getHost()));
 	if (request->isAutoIndex())
 	{
 		response->readContentDirectory(request->getRealPath());
-		this->_pollitems[clientSocket].pollState = WRITE_TO_CLIENT;
+		nextState = WRITE_TO_CLIENT;
 	}
-	else if (request->isCGI()) {
+	else if (request->isCGI()) {		// GET (CGI), POST and DELETE
 		cgiPtr = new CGI(*request);
 		this->_cgi.insert(std::pair<int, CGI*>(clientSocket, cgiPtr));
 		this->_addConn(cgiPtr->getResponsePipe()[0], CGI_RESPONSE_PIPE, READ_CGI_RESPONSE);
 		cgiPtr->run();
 		if (request->hasBody()) {
 			this->_addConn(cgiPtr->getuploadPipe()[1], CGI_DATA_PIPE, FORWARD_REQ_BODY_TO_CGI);
-			this->_pollitems[clientSocket].pollState = FORWARD_REQ_BODY_TO_CGI;
+			nextState = FORWARD_REQ_BODY_TO_CGI;
 		}
-		else {
-			this->_pollitems[clientSocket].pollState = READ_CGI_RESPONSE;
-		}
+		else
+			nextState = READ_CGI_RESPONSE;
 	}
-	else
+	else		// GET (HTML)
 	{
 		HTMLfd = open(request->getRealPath().c_str(), O_RDONLY);
 		response->setHTMLfd(HTMLfd);
 		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
-		this->_pollitems[clientSocket].pollState = READ_STATIC_FILE;
+		nextState = READ_STATIC_FILE;
 	}
+	this->_pollitems[clientSocket].pollState = nextState;
 }
 
 void	WebServer::readStaticFiles( int staticFileFd )
@@ -512,38 +505,27 @@ void	WebServer::writeToClients( int clientSocket )
 void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 {
 	HTTPresponse	*response = nullptr;
+	HTTPrequest		*request = nullptr;
 	int 			clientSocket = _getSocketFromFd(genericFd);
 	std::string		HTMLpath;
 	int				HTMLfd = -1;
 
 	if (clientSocket == -1)	// that should never happen
-	{
-		this->_emptyConns.push_back(genericFd);
 		return ;
-	}
-	std::cout  << "error redirected\n";
 	response = this->_responses.at(clientSocket);
+	request = this->_requests.at(clientSocket);
 	response->setStatusCode(statusCode);
-	if (this->_pollitems[genericFd].pollType == STATIC_FILE)
-		this->_emptyConns.push_back(genericFd);
-	else if ((this->_pollitems[genericFd].pollType == CGI_DATA_PIPE) or		// NB: they have to be closed differently
-		(this->_pollitems[genericFd].pollType == CGI_RESPONSE_PIPE))
-	{
-		this->_emptyConns.push_back(genericFd);
-		if (this->_cgi[clientSocket])
-		{
-			delete (this->_cgi[clientSocket]);
-			this->_cgi.erase(clientSocket);
-		}
-	}
-	HTMLpath = _getHTMLfromCode(response->getStatusCode());
-	if (statusCode != 500)
-	{
-		HTMLfd = open(HTMLpath.c_str(), O_RDONLY);
-		response->setHTMLfd(HTMLfd);
-		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
-		this->_pollitems[clientSocket].pollState = READ_STATIC_FILE;
-	}
+	if (statusCode == 412)
+		response->setServName(_getDefaultHandler().getPrimaryName());
 	else
-		this->_pollitems[clientSocket].pollState = WRITE_TO_CLIENT;
+		response->setServName(_getHandler(request->getServName()).getPrimaryName());
+	if ((this->_pollitems[genericFd].pollType == STATIC_FILE) or
+		(this->_pollitems[genericFd].pollType == CGI_DATA_PIPE) or		// NB: they have to be closed differently see _dropConn()
+		(this->_pollitems[genericFd].pollType == CGI_RESPONSE_PIPE))
+		this->_emptyConns.push_back(genericFd);
+	HTMLpath = _getHTMLfromCode(response->getStatusCode());		// NB: to change
+	HTMLfd = open(HTMLpath.c_str(), O_RDONLY);
+	response->setHTMLfd(HTMLfd);
+	_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
+	this->_pollitems[clientSocket].pollState = READ_STATIC_FILE;
 }

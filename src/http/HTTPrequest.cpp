@@ -6,33 +6,22 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/09 20:43:15 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/10 23:32:21 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPrequest.hpp"
 #include "CGI.hpp"
 
-int	HTTPrequest::parseMain( void ) noexcept
+void	HTTPrequest::parseMain( void )
 {
 	std::string	strHead, strHeaders, strBody;
 
-	try {
-		_parseHeads(strHead, strHeaders, strBody);
-		_setHead(strHead);
-		_setHeaders(strHeaders);
-	}
-	catch(const HTTPexception& e) {
-		std::cout << e.what() << '\n';
-		return (e.getStatus());
-	}
-	catch(const std::exception& e) {
-		std::cout << e.what() << '\n';
-		return (500);
-	}
+	_parseHeads(strHead, strHeaders, strBody);
+	_setHead(strHead);
+	_setHeaders(strHeaders);
 	if (strBody.empty() == false)
 		this->_tmpBody = strBody;
-	return (200);
 }
 
 void	HTTPrequest::_parseHeads( std::string& strHead, std::string& strHeaders, std::string& strBody )
@@ -73,32 +62,27 @@ void	HTTPrequest::parseBody( void )
 		_readPlainBody();
 }
 
-int		HTTPrequest::validateRequest( ConfigServer const& configServer ) noexcept
+void		HTTPrequest::validateRequest( ConfigServer const& configServer )
 {
 	int statusCode = 200;
-		
+	
+	this->_servName = configServer.getPrimaryName();
 	this->_validator.setConfig(configServer);
-	// this->_validator.setMethod(this->_method);
-	// this->_validator.setPath(this->_url.path);
-	// this->_validator.solvePath();
-	// statusCode = this->_validator.getStatusCode();
-	// if (statusCode >= 400)
-	// 	return (statusCode);
-	// this->_realPath = this->_validator.getRealPath();
-	// this->_maxBodySize = this->_validator.getMaxBodySize();
-	// try {
-	// 	_checkMaxBodySize();
-	// }
-	// catch(const RequestException& e) {
-	// 	statusCode = e.getStatus();
-	// }
-	return (statusCode);
+	this->_validator.setMethod(this->_method);
+	this->_validator.setPath(this->_url.path);
+	this->_validator.solvePath();
+	statusCode = this->_validator.getStatusCode();
+	if (statusCode >= 400)
+		throw RequestException({"validation from config file failed"}, statusCode);
+	this->_realPath = this->_validator.getRealPath();
+	this->_root = this->_validator.getRoot();
+	this->_errPages = this->_validator.getErrPages();
+	_checkMaxBodySize(this->_validator.getMaxBodySize());
 }
 
 bool	HTTPrequest::isCGI( void ) const noexcept
 {
-	// return (this->_validator.isCGI());
-	return (this->_url.path.extension() == ".cgi");
+	return (this->_validator.isCGI());
 }
 
 bool	HTTPrequest::isAutoIndex( void ) const noexcept
@@ -412,20 +396,21 @@ void	HTTPrequest::_setVersion( std::string const& strVersion )
 		throw(RequestException({"unsupported HTTP version:", strVersion}, 505));
 }
 
-void	HTTPrequest::_checkMaxBodySize( void )
+void	HTTPrequest::_checkMaxBodySize( size_t maxSize )
 {
-	if ((hasBody() == false) or (this->_maxBodySize == 0))
+	if ((hasBody() == false) or (maxSize == 0))
 		return;
 	if (isChunked() == true)
 	{
-		if (this->_maxBodySize < this->_tmpBody.size())
+		if (maxSize < this->_tmpBody.size())
 			throw(RequestException({"Content-Length longer than config max body length"}, 413));
 	}
 	else
 	{
-		if (this->_maxBodySize < this->_contentLength)
+		if (maxSize < this->_contentLength)
 			throw(RequestException({"Content-Length longer than config max body length"}, 413));
 	}
+	this->_maxBodySize = maxSize;
 }
 
 void	HTTPrequest::_setHeaders( std::string const& strHeaders )
