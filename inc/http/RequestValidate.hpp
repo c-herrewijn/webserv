@@ -28,28 +28,24 @@ class RequestValidate
 		t_path						_requestPath;
 
 		ConfigServer				config;
-		t_path						execDir;
 		t_path						_realPath;
-		size_t						_maxBodySize;
 		bool						_autoIndex;
 		bool						_isCGI;
-		bool						_isFile;
 
 		Location*					_validLocation;
 		Parameters*					_validParams;
 		t_path						targetDir;
 		t_path						targetFile;
-		std::vector<std::string>	folders;
 
 		size_t						_statusCode;
 
 		void		_setStatusCode(const size_t& code);
 
 		void		_separateFolders(std::string const& input, std::vector<std::string>& output);
-		Location*	_diveLocation(Location& cur, std::vector<std::string>::iterator itDirectory);
+		Location*	_diveLocation(Location& cur, std::vector<std::string>::iterator itDirectory, std::vector<std::string>& folders);
 
 		void		_initValidLocation( void );
-		void		_initTargetDir( void );
+		void		_initTargetElements( void );
 
 		bool		_handleFolder( void );
 		bool		_handleFile( void );
@@ -69,8 +65,8 @@ class RequestValidate
 
 		Parameters*		getValidParams( void ) const;
 		t_path const&	getRealPath( void ) const;
+		std::uintmax_t	getMaxBodySize( void ) const;
 		int				getStatusCode( void ) const;
-		int				getMaxBodySize( void ) const;
 		bool			isAutoIndex( void ) const;
 		bool			isFile( void ) const;
 		bool			isCGI( void ) const;
