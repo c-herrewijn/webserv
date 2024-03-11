@@ -21,8 +21,9 @@ RequestValidate::RequestValidate(void)
 	_validLocation = nullptr;
 	_validParams = nullptr;
 
-	_isCGI = false;
 	_autoIndex = false;
+	_isCGI = false;
+	_realPath = "/IAMEMPTY";
 }
 
 RequestValidate::~RequestValidate( void ) {}
@@ -30,10 +31,10 @@ RequestValidate::~RequestValidate( void ) {}
 // ╔════════════════════════════════╗
 // ║			GETTER PART			║
 // ╚════════════════════════════════╝
-Parameters*	RequestValidate::getValidParams( void ) const
-{
-	return (_validParams);
-}
+// Parameters*	RequestValidate::getValidParams( void ) const
+// {
+// 	return (_validParams);
+// }
 
 t_path const&	RequestValidate::getRealPath( void ) const
 {
@@ -65,9 +66,9 @@ bool	RequestValidate::isCGI( void ) const
 	return (_isCGI);
 }
 
-t_path	RequestValidate::getRoot( void ) const
+t_path	const& RequestValidate::getRoot( void ) const
 {
-	return (t_path(this->_validParams->getRoot()));
+	return (this->_validParams->getRoot());
 }
 
 t_string_map const&	RequestValidate::getErrPages( void ) const
@@ -104,7 +105,7 @@ void	RequestValidate::_setStatusCode(const size_t& code)
 // ╭───────────────────────────╮
 // │ RECURSIVE LOCATION SEARCH │
 // ╰───────────────────────────╯
-Location*	RequestValidate::_diveLocation(Location& cur, std::vector<std::string>::iterator itDirectory, std::vector<std::string>& folders)
+Location const*	RequestValidate::_diveLocation(Location const& cur, std::vector<std::string>::iterator itDirectory, std::vector<std::string>& folders)
 {
 	std::vector<std::string> curURL;
 	std::vector<std::string>::iterator itFolders;
@@ -124,7 +125,7 @@ Location*	RequestValidate::_diveLocation(Location& cur, std::vector<std::string>
 	{
 		for (auto nest : cur.getNested())
 		{
-			Location*	valid = _diveLocation(nest, itDirectory, folders);
+			Location const*	valid = _diveLocation(nest, itDirectory, folders);
 			if (valid)
 				return (valid);
 		}
@@ -134,12 +135,12 @@ Location*	RequestValidate::_diveLocation(Location& cur, std::vector<std::string>
 
 void	RequestValidate::_initValidLocation(void)
 {
-	Location*							valid;
+	Location const*						valid;
 	std::vector<std::string>			folders;
 	std::vector<std::string>::iterator	it;
 
 	_separateFolders(targetDir.string(), folders);
-	for (auto location : _requestConfig->getLocations())
+	for (auto& location : _requestConfig->getLocations())
 	{
 		it = folders.begin();
 		valid = _diveLocation(location, it, folders);
@@ -186,8 +187,8 @@ void	RequestValidate::_initTargetElements(void)
 // ╰───────────────────────────╯
 bool	RequestValidate::_handleFolder(void)
 {
-	t_path dirPath = t_path(_validParams->getRoot()) / targetDir;
-	dirPath /= "";
+	t_path dirPath = _validParams->getRoot();
+	dirPath += targetDir;
 	dirPath = std::filesystem::weakly_canonical(dirPath);
 	_realPath = dirPath;
 	_autoIndex = false;
@@ -206,14 +207,20 @@ bool	RequestValidate::_handleFolder(void)
 
 bool	RequestValidate::_handleFile(void)
 {
-	t_path dirPath = t_path(_validParams->getRoot()) / targetDir;
+	t_path dirPath = _validParams->getRoot();
+	dirPath += "";
+	dirPath += targetDir;
 	t_path filePath = dirPath / targetFile;
 	_isCGI = false;
 	// check filePath
-	if (!std::filesystem::is_regular_file(filePath))
+	// if (!std::filesystem::is_regular_file(filePath))
+	if (std::filesystem::exists(filePath))
 	{
-		_realPath = std::filesystem::weakly_canonical(dirPath);
-		return (_handleFolder());
+		if (std::filesystem::is_directory(filePath))	// index
+		{
+			_realPath = std::filesystem::weakly_canonical(dirPath);
+			return (_handleFolder());
+		}
 	}
 	_realPath = std::filesystem::weakly_canonical(filePath);
 	// check permission
@@ -242,9 +249,12 @@ bool	RequestValidate::_handleReturns(void)
 	auto it = _validParams->getReturns().find(_statusCode);
 	if (it != _validParams->getReturns().end())
 	{
+		// There is a file to return associated
 		targetFile = std::filesystem::weakly_canonical((*it).second);
+		// check if it exists
 		return (_handleFile());
 	}
+	// there is no file associated
 	return (false);
 }
 
@@ -261,7 +271,11 @@ bool	RequestValidate::_handleErrorCode(void)
 
 bool	RequestValidate::_handleServerPages(void)
 {
-	t_path lastChance = std::filesystem::current_path() / "default" / "pages" / (std::to_string(_statusCode) + ".html");
+	// This is a temp solution. NEEDS TO BE REPLACED WITH A MACRO
+	t_path lastChance = std::filesystem::current_path();
+	lastChance += "/var/www/errors/";
+	lastChance += (std::to_string(_statusCode) + ".html");
+	// std::cout << "'" << lastChance << "'\n";
 	if (!std::filesystem::is_regular_file(lastChance))
 		return (false);
 	std::error_code ec;
@@ -276,17 +290,30 @@ bool	RequestValidate::_handleServerPages(void)
 
 void	RequestValidate::_handleStatus(void)
 {
-	if (_handleReturns() || _statusCode == 200)
+	std::cout << _realPath << " normal " << std::to_string(_statusCode) << "\n";
+	if (_statusCode == 404)
+	{
+		_handleServerPages();
+		std::cout << _realPath << " serverpages\n";
 		return ;
-	if (_handleErrorCode())
-		return ;
-	_validParams = const_cast<Parameters*>(&_requestConfig->getParams());
-	if (_handleErrorCode())
-		return ;
-	if (_handleServerPages())
-		return ;
-	// use servers error page
-	_setStatusCode(500); // handleInternal();
+	}
+	if (_statusCode != 200)
+	{
+		std::cout << _realPath << " internal\n";
+		return (_setStatusCode(500));
+	}
+	
+	// if (_handleReturns() || _statusCode == 200)
+	// 	return ;
+	// if (_handleErrorCode())
+	// 	return ;
+	// _validParams = const_cast<Parameters*>(&_requestConfig->getParams());
+	// if (_handleErrorCode())
+	// 	return ;
+	// if (_handleServerPages())
+	// 	return ;
+	// // use servers error page
+	// _setStatusCode(500); // handleInternal();
 }
 
 // ╭───────────────────────────╮
@@ -318,7 +345,9 @@ void	RequestValidate::solvePath(void)
 	// set indexfile if necessarry
 	if (targetFile.empty() || targetFile == "/")
 		targetFile = _validParams->getIndex();
-	if (targetFile.empty() || targetFile == "/")
+	// Normalization for the case user gives sth random
+	targetFile = std::filesystem::weakly_canonical(targetFile);
+	if (targetFile.empty() || targetFile.string() == "/")
 		_handleFolder();
 	else
 		_handleFile();

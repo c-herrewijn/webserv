@@ -125,7 +125,7 @@ void	Parameters::_parseRoot(std::vector<std::string>& block)
 		throw ParserException({"'root' can't have an empty parameter"});
 	if (block.front().front() != '/')
 		throw ParserException({"'root' must begin with a '/' '" + block.front() + "'"});
-	setRoot(block.front());
+	setRoot(t_path(block.front()));
 	block.erase(block.begin());
 	if (block.front() != ";")
 		throw ParserException({"'root' can't have multiple parameters '" + block.front() + "'"});
@@ -295,7 +295,7 @@ const std::bitset<M_SIZE>&	Parameters::getAllowedMethods(void) const
 	return (allowedMethods);
 }
 
-const std::string& Parameters::getIndex(void) const
+const t_path& Parameters::getIndex(void) const
 {
 	return (this->index);
 }
@@ -320,7 +320,7 @@ const bool& Parameters::getAutoindex(void) const
 	return (autoindex);
 }
 
-const std::string& Parameters::getRoot(void) const
+const t_path& Parameters::getRoot(void) const
 {
 	return (root);
 }
@@ -350,7 +350,7 @@ void	Parameters::setSize(uintmax_t val, char *order)
 	}
 }
 
-void	Parameters::setRoot(std::string& val)
+void	Parameters::setRoot(t_path val)
 {
 	root = val;
 }

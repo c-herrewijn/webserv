@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/11 11:15:30 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/11 18:16:46 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,8 +22,9 @@
 #include "ConfigServer.hpp"
 #include "RequestValidate.hpp"
 
-// #define MAIN_PAGE_PATH	 		std::filesystem::path("var/www/test.html")
-// #define FAVICON_PATH			std::filesystem::path("var/www/favicon.ico")
+#define MAIN_PAGE_PATH	 		t_path("var/www/mainPage.html")
+#define FAVICON_PATH			t_path("var/www/favicon.ico")
+#define DEFAULT_ERROR_PAGE_PATH t_path(std::filesystem::current_path()) / t_path("/var/www/errors/500.html")
 
 typedef struct HTTPurl_f
 {
@@ -56,15 +57,15 @@ class HTTPrequest : public HTTPstruct
 
 		HTTPmethod		 	getMethod( void ) const noexcept;
 		std::string		 	getStrMethod( void ) const noexcept;
-		t_path			 	getPath( void ) const noexcept;
+		t_path const&		getPath( void ) const noexcept;
 		std::string const&	getHost( void ) const noexcept;
 		std::string		 	getPort( void ) const noexcept;
 		std::string	const& 	getBody( void ) const noexcept;
 		std::string	const&	getQueryRaw( void ) const noexcept;
 		std::string			getContentTypeBoundary( void ) const noexcept;
-		t_path				getRealPath( void ) const noexcept;
-		t_path				getRoot( void ) const noexcept;
-		t_string_map		getErrPages( void ) const noexcept;
+		t_path					getRealPath( void ) const noexcept;
+		t_path const&		getRoot( void ) const noexcept;
+		t_path				getErrPageFromCode( int ) const;
 		bool				isCGI( void ) const noexcept;
 		bool				isAutoIndex( void ) const noexcept;
 		bool				isChunked( void ) const noexcept;

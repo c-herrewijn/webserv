@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/18 14:04:58 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/06 10:08:19 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/11 16:32:11 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,6 +34,7 @@ HTTPexception::HTTPexception( std::initializer_list<std::string> const& prompts,
 	this->_msg = "HTTP parsing error -";
 	for (std::string prompt : prompts)
 		this->_msg += " " + prompt;
+	this->_msg += " - error code: " + std::to_string(status);
 	this->_status = status;
 }
 
@@ -48,6 +49,7 @@ RequestException::RequestException( std::initializer_list<std::string> const& pr
 	this->_msg = "request error -";
 	for (std::string prompt : prompts)
 		this->_msg += " " + prompt;
+	this->_msg += " - error code: " + std::to_string(status);
 }
 
 ResponseException::ResponseException( std::initializer_list<std::string> const& prompts, int status) noexcept
@@ -56,6 +58,7 @@ ResponseException::ResponseException( std::initializer_list<std::string> const& 
 	this->_msg = "response error -";
 	for (std::string prompt : prompts)
 		this->_msg += " " + prompt;
+	this->_msg += " - error code: " + std::to_string(status);
 }
 
 CGIexception::CGIexception( std::initializer_list<std::string> const& prompts, int status) noexcept
@@ -64,4 +67,5 @@ CGIexception::CGIexception( std::initializer_list<std::string> const& prompts, i
 	this->_msg = "cgi error -";
 	for (std::string prompt : prompts)
 		this->_msg += " " + prompt;
+	this->_msg += " - error code: " + std::to_string(status);
 }

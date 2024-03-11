@@ -32,9 +32,10 @@ class RequestValidate
 		bool				_autoIndex;
 		bool				_isCGI;
 
-		Location*			_validLocation;
+		Location const*		_validLocation;
 		Parameters*			_validParams;
 
+		// t_path				targetRoot;
 		t_path				targetDir;
 		t_path				targetFile;
 
@@ -42,8 +43,8 @@ class RequestValidate
 
 		void		_setStatusCode(const size_t& code);
 
-		void		_separateFolders(std::string const& input, std::vector<std::string>& output);
-		Location*	_diveLocation(Location& cur, std::vector<std::string>::iterator itDirectory, std::vector<std::string>& folders);
+		void			_separateFolders(std::string const& input, std::vector<std::string>& output);
+		Location const*	_diveLocation(Location const& cur, std::vector<std::string>::iterator itDirectory, std::vector<std::string>& folders);
 
 		void		_initValidLocation( void );
 		void		_initTargetElements( void );
@@ -64,11 +65,11 @@ class RequestValidate
 		void	setPath( t_path const& );
 		void	solvePath( void );
 
-		Parameters*			getValidParams( void ) const;
+		// Parameters*			getValidParams( void ) const;
 		t_path const&		getRealPath( void ) const;
 		std::uintmax_t		getMaxBodySize( void ) const;
 		int					getStatusCode( void ) const;
-		t_path				getRoot( void ) const;
+		t_path const&		getRoot( void ) const;
 		t_string_map const&	getErrPages( void ) const;
 		bool				isAutoIndex( void ) const;
 		bool				isFile( void ) const;

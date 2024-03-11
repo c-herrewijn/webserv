@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/11 11:21:19 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/11 18:24:13 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,19 +68,21 @@ void		HTTPrequest::validateRequest( ConfigServer const& configServer )
 	this->_validator.setMethod(this->_method);
 	this->_validator.setPath(this->_url.path);
 	this->_validator.solvePath();
-	if (this->_validator.getStatusCode() >= 400)
-		throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
-	_checkMaxBodySize(this->_validator.getMaxBodySize());
+	// if (this->_validator.getStatusCode() >= 500)
+	// 	throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
+	// _checkMaxBodySize(this->_validator.getMaxBodySize());
 }
 
 bool	HTTPrequest::isCGI( void ) const noexcept
 {
-	return (this->_validator.isCGI());
+	// return (this->_validator.isCGI());
+	return (this->_url.path.extension() == ".cgi");
 }
 
 bool	HTTPrequest::isAutoIndex( void ) const noexcept
 {
-	return (this->_validator.isAutoIndex());
+	// return (this->_validator.isAutoIndex());
+	return (false);
 }
 
 bool	HTTPrequest::isChunked( void ) const noexcept
@@ -164,12 +166,12 @@ std::string 	HTTPrequest::getStrMethod( void ) const noexcept
 	}
 }
 
-t_path		HTTPrequest::getPath( void ) const noexcept
+t_path const&	HTTPrequest::getPath( void ) const noexcept
 {
 	return (this->_url.path);
 }
 
-std::string const&		HTTPrequest::getHost( void ) const noexcept
+std::string const&	HTTPrequest::getHost( void ) const noexcept
 {
 	return (this->_url.host);
 }
@@ -201,27 +203,33 @@ std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 	return (boundary);
 }
 
-t_path	HTTPrequest::getRealPath( void ) const noexcept
+// t_path const&	HTTPrequest::getRealPath( void ) const noexcept
+t_path HTTPrequest::getRealPath( void ) const noexcept
 {
-	// if (this->_url.path == "/")		// NB: should be done by validation
-	// 	return (MAIN_PAGE_PATH);
-	// else if (this->_url.path.extension() == ".ico")	// NB: should be done by validation, update content-type of response
-	// 	return (FAVICON_PATH);
-	// else if (this->_url.path.extension() == ".cgi")
-	// 	return (t_path("/home/fra/Codam/webserv/var/www") / this->_url.path);
-	// else
-	// 	return (this->_url.path);
-	return (this->_validator.getRealPath());
+	if (this->_url.path == "/")		// NB: should be done by validation
+		return (MAIN_PAGE_PATH);
+	else if (this->_url.path.extension() == ".ico")	// NB: should be done by validation, update content-type of response
+		return (FAVICON_PATH);
+	else if (this->_url.path.extension() == ".cgi")
+		return (t_path("/home/fra/Codam/webserv/var/www") / this->_url.path);
+	else
+		return (this->_url.path);
+	// return (this->_validator.getRealPath());
 }
 
-t_path			HTTPrequest::getRoot( void ) const noexcept
+t_path const&	HTTPrequest::getRoot( void ) const noexcept
 {
 	return (this->_validator.getRoot());
 }
 
-t_string_map	HTTPrequest::getErrPages( void ) const noexcept
+t_path	HTTPrequest::getErrPageFromCode( int errCode ) const
 {
-	return (this->_validator.getErrPages());
+	try {
+		return (this->_validator.getErrPages().at(errCode));
+	}
+	catch(const std::out_of_range& e) {
+		throw(RequestException({"error page not found for code: ", std::to_string(errCode)}, 500));
+	}
 }
 
 void	HTTPrequest::_setHead( std::string const& header )

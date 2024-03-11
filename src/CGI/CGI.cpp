@@ -20,6 +20,11 @@ CGI::~CGI() {
 
 std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(const HTTPrequest &req)
 {
+    t_path tmp = std::filesystem::current_path();   // NB: temporary
+        tmp += "/var/www/";
+        tmp += _req.getRealPath();
+        std::string CGIfileName = _req.getRealPath().filename();
+
     std::array<std::string, CGI_ENV_SIZE> CGIEnv {
         "AUTH_TYPE=",
         "CONTENT_LENGTH=" + std::to_string(this->_req.getBody().length()),
@@ -34,7 +39,7 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(const HTTPrequest &req)
         "REMOTE_USER=",
         "REQUEST_METHOD=" + req.getStrMethod(),
         "SCRIPT_NAME=" + req.getRealPath().filename().generic_string(), // script name, e.g. myScript.cgi
-        "SCRIPT_FILENAME=" + (req.getRoot() / _req.getRealPath()).generic_string(), // script path relative to document root, e.g. /cgi-bin/myScript.cgi
+        "SCRIPT_FILENAME=" + tmp.generic_string(), // script path relative to document root, e.g. /cgi-bin/myScript.cgi
         "SERVER_NAME=" + req.getServName(),
         "SERVER_PORT=" + req.getPort(),
         "SERVER_PROTOCOL=HTTP/1.1", // fixed
@@ -61,13 +66,14 @@ void CGI::run()
 {
     pid_t childPid = fork();
     if (childPid == 0) {
+        t_path CGIfilePath = std::filesystem::current_path();   // NB: temporary
+        CGIfilePath += "/var/www/";
+        CGIfilePath += _req.getRealPath();
+        std::string CGIfileName = _req.getRealPath().filename(); // fully stripped, only used for execve
         close(this->_responsePipe[0]);
         dup2(this->_responsePipe[1], STDOUT_FILENO); // write to pipe
         close(this->_uploadPipe[1]);
         dup2(this->_uploadPipe[0], STDIN_FILENO); // read from pipe
-
-        std::string CGIfilePath = (_req.getRoot() / _req.getRealPath()).generic_string();
-        std::string CGIfileName = _req.getRealPath().filename().generic_string(); // fully stripped, only used for execve
         char *argv[2] = {(char*)CGIfileName.c_str(), NULL};
         int res = execve(CGIfilePath.c_str(), argv, this->_CgiEnvCStyle);
         if (res != 0)
