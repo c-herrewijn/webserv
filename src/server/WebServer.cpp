@@ -70,7 +70,6 @@ void			WebServer::startListen( void )
 }
 
 // NB: update for codes 20X
-// NB: error cod 500 vs all the other status, HTTPexception vs ServerException
 // NB: use relative root in Config File for multi-platform functionality
 void			WebServer::loop( void )
 {
@@ -108,11 +107,6 @@ void			WebServer::loop( void )
 				std::cerr << e.what() << '\n';
 				redirectToErrorPage(pollfdItem.fd, e.getStatus());
 			}
-			// catch(const std::exception& e) {
-			// 	std::cerr << e.what() << '\n';
-			// 	redirectToErrorPage(pollfdItem.fd, 500);
-			// 	this->_emptyConns.push_back(pollfdItem.fd);
-			// }
 		_clearEmptyConns();
 		}
 	}
@@ -312,7 +306,7 @@ std::string	WebServer::_getHTMLfromCode( int code ) const noexcept
 	return (filePath);
 }
 
-int		WebServer::_getSocketFromFd( int fd ) noexcept
+int		WebServer::_getSocketFromFd( int fd )
 {
 	if (this->_pollitems[fd].pollType == CGI_DATA_PIPE)
 	{
@@ -338,9 +332,9 @@ int		WebServer::_getSocketFromFd( int fd ) noexcept
 				return (item.first);
 		}
 	}
-	else
+	else if (fd != -1)
 		return (fd);
-	return (-1);	// entity not found, this should never happen
+	throw(ServerException({"invalid file descriptor or not found"}));	// entity not found, this should not happen
 }
 
 void	WebServer::handleNewConnections( int listenerFd )
@@ -383,8 +377,11 @@ void	WebServer::readRequestHeaders( int clientSocket )
 		else
 			nextState = READ_CGI_RESPONSE;
 	}
-	else if (request->isAutoIndex())
+	else if (request->isAutoIndex())	//	GET (index)
+	{
+		response->readContentDirectory(request->getRealPath());
 		nextState = WRITE_TO_CLIENT;
+	}
 	else		// GET (HTML)
 	{
 		HTMLfd = open(request->getRealPath().c_str(), O_RDONLY);
@@ -400,9 +397,9 @@ void	WebServer::readStaticFiles( int staticFileFd )
 	int 			socket = _getSocketFromFd(staticFileFd);
 	HTTPresponse	*response = nullptr;
 
-	if (socket == -1)		// this should not happen
-		throw(ServerException({"response not found"}));
 	response = this->_responses.at(socket);
+	if (!response)	// that should not happen
+		throw(ServerException({"response not found"}));
 	response->readHTML();
 	if (response->isDoneReadingHTML())
 	{
@@ -440,6 +437,8 @@ void	WebServer::writeToCGI( int cgiPipe )
 			// NB.: add to the emptyCon list 
 		}
 	}
+	else
+		throw(ServerException({"request not found"}));
 }
 
 void	WebServer::readCGIResponses( int cgiPipe )
@@ -448,15 +447,13 @@ void	WebServer::readCGIResponses( int cgiPipe )
 	CGI				*cgi = nullptr;
 	HTTPresponse	*response = nullptr;
 
-	if (socket == -1)	// that should never happen
-		throw(ServerException({"cgi not found"}));
 	cgi = this->_cgi.at(socket);
 	ssize_t	readChars = -1;
 	char 	buffer[DEF_BUF_SIZE];
 	bzero(buffer, DEF_BUF_SIZE);
 	readChars = read(cgiPipe, buffer, DEF_BUF_SIZE);
 	if (readChars < 0)
-		throw(CGIexception({"cgi pipe not available"}, 500));
+		throw(ServerException({"unavailable socket"}));
 	cgi->appendResponse(std::string(buffer, buffer + readChars));
 
 	// TODO: support partial reads, i.e. in case of very big CGI response
@@ -476,22 +473,18 @@ void	WebServer::writeToClients( int clientSocket )
 	HTTPrequest 	*request = this->_requests[clientSocket];
 	HTTPresponse 	*response = this->_responses[clientSocket];
 
-	if (!request or !response)	// that should never happen
+	if (!request or !response)	// that should not happen
 		throw(ServerException({"request or response not found"}));
 	if ((request->isCGI()) and (response->getStatusCode() < 400)) {
 		CGI *cgi = this->_cgi[clientSocket];
-		if (!cgi)	// that should never happen
+		if (!cgi)	// that should not happen
 			throw(ServerException({"cgi not found"}));
 		response->parseFromCGI(cgi->getResponse());
 		delete (cgi);
 		this->_cgi.erase(clientSocket);
 	}
 	else 
-	{
-		if (request->isAutoIndex())
-			response->readContentDirectory(request->getRealPath());
 		response->parseFromStatic();
-	}
 	response->writeContent();
 	if (response->isDoneWriting())
 	{
@@ -514,20 +507,23 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 	ConfigServer	handler;
 	t_path			HTMLerrPage;
 
-	if (clientSocket == -1)	// that should never happen
-		return ;
+	if ((this->_pollitems[genericFd].pollType == STATIC_FILE) or
+		(this->_pollitems[genericFd].pollType == CGI_DATA_PIPE) or		// NB: pipes need to be closed differently see _dropConn()
+		(this->_pollitems[genericFd].pollType == CGI_RESPONSE_PIPE))
+		this->_emptyConns.push_back(genericFd);
 	request = this->_requests.at(clientSocket);
 	response = this->_responses.at(clientSocket);
-	response->setStatusCode(statusCode);
 	if (statusCode == 412)
 		handler = _getDefaultHandler();
 	else
 		handler = _getHandler(request->getHost());
 	response->setServName(handler.getPrimaryName());
-	if ((this->_pollitems[genericFd].pollType == STATIC_FILE) or
-		(this->_pollitems[genericFd].pollType == CGI_DATA_PIPE) or		// NB: pipes need to be closed differently see _dropConn()
-		(this->_pollitems[genericFd].pollType == CGI_RESPONSE_PIPE))
-		this->_emptyConns.push_back(genericFd);
+	response->setStatusCode(statusCode);
+	if (statusCode == 500)
+	{
+		this->_pollitems[clientSocket].pollState = WRITE_TO_CLIENT;
+		return ;
+	}
 	try {
 		// HTMLerrPage = request->getErrPageFromCode(statusCode).c_str();
 		// HTMLfd = open(HTMLerrPage.c_str(), O_RDONLY);
@@ -536,7 +532,7 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
 		this->_pollitems[clientSocket].pollState = READ_STATIC_FILE;
 	}
-	catch(const HTTPexception& e) {
+	catch(const WebServerException& e) {
 		std::cerr << e.what() << '\n';
 		response->setStatusCode(500);
 		this->_pollitems[clientSocket].pollState = WRITE_TO_CLIENT;

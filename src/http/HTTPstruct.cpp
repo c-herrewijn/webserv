@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/09 02:48:47 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/11 23:39:48 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,8 +66,6 @@ HTTPstruct::HTTPstruct( int socket ) : _hasBody(false)
 	this->_version.scheme = HTTP_SCHEME;
 	this->_version.major = 1;
 	this->_version.minor = 1;
-	if (socket < 0)
-		throw(ServerException({"invalid socket"}));
 	this->_socket = socket;
 }
 

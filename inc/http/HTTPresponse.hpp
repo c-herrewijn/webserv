@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/09 03:09:41 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/11 23:50:12 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,7 +45,7 @@ class HTTPresponse : public HTTPstruct
 		void		setStatusCode( int ) noexcept;
 		int			getStatusCode( void ) const noexcept;
 		void		updateContentType( std::string ) noexcept;
-		void		setHTMLfd( int HTMLfd ) ;
+		void		setHTMLfd( int HTMLfd ) noexcept;
 		int			getHTMLfd( void ) const noexcept;
 		bool		isDoneReadingHTML( void ) const noexcept;
 		bool		isDoneWriting( void ) const noexcept;
@@ -58,5 +58,4 @@ class HTTPresponse : public HTTPstruct
 		void		_setHeaders( std::string const& ) override;
 		std::string	_mapStatusCode( int ) const ;
 		std::string	_getDateTime( void ) const noexcept;
-		int			_getStatusFromHeader( void ) const;
 };

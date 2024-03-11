@@ -6,12 +6,13 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/11 18:24:13 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/11 22:36:58 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPrequest.hpp"
 
+// throws: ServerException , RequestException
 void	HTTPrequest::parseMain( void )
 {
 	std::string	strHead, strHeaders, strBody;
@@ -32,14 +33,14 @@ void	HTTPrequest::_parseHeads( std::string& strHead, std::string& strHeaders, st
 
 	bzero(buffer, DEF_BUF_SIZE);
 	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-	if (charsRead < 0 )
-		throw(RequestException({"unavailable socket"}, 500));
+	if (charsRead < 0)
+		throw(ServerException({"unavailable socket"}));
 	else if (charsRead == 0)
 		throw(ServerException({"connection closed"}));
 	content = std::string(buffer, buffer + charsRead);
 	endReq = content.find(HTTP_TERM);		// look for head + headers
 	if (endReq == std::string::npos)
-		throw(RequestException({"no headers terminator in request"}, 400));
+		throw(RequestException({"headers too large"}, 431));
 	endHead = content.find(HTTP_NL);		// look for headers
 	if (endHead >= endReq)
 		throw(RequestException({"no headers in request"}, 400));
@@ -222,6 +223,7 @@ t_path const&	HTTPrequest::getRoot( void ) const noexcept
 	return (this->_validator.getRoot());
 }
 
+// NB: check error handling
 t_path	HTTPrequest::getErrPageFromCode( int errCode ) const
 {
 	try {
@@ -441,6 +443,8 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 			return ;
 		else if (this->_headers.at("Transfer-Encoding") == "chunked")
 			this->_isChunked = true;
+		else		// missing CL
+			throw(RequestException({"Content-Length required"}, 411));
 	}
 	else
 	{
@@ -498,7 +502,9 @@ void	HTTPrequest::_readPlainBody( void )
 	{
 		bzero(buffer, DEF_BUF_SIZE + 1);
 		readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-		if (readChar <= 0)
+		if (readChar < 0)
+			throw(ServerException({"unavailable socket"}));
+		else if (readChar == 0)
 			continue;
 		countChars += readChar;
 		if (countChars > this->_contentLength)
@@ -520,7 +526,9 @@ void	HTTPrequest::_readChunkedBody( void )
 	{
 		bzero(buffer, DEF_BUF_SIZE + 1);
 		readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-		if (readChar <= 0)
+		if (readChar < 0)
+			throw(ServerException({"unavailable socket"}));
+		else if (readChar == 0)
 			continue;
 		countChars += readChar;
 		if ((maxSize > 0) and (countChars > maxSize))

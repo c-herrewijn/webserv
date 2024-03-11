@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/10 23:13:42 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/11 23:50:11 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@ void	HTTPresponse::parseFromStatic( void )
 
 void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 {
-	std::string headers, body;
+	std::string headers, body, strStatus;
 	size_t		delimiter;
 
 	delimiter = CGIresp.find(HTTP_TERM);
@@ -37,7 +37,14 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 	body = CGIresp.substr(delimiter);
 	HTTPstruct::_setBody(body);
 	_setHeaders(headers);
-	setStatusCode(_getStatusFromHeader());
+	strStatus = this->_headers.at("Status");
+	delimiter = strStatus.find(HTTP_SP);
+	try {
+		this->_statusCode = std::stoi(strStatus.substr(0, delimiter));
+	}
+	catch(const std::exception& e) {
+		throw(ResponseException({"invalid status code:", strStatus}, 500));
+	}
 }
 
 void	HTTPresponse::readHTML( void )
@@ -46,23 +53,22 @@ void	HTTPresponse::readHTML( void )
     char        buffer[DEF_BUF_SIZE];
 
 	if (this->_gotFullHTML)
-		throw(ResponseException({"HTML already parsed"}, 500));
-	else if (this->_statusCode == 500)
 	{
-		this->_gotFullHTML = true;
-		this->_tmpBody = ERROR_500_CONTENT;
+		std::cout << "HTML already parsed\n";
 		return ;
 	}
-	else if (this->_HTMLfd == -1)
-		throw(ResponseException({"invalid fd"}, 500));
 	bzero(buffer, DEF_BUF_SIZE);
 	readChar = read(this->_HTMLfd, buffer, DEF_BUF_SIZE);
 	if (readChar < 0)
+	{
+		this->_tmpBody.clear();
 		throw(ResponseException({"fd unavailable"}, 500));
+	}
 	this->_tmpBody += std::string(buffer, buffer + readChar);
 	if (readChar < DEF_BUF_SIZE)
 		this->_gotFullHTML = true;
 }
+
 
 void	HTTPresponse::readContentDirectory( t_path const& pathDir)
 {
@@ -75,10 +81,8 @@ void		HTTPresponse::writeContent( void )
     ssize_t 		readChar = -1;
 	size_t			charsToWrite = 0;
 
-	if (this->_responseDone)
-		throw(ResponseException({"response already sent"}, 500));
-	else if (this->_socket == -1)
-		throw(ResponseException({"invalid client socket"}, 500));
+	if (this->_responseDone == true)
+		throw(ServerException({"response already sent"}));
 	if ((toString().size() - written) < DEF_BUF_SIZE)
 		charsToWrite = toString().size() - written;
 	else
@@ -130,6 +134,11 @@ std::string	HTTPresponse::toString( void ) const noexcept
 
 void	HTTPresponse::setStatusCode( int statCode ) noexcept
 {
+	if (statCode == 500)
+	{
+		this->_gotFullHTML = true;
+		this->_tmpBody = ERROR_500_CONTENT;
+	}
 	this->_statusCode = statCode;
 }
 
@@ -143,10 +152,8 @@ void	HTTPresponse::updateContentType( std::string newContentType ) noexcept
 	this->_contentType = newContentType;
 }
 
-void	HTTPresponse::setHTMLfd( int HTMLfd )
+void	HTTPresponse::setHTMLfd( int HTMLfd ) noexcept
 {
-	if (HTMLfd == -1)
-		throw(ResponseException({"invalid fd"}, 500));
 	this->_HTMLfd = HTMLfd;
 }
 
@@ -263,7 +270,7 @@ std::string	HTTPresponse::_mapStatusCode( int status) const
 		return (std::string(mapStatus.at(status)));
 	}
 	catch(const std::out_of_range& e) {
-		throw(HTTPexception({"Unknown HTTP response code:", std::to_string(status)}, 500));
+		throw(ResponseException({"Unknown HTTP response code:", std::to_string(status)}, 500));
 	}
 }
 
@@ -279,15 +286,3 @@ std::string	HTTPresponse::_getDateTime( void ) const noexcept
 	return (std::string(buffer));
 }
 
-int	HTTPresponse::_getStatusFromHeader( void ) const
-{
-	std::string	strStatus = this->_headers.at("Status");
-	size_t		delimiter = strStatus.find(HTTP_SP);
-	
-	try {
-		return(std::stoi(strStatus.substr(0, delimiter)));
-	}
-	catch(const std::exception& e) {
-		return (500);
-	}
-}
