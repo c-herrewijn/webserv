@@ -34,6 +34,8 @@
 # define DEF_CGI_ALLOWED false
 # define DEF_CGI_EXTENTION "cgi"
 
+typedef std::unordered_map<size_t, std::string> t_string_map;
+
 class Parameters
 {
 	public:
@@ -47,29 +49,29 @@ class Parameters
 		void	setSize(uintmax_t val, char *c);
 		void	setAutoindex(bool status);
 
-		void 											setBlockIndex(size_t ref);
-		const size_t& 									getBlockIndex(void) const;
-		const std::string& 								getIndex(void) const;
-		std::uintmax_t									getMaxSize(void) const;
-		const std::unordered_map<size_t, std::string>& 	getErrorPages(void) const;
-		const std::unordered_map<size_t, std::string>& 	getReturns(void) const;
-		const bool& 									getAutoindex(void) const;
-		const std::string& 								getRoot(void) const;
-		const std::bitset<M_SIZE>&						getAllowedMethods(void) const;
-		const std::string& 								getCgiExtension(void) const;
-		const bool& 									getCgiAllowed(void) const;
+		void 						setBlockIndex(size_t ref);
+		const size_t& 				getBlockIndex(void) const;
+		const std::string& 			getIndex(void) const;
+		std::uintmax_t				getMaxSize(void) const;
+		const t_string_map& 		getErrorPages(void) const;
+		const t_string_map& 		getReturns(void) const;
+		const bool& 				getAutoindex(void) const;
+		const std::string& 			getRoot(void) const;
+		const std::bitset<M_SIZE>&	getAllowedMethods(void) const;
+		const std::string& 			getCgiExtension(void) const;
+		const bool& 				getCgiAllowed(void) const;
 
 	private:
-		size_t 									block_index;
-		std::uintmax_t			 				max_size;	// Will be overwriten by last found
-		bool									autoindex;	// FALSE in default, will be overwriten.
-		std::string								index;	// Will be searched in given order
-		std::string								root;		// Last found will be used.
-		std::unordered_map<size_t, std::string>	error_pages;	// Same status codes will be overwriten
-		std::unordered_map<size_t, std::string>	returns;	// Same reponse codes are overwriten by the last
-		std::bitset<M_SIZE> 					allowedMethods;	// Allowed methods
-		std::string								cgi_extension;	// extention .py .sh
-		bool									cgi_allowed;	// Check for permissions
+		size_t 				block_index;
+		std::uintmax_t		max_size;	// Will be overwriten by last found
+		bool				autoindex;	// FALSE in default, will be overwriten.
+		std::string			index;	// Will be searched in given order
+		std::string			root;		// Last found will be used.
+		t_string_map		error_pages;	// Same status codes will be overwriten
+		t_string_map		returns;	// Same reponse codes are overwriten by the last
+		std::bitset<M_SIZE> allowedMethods;	// Allowed methods
+		std::string			cgi_extension;	// extention .py .sh
+		bool				cgi_allowed;	// Check for permissions
 
 		void	_parseRoot(std::vector<std::string>& block);
 		void	_parseBodySize(std::vector<std::string>& block);

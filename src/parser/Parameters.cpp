@@ -305,12 +305,12 @@ std::uintmax_t Parameters::getMaxSize(void) const
 	return (max_size);
 }
 
-const std::unordered_map<size_t, std::string>& Parameters::getErrorPages(void) const
+const	t_string_map& Parameters::getErrorPages(void) const
 {
 	return (error_pages);
 }
 
-const std::unordered_map<size_t, std::string>& Parameters::getReturns(void) const
+const	t_string_map& Parameters::getReturns(void) const
 {
 	return (returns);
 }

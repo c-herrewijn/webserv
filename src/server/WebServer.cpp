@@ -368,7 +368,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	this->_responses.insert(std::pair<int, HTTPresponse*>(clientSocket, response));
 	request->parseMain();
 	handler = _getHandler(request->getHost());
-	request->validateRequest(&handler);
+	request->validateRequest(handler);
 	if (request->isAutoIndex())
 	{
 		response->readContentDirectory(request->getRealPath());
@@ -507,20 +507,19 @@ void	WebServer::writeToClients( int clientSocket )
 void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 {
 	HTTPresponse	*response = nullptr;
-	HTTPrequest		*request = nullptr;
-	int 			clientSocket = _getSocketFromFd(genericFd);
 	std::string		HTMLpath;
-	int				HTMLfd = -1;
+	int				clientSocket=_getSocketFromFd(genericFd), HTMLfd=-1;
+	ConfigServer	handler;
 
 	if (clientSocket == -1)	// that should never happen
 		return ;
 	response = this->_responses.at(clientSocket);
-	request = this->_requests.at(clientSocket);
 	response->setStatusCode(statusCode);
 	if (statusCode == 412)
-		response->setServName(_getDefaultHandler().getPrimaryName());
+		handler = _getDefaultHandler();
 	else
-		response->setServName(_getHandler(request->getServName()).getPrimaryName());
+		handler = _getHandler(this->_requests.at(clientSocket)->getHost());
+	response->setServName(handler.getPrimaryName());
 	if ((this->_pollitems[genericFd].pollType == STATIC_FILE) or
 		(this->_pollitems[genericFd].pollType == CGI_DATA_PIPE) or		// NB: they have to be closed differently see _dropConn()
 		(this->_pollitems[genericFd].pollType == CGI_RESPONSE_PIPE))

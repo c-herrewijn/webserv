@@ -70,7 +70,7 @@ t_path	RequestValidate::getRoot( void ) const
 	return (t_path(this->_validParams->getRoot()));
 }
 
-std::unordered_map<size_t, std::string>	RequestValidate::getErrPages( void ) const
+t_string_map const&	RequestValidate::getErrPages( void ) const
 {
 	return (this->_validParams->getErrorPages());
 }
@@ -78,9 +78,9 @@ std::unordered_map<size_t, std::string>	RequestValidate::getErrPages( void ) con
 // ╔════════════════════════════════╗
 // ║			SETTER PART			║
 // ╚════════════════════════════════╝
-void	RequestValidate::setConfig( ConfigServer const* configServ)
+void	RequestValidate::setConfig( ConfigServer const& configServ)
 {
-	this->_requestConfig = configServ;
+	this->_requestConfig = &configServ;
 }
 
 void	RequestValidate::setMethod( HTTPmethod method )

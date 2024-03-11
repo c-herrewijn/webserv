@@ -6,12 +6,11 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/10 23:46:51 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/11 11:21:19 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPrequest.hpp"
-#include "CGI.hpp"
 
 void	HTTPrequest::parseMain( void )
 {
@@ -62,21 +61,15 @@ void	HTTPrequest::parseBody( void )
 		_readPlainBody();
 }
 
-void		HTTPrequest::validateRequest( ConfigServer const* configServer )
+void		HTTPrequest::validateRequest( ConfigServer const& configServer )
 {
-	int statusCode = 200;
-	
-	this->_servName = configServer->getPrimaryName();
+	this->_servName = configServer.getPrimaryName();
 	this->_validator.setConfig(configServer);
 	this->_validator.setMethod(this->_method);
 	this->_validator.setPath(this->_url.path);
 	this->_validator.solvePath();
-	statusCode = this->_validator.getStatusCode();
-	if (statusCode >= 400)
-		throw RequestException({"validation from config file failed"}, statusCode);
-	this->_realPath = this->_validator.getRealPath();
-	this->_root = this->_validator.getRoot();
-	this->_errPages = this->_validator.getErrPages();
+	if (this->_validator.getStatusCode() >= 400)
+		throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
 	_checkMaxBodySize(this->_validator.getMaxBodySize());
 }
 
@@ -210,15 +203,25 @@ std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 
 t_path	HTTPrequest::getRealPath( void ) const noexcept
 {
-	if (this->_url.path == "/")		// NB: should be done by validation
-		return (MAIN_PAGE_PATH);
-	else if (this->_url.path.extension() == ".ico")	// NB: should be done by validation, update content-type of response
-		return (FAVICON_PATH);
-	else if (this->_url.path.extension() == ".cgi")
-		return (t_path("/home/fra/Codam/webserv/var/www") / this->_url.path);
-	else
-		return (this->_url.path);
-	// return (this->_realPath):
+	// if (this->_url.path == "/")		// NB: should be done by validation
+	// 	return (MAIN_PAGE_PATH);
+	// else if (this->_url.path.extension() == ".ico")	// NB: should be done by validation, update content-type of response
+	// 	return (FAVICON_PATH);
+	// else if (this->_url.path.extension() == ".cgi")
+	// 	return (t_path("/home/fra/Codam/webserv/var/www") / this->_url.path);
+	// else
+	// 	return (this->_url.path);
+	return (this->_validator.getRealPath());
+}
+
+t_path			HTTPrequest::getRoot( void ) const noexcept
+{
+	return (this->_validator.getRoot());
+}
+
+t_string_map	HTTPrequest::getErrPages( void ) const noexcept
+{
+	return (this->_validator.getErrPages());
 }
 
 void	HTTPrequest::_setHead( std::string const& header )
@@ -253,7 +256,6 @@ void    HTTPrequest::_setMethod( std::string const& strMethod )
 		throw(RequestException({"unsupported HTTP method:", strMethod}, 501));
 	else
 		throw(RequestException({"unknown HTTP method:", strMethod}, 400));
-	this->_validator.setMethod(this->_method);
 }
 
 void	HTTPrequest::_setURL( std::string const& strURL )
@@ -410,7 +412,6 @@ void	HTTPrequest::_checkMaxBodySize( size_t maxSize )
 		if (maxSize < this->_contentLength)
 			throw(RequestException({"Content-Length longer than config max body length"}, 413));
 	}
-	this->_maxBodySize = maxSize;
 }
 
 void	HTTPrequest::_setHeaders( std::string const& strHeaders )
@@ -505,7 +506,7 @@ void	HTTPrequest::_readChunkedBody( void )
     ssize_t 	readChar = -1;
     char    	buffer[DEF_BUF_SIZE + 1];
 	std::string body = this->_tmpBody;
-	size_t		delimiter=0, countChars=this->_tmpBody.length();
+	size_t		delimiter=0, countChars=this->_tmpBody.length(), maxSize=this->_validator.getMaxBodySize();
 
 	do
 	{
@@ -514,7 +515,7 @@ void	HTTPrequest::_readChunkedBody( void )
 		if (readChar <= 0)
 			continue;
 		countChars += readChar;
-		if ((this->_maxBodySize != 0) and (countChars > this->_maxBodySize))
+		if ((maxSize > 0) and (countChars > maxSize))
 			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
 		body += buffer;
 		delimiter = std::string(buffer).find(HTTP_TERM);

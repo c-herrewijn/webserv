@@ -20,24 +20,25 @@
 // filesystem management
 # include "Exceptions.hpp"
 
+
 class RequestValidate
 {
 	private:
-		ConfigServer const*			_requestConfig;
-		HTTPmethod					_requestMethod;
-		t_path						_requestPath;
+		ConfigServer const*	_requestConfig;
+		HTTPmethod			_requestMethod;
+		t_path				_requestPath;
 
-		ConfigServer				config;
-		t_path						_realPath;
-		bool						_autoIndex;
-		bool						_isCGI;
+		t_path				_realPath;
+		bool				_autoIndex;
+		bool				_isCGI;
 
-		Location*					_validLocation;
-		Parameters*					_validParams;
-		t_path						targetDir;
-		t_path						targetFile;
+		Location*			_validLocation;
+		Parameters*			_validParams;
 
-		size_t						_statusCode;
+		t_path				targetDir;
+		t_path				targetFile;
+
+		size_t				_statusCode;
 
 		void		_setStatusCode(const size_t& code);
 
@@ -58,20 +59,20 @@ class RequestValidate
 		RequestValidate( void );
 		virtual	~RequestValidate( void );
 
-		void	setConfig( ConfigServer const* );
+		void	setConfig( ConfigServer const& );
 		void	setMethod( HTTPmethod );
 		void	setPath( t_path const& );
 		void	solvePath( void );
 
-		Parameters*								getValidParams( void ) const;
-		t_path const&							getRealPath( void ) const;
-		std::uintmax_t							getMaxBodySize( void ) const;
-		int										getStatusCode( void ) const;
-		t_path									getRoot( void ) const;
-		std::unordered_map<size_t, std::string>	getErrPages( void ) const;
-		bool									isAutoIndex( void ) const;
-		bool									isFile( void ) const;
-		bool									isCGI( void ) const;
+		Parameters*			getValidParams( void ) const;
+		t_path const&		getRealPath( void ) const;
+		std::uintmax_t		getMaxBodySize( void ) const;
+		int					getStatusCode( void ) const;
+		t_path				getRoot( void ) const;
+		t_string_map const&	getErrPages( void ) const;
+		bool				isAutoIndex( void ) const;
+		bool				isFile( void ) const;
+		bool				isCGI( void ) const;
 };
 
 #endif
