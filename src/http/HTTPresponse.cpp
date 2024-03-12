@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/11 23:50:11 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/12 16:12:51 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,11 +22,16 @@ void	HTTPresponse::parseFromStatic( void )
 		_addHeader("Content-Type", this->_contentType);
 		HTTPstruct::_setBody(this->_tmpBody);
 	}
+	// else if ((this->_statusCode >= 300) and (this->_statusCode < 400))
+	// {
+	// 	_addHeader("Location", "something");
+	// 	...
+	// }
 }
 
 void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 {
-	std::string headers, body, strStatus;
+	std::string headers, body;
 	size_t		delimiter;
 
 	delimiter = CGIresp.find(HTTP_TERM);
@@ -37,13 +42,10 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 	body = CGIresp.substr(delimiter);
 	HTTPstruct::_setBody(body);
 	_setHeaders(headers);
-	strStatus = this->_headers.at("Status");
-	delimiter = strStatus.find(HTTP_SP);
-	try {
-		this->_statusCode = std::stoi(strStatus.substr(0, delimiter));
-	}
-	catch(const std::exception& e) {
-		throw(ResponseException({"invalid status code:", strStatus}, 500));
+	_addHeader("Date", _getDateTime());
+	if (this->_statusCode >= 400)
+	{
+
 	}
 }
 
@@ -68,7 +70,6 @@ void	HTTPresponse::readHTML( void )
 	if (readChar < DEF_BUF_SIZE)
 		this->_gotFullHTML = true;
 }
-
 
 void	HTTPresponse::readContentDirectory( t_path const& pathDir)
 {
@@ -176,14 +177,26 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 {
 	HTTPstruct::_setHeaders(strHeaders);
 
+	size_t		delimiter;
+
 	try
 	{
+		delimiter = this->_headers.at("Status").find(HTTP_SP);
+		try {
+			this->_statusCode = std::stoi(this->_headers.at("Status").substr(0, delimiter));
+		}
+		catch(const std::exception& e) {
+			throw(ResponseException({"invalid status code"}, 500));
+		}
+		
 		this->_headers.at("Status");
 		this->_headers.at("Server");
 		if (this->_hasBody == true)
 		{
 			this->_headers.at("Content-type");
 			this->_headers.at("Content-Length");
+			if (this->_statusCode > 400)
+				this->_headers.at("Location");
 		}
 	}
 	catch(const std::out_of_range& e) {

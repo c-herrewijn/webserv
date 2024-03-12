@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/12 01:30:41 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/12 16:56:22 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <cstring>           // bzero
 #include <fstream>
+#include <chrono>
 
 #include "HTTPstruct.hpp"
 #include "ConfigServer.hpp"
@@ -24,7 +25,9 @@
 
 #define MAIN_PAGE_PATH	 		t_path("var/www/mainPage.html")
 #define FAVICON_PATH			t_path("var/www/favicon.ico")
-#define DEFAULT_ERROR_PAGE_PATH t_path(std::filesystem::current_path()) / t_path("/var/www/errors/500.html")
+#define MAX_TIMEOUT				60000
+
+using namespace std::chrono;
 
 typedef struct HTTPurl_f
 {
@@ -46,11 +49,14 @@ class HTTPrequest : public HTTPstruct
 			_contentLength(0) ,
 			_isChunked(false),
 			_isFileUpload(false),
-			_endConn(false) {};
+			_endConn(false),
+			_gotFullBody(false) {};
 		virtual ~HTTPrequest( void ) override {};
 
 		void		parseMain( void );
-		void		parseBody( void );
+		void		readPlainBody( void );
+		void		readChunkedBody( void );
+		// void		parseBody( void );
 		void		validateRequest( ConfigServer const& );
 		std::string	toString( void ) const noexcept override;
 
@@ -66,6 +72,7 @@ class HTTPrequest : public HTTPstruct
 		// t_path const&	getRealPath( void ) const noexcept;
 		t_path const&		getRoot( void ) const noexcept;
 		t_string_map const&	getErrorPages( void ) const noexcept;
+		bool				gotFullBody( void ) const noexcept;
 		bool				isCGI( void ) const noexcept;
 		bool				isAutoIndex( void ) const noexcept;
 		bool				isChunked( void ) const noexcept;
@@ -78,7 +85,7 @@ class HTTPrequest : public HTTPstruct
 		RequestValidate	_validator;
 
 		size_t		_contentLength;
-		bool		_isChunked, _isFileUpload, _endConn;
+		bool		_isChunked, _isFileUpload, _endConn, _gotFullBody;
 
 		void	_parseHeads( std::string&, std::string&, std::string& );
 		void	_setHead( std::string const& );
@@ -95,6 +102,5 @@ class HTTPrequest : public HTTPstruct
 
 		void		_checkMaxBodySize( size_t );
 		std::string	_unchunkBody( std::string const& );
-		void		_readPlainBody( void );
-		void		_readChunkedBody( void );
+		
 };
