@@ -111,6 +111,10 @@ void			WebServer::loop( void )
 				std::cerr << C_RED << e.what()  << C_RESET << '\n';
 				redirectToErrorPage(pollfdItem.fd, e.getStatus());
 			}
+			catch (const std::out_of_range& e) {
+				std::cerr << C_RED << "entity not found"  << C_RESET << '\n';
+				this->_emptyConns.push_back(pollfdItem.fd);
+			}
 		_clearEmptyConns();
 		}
 	}
@@ -297,19 +301,6 @@ void	WebServer::_clearEmptyConns( void ) noexcept
 	}
 }
 
-std::string	WebServer::_getHTMLfromCode( int code ) const noexcept
-{
-	std::filesystem::path	HTMLfolder = HTML_ERROR_FOLDER;
-	std::string				filePath = DEFAULT_ERROR_PAGE_PATH;
-
-	for (auto const& dir_entry : std::filesystem::directory_iterator{HTMLfolder})
-	{
-		if (dir_entry.path().stem() == std::to_string(code))
-			filePath = std::filesystem::absolute(dir_entry.path());
-	}
-	return (filePath);
-}
-
 int		WebServer::_getSocketFromFd( int fd )
 {
 	if (this->_pollitems[fd].pollType == CGI_DATA_PIPE)
@@ -449,9 +440,17 @@ void	WebServer::readRequestBody( int clientSocket )
 {
 	std::cout << "readRequestBody - socketFd: " << clientSocket <<std::endl; // debug
 	// TODO: only needs to be done when (request->_tmpBody == "")
+	// check tmpBody: should be empty
+	// if tmpBody == ""
+	//	 then readBody()
+	// else 
+	//	do nothing
+	// (it's not empty)
+	// // write body to CGI
 }
 
-// NB: it does a lot (like a lot) of calls for sending the body, if the exception
+
+// NB: it does a lot (like a lot) of calls for sending the body, if the exception throw
 // is de-commented it falls into that, failing the upload
 void	WebServer::writeToCGI( int cgiPipe )
 {
@@ -508,15 +507,11 @@ void	WebServer::readCGIResponses( int cgiPipe )
 
 void	WebServer::writeToClients( int clientSocket )
 {
-	HTTPrequest 	*request = this->_requests[clientSocket];
-	HTTPresponse 	*response = this->_responses[clientSocket];
+	HTTPrequest 	*request = this->_requests.at(clientSocket);
+	HTTPresponse 	*response = this->_responses.at(clientSocket);
 
-	if (!request or !response)	// that should not happen
-		throw(ServerException({"request or response not found"}));
 	if ((request->isCGI()) and (response->getStatusCode() < 400)) {
-		CGI *cgi = this->_cgi[clientSocket];
-		if (!cgi)	// that should not happen
-			throw(ServerException({"cgi not found"}));
+		CGI *cgi = this->_cgi.at(clientSocket);
 		response->parseFromCGI(cgi->getResponse());
 		delete (cgi);
 		this->_cgi.erase(clientSocket);
@@ -542,39 +537,33 @@ void	WebServer::writeToClients( int clientSocket )
 
 void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 {
-	HTTPresponse	*response = nullptr;
-	HTTPrequest		*request = nullptr;
 	int				clientSocket=_getSocketFromFd(genericFd), HTMLfd=-1;
-	ConfigServer	handler;
+	HTTPresponse	*response = this->_responses[clientSocket];
+	HTTPrequest		*request = this->_requests[clientSocket];
 	t_path			HTMLerrPage;
 
 	if ((this->_pollitems[genericFd].pollType == STATIC_FILE) or
 		(this->_pollitems[genericFd].pollType == CGI_DATA_PIPE) or		// NB: pipes need to be closed differently see _dropConn()
 		(this->_pollitems[genericFd].pollType == CGI_RESPONSE_PIPE))
 		this->_emptyConns.push_back(genericFd);
-	request = this->_requests.at(clientSocket);
-	response = this->_responses.at(clientSocket);
-	if (statusCode == 412)
-		handler = _getDefaultHandler();
-	else
-		handler = _getHandler(request->getHost());
-	response->setServName(handler.getPrimaryName());
-	response->setStatusCode(statusCode);
-	if (statusCode == 500)
+	else if (!response or !request)
 	{
-		this->_pollitems[clientSocket].pollState = WRITE_TO_CLIENT;
+		this->_emptyConns.push_back(clientSocket);
 		return ;
 	}
+	response->setStatusCode(statusCode);
 	try {
 		HTMLerrPage = _getHTMLerrorPage(statusCode, request);
 		HTMLfd = open(HTMLerrPage.c_str(), O_RDONLY);
+		if (HTMLfd == -1)
+			throw(HTTPexception({"invalid file descriptor from HTML eror page"}, 500));
 		response->setHTMLfd(HTMLfd);
 		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
 		this->_pollitems[clientSocket].pollState = READ_STATIC_FILE;
 	}
-	catch(const WebServerException& e) {
+	catch(const HTTPexception& e) {
 		std::cerr << e.what() << '\n';
-		response->setStatusCode(500);
+		response->updateStatic500();
 		this->_pollitems[clientSocket].pollState = WRITE_TO_CLIENT;
 	}
 }

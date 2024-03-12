@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/12 01:11:48 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/12 17:10:59 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,7 @@ class HTTPresponse : public HTTPstruct
 			HTTPstruct(socket) ,
 			_statusCode(200),
 			_HTMLfd(-1),
-			_gotFullHTML(false),
+			_gotFullContent(false),
 			_responseDone(false),
 			_contentType(STD_CONTENT_TYPE) {};
 
@@ -40,11 +40,12 @@ class HTTPresponse : public HTTPstruct
 		void		readHTML( void );
 		void		readContentDirectory( t_path const&);
 		void		writeContent( void ) ;
+		void		updateContentType( std::string ) noexcept;
+		void		updateStatic500( void ) noexcept;
 		std::string	toString( void ) const noexcept override;
 
 		void		setStatusCode( int ) noexcept;
 		int			getStatusCode( void ) const noexcept;
-		void		updateContentType( std::string ) noexcept;
 		void		setHTMLfd( int HTMLfd ) noexcept;
 		int			getHTMLfd( void ) const noexcept;
 		bool		isDoneReadingHTML( void ) const noexcept;
@@ -52,7 +53,7 @@ class HTTPresponse : public HTTPstruct
 
 	protected:
 		int			_statusCode, _HTMLfd;
-		bool		_gotFullHTML, _responseDone;
+		bool		_gotFullContent, _responseDone;
 		std::string	_contentType;
 
 		void		_setHeaders( std::string const& ) override;

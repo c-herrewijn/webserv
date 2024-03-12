@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/12 16:12:51 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/12 17:27:49 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,13 +40,10 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 	delimiter += HTTP_TERM.size();
 	headers = CGIresp.substr(0, delimiter - HTTP_NL.size());
 	body = CGIresp.substr(delimiter);
+	this->_gotFullContent = true;
 	HTTPstruct::_setBody(body);
 	_setHeaders(headers);
 	_addHeader("Date", _getDateTime());
-	if (this->_statusCode >= 400)
-	{
-
-	}
 }
 
 void	HTTPresponse::readHTML( void )
@@ -54,7 +51,7 @@ void	HTTPresponse::readHTML( void )
     ssize_t 	readChar = -1;
     char        buffer[DEF_BUF_SIZE];
 
-	if (this->_gotFullHTML)
+	if (this->_gotFullContent == true)
 	{
 		std::cout << "HTML already parsed\n";
 		return ;
@@ -63,12 +60,17 @@ void	HTTPresponse::readHTML( void )
 	readChar = read(this->_HTMLfd, buffer, DEF_BUF_SIZE);
 	if (readChar < 0)
 	{
+		if (this->_statusCode >= 400)
+		{
+			updateStatic500();
+			return ;
+		}
 		this->_tmpBody.clear();
 		throw(ResponseException({"fd unavailable"}, 500));
 	}
 	this->_tmpBody += std::string(buffer, buffer + readChar);
 	if (readChar < DEF_BUF_SIZE)
-		this->_gotFullHTML = true;
+		this->_gotFullContent = true;
 }
 
 void	HTTPresponse::readContentDirectory( t_path const& pathDir)
@@ -76,7 +78,7 @@ void	HTTPresponse::readContentDirectory( t_path const& pathDir)
 	(void) pathDir;
 }
 
-void		HTTPresponse::writeContent( void )
+void	HTTPresponse::writeContent( void )
 {
 	static ssize_t 	written;
     ssize_t 		readChar = -1;
@@ -84,6 +86,8 @@ void		HTTPresponse::writeContent( void )
 
 	if (this->_responseDone == true)
 		throw(ServerException({"response already sent"}));
+	else if (this->_gotFullContent == false)
+		throw(ServerException({"incomplete body"}));
 	if ((toString().size() - written) < DEF_BUF_SIZE)
 		charsToWrite = toString().size() - written;
 	else
@@ -97,6 +101,17 @@ void		HTTPresponse::writeContent( void )
 		written = 0;
 		this->_responseDone = true;
 	}
+}
+
+void	HTTPresponse::updateContentType( std::string newContentType ) noexcept
+{
+	this->_contentType = newContentType;
+}
+
+void	HTTPresponse::updateStatic500( void ) noexcept
+{
+	this->_gotFullContent = true;
+	this->_tmpBody = ERROR_500_CONTENT;
 }
 
 std::string	HTTPresponse::toString( void ) const noexcept
@@ -135,22 +150,12 @@ std::string	HTTPresponse::toString( void ) const noexcept
 
 void	HTTPresponse::setStatusCode( int statCode ) noexcept
 {
-	if (statCode == 500)
-	{
-		this->_gotFullHTML = true;
-		this->_tmpBody = ERROR_500_CONTENT;
-	}
 	this->_statusCode = statCode;
 }
 
 int		HTTPresponse::getStatusCode( void ) const noexcept
 {
 	return (this->_statusCode);
-}
-
-void	HTTPresponse::updateContentType( std::string newContentType ) noexcept
-{
-	this->_contentType = newContentType;
 }
 
 void	HTTPresponse::setHTMLfd( int HTMLfd ) noexcept
@@ -165,7 +170,7 @@ int		HTTPresponse::getHTMLfd( void ) const noexcept
 
 bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept
 {
-	return (this->_gotFullHTML);
+	return (this->_gotFullContent);
 }
 
 bool	HTTPresponse::isDoneWriting( void ) const noexcept
@@ -177,7 +182,7 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 {
 	HTTPstruct::_setHeaders(strHeaders);
 
-	size_t		delimiter;
+	size_t	delimiter = 0;
 
 	try
 	{
@@ -188,14 +193,13 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 		catch(const std::exception& e) {
 			throw(ResponseException({"invalid status code"}, 500));
 		}
-		
 		this->_headers.at("Status");
 		this->_headers.at("Server");
 		if (this->_hasBody == true)
 		{
 			this->_headers.at("Content-type");
 			this->_headers.at("Content-Length");
-			if (this->_statusCode > 400)
+			if (this->_statusCode < 400)
 				this->_headers.at("Location");
 		}
 	}
