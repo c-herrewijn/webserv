@@ -62,12 +62,17 @@ class HTTPstruct
 		void				setServName(std::string) noexcept;
 		std::string const&	getTmpBody( void );
 		virtual void		setTmpBody( std::string const& );
+		bool				isCGI( void ) const noexcept;
+		void				setIsCGI( bool ) noexcept;
+		bool				isFileUpload( void ) const noexcept;
+		void				setFileUpload( bool ) noexcept;
+		bool				gotFullBody( void ) const noexcept;
 
 	protected:
 		dict 		_headers;
 		std::string	_servName, _body, _tmpBody;
     	HTTPversion	_version;
-		bool		_hasBody;
+		bool		_hasBody, _gotFullBody, _isCGI, _isFileUpload;
 		int			_socket;
 
 		virtual void	_setHeaders( std::string const& );

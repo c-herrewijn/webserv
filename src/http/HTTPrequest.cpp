@@ -6,22 +6,40 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/12 16:57:38 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/12 18:20:12 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPrequest.hpp"
 
 // throws: ServerException , RequestException
-void	HTTPrequest::parseMain( void )
+void	HTTPrequest::readHead( void )
 {
-	std::string	strHead, strHeaders, strBody;
+	char		buffer[DEF_BUF_SIZE];
+	std::string content, strHead, strHeaders;
+	size_t		endHead=0, endReq=0;
+	ssize_t		charsRead = -1;
 
-	_parseHeads(strHead, strHeaders, strBody);
+	bzero(buffer, DEF_BUF_SIZE);
+	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+	if (charsRead < 0)
+		throw(ServerException({"unavailable socket"}));
+	else if (charsRead == 0)
+		throw(EndConnectionException());
+	content = std::string(buffer, buffer + charsRead);
+	endReq = content.find(HTTP_TERM);		// look for head + headers
+	if (endReq == std::string::npos)
+		throw(RequestException({"headers too large"}, 431));
+	endHead = content.find(HTTP_NL);		// look for headers
+	if (endHead >= endReq)
+		throw(RequestException({"no headers in request"}, 400));
+	strHead = content.substr(0, endHead);
+	strHeaders = content.substr(endHead + HTTP_NL.size(), endReq - endHead - 1) + HTTP_NL;
+	endReq += HTTP_TERM.size();
+	if ((endReq + 1) < content.size())		// if there's the beginning of the body
+		this->_tmpBody = content.substr(endReq);
 	_setHead(strHead);
 	_setHeaders(strHeaders);
-	if (strBody.empty() == false)
-		this->_tmpBody = strBody;
 }
 
 void	HTTPrequest::readPlainBody( void )
@@ -53,38 +71,12 @@ void	HTTPrequest::readPlainBody( void )
 		countChars += readChar;
 		// if (countChars > this->_contentLength)
 		// 	throw(RequestException({"content body is longer than expected"}, 400));
-		this->_tmpBody += std::string(buffer, buffer + countChars);
+		this->_tmpBody += std::string(buffer, buffer + readChar);
+		if (countChars == this->_contentLength)
+			this->_gotFullBody = true;
 	}
-	if (countChars == this->_contentLength)
-		this->_gotFullBody = true;
 }
 
-void	HTTPrequest::_parseHeads( std::string& strHead, std::string& strHeaders, std::string& strBody )
-{
-	char		buffer[DEF_BUF_SIZE];
-	std::string content;
-	size_t		endHead=0, endReq=0;
-	ssize_t		charsRead = -1;
-
-	bzero(buffer, DEF_BUF_SIZE);
-	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-	if (charsRead < 0)
-		throw(ServerException({"unavailable socket"}));
-	else if (charsRead == 0)
-		throw(EndConnectionException());
-	content = std::string(buffer, buffer + charsRead);
-	endReq = content.find(HTTP_TERM);		// look for head + headers
-	if (endReq == std::string::npos)
-		throw(RequestException({"headers too large"}, 431));
-	endHead = content.find(HTTP_NL);		// look for headers
-	if (endHead >= endReq)
-		throw(RequestException({"no headers in request"}, 400));
-	strHead = content.substr(0, endHead);
-	strHeaders = content.substr(endHead + HTTP_NL.size(), endReq - endHead - 1) + HTTP_NL;
-	endReq += HTTP_TERM.size();
-	if ((endReq + 1) < content.size())		// if there's the beginning of the body
-		strBody = content.substr(endReq);
-}
 
 //NB: add timeout error: 408
 void	HTTPrequest::readChunkedBody( void )
@@ -130,18 +122,14 @@ void		HTTPrequest::validateRequest( ConfigServer const& configServer )
 	this->_validator.setConfig(configServer);
 	this->_validator.setMethod(this->_method);
 	this->_validator.setPath(this->_url.path);
-	this->_validator.solvePath();
+	// this->_validator.solvePath();
+	// if (this->_validator.isCGI() == true) // NB: fix after validation is ok
+	if (this->_url.path.extension() == ".cgi")
+		this->_isCGI = true;
 	// study edge cases
 	// if (this->_validator.getStatusCode() >= 500)
 	// 	throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
 	// _checkMaxBodySize(this->_validator.getMaxBodySize());
-}
-
-// NB: fix after validation is ok
-bool	HTTPrequest::isCGI( void ) const noexcept
-{
-	// return (this->_validator.isCGI());
-	return (this->_url.path.extension() == ".cgi");
 }
 
 // NB: fix after validation is ok
@@ -154,11 +142,6 @@ bool	HTTPrequest::isAutoIndex( void ) const noexcept
 bool	HTTPrequest::isChunked( void ) const noexcept
 {
 	return (this->_isChunked);
-}
-
-bool	HTTPrequest::isFileUpload( void ) const noexcept
-{
-	return (this->_isFileUpload);
 }
 
 bool	HTTPrequest::isEndConn( void ) const noexcept
@@ -292,11 +275,6 @@ t_path const&	HTTPrequest::getRoot( void ) const noexcept
 t_string_map const&	HTTPrequest::getErrorPages( void ) const noexcept
 {
 	return (this->_validator.getErrorPages());
-}
-
-bool	HTTPrequest::gotFullBody( void ) const noexcept
-{
-	return(this->_gotFullBody);
 }
 
 void	HTTPrequest::_setHead( std::string const& header )
@@ -528,6 +506,8 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 		}
 	}
 	this->_contentLength = contentLength;
+	if (this->_tmpBody.size() == this->_contentLength)
+		this->_gotFullBody = true;
 	this->_hasBody = true;
 }
 

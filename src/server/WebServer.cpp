@@ -387,17 +387,17 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	response = new HTTPresponse(clientSocket);
 	this->_requests.insert(std::pair<int, HTTPrequest*>(clientSocket, request));
 	this->_responses.insert(std::pair<int, HTTPresponse*>(clientSocket, response));
-	request->parseMain();
-	// std::cout << request->getRealPath() << "\n";
+	request->readHead();
 	if (!std::filesystem::exists(request->getRealPath()))	// NB: temporary until validation works
 		throw(RequestException({"file not found"}, 404));
-	// request->validateRequest(_getHandler(request->getHost()));
+	request->validateRequest(_getHandler(request->getHost()));
 	if (request->isCGI()) {		// GET (CGI), POST and DELETE
 		cgiPtr = new CGI(*request);
 		this->_cgi.insert(std::pair<int, CGI*>(clientSocket, cgiPtr));
 		this->_addConn(cgiPtr->getResponsePipe()[0], CGI_RESPONSE_PIPE, READ_CGI_RESPONSE);
 		cgiPtr->run();
 		if (request->hasBody()) {
+			response->setFileUpload(request->isFileUpload());
 			this->_addConn(cgiPtr->getuploadPipe()[1], CGI_DATA_PIPE, FORWARD_REQ_BODY_TO_CGI);
 			nextState = FORWARD_REQ_BODY_TO_CGI;
 		}

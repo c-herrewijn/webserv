@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/12 17:27:49 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/12 17:53:14 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,7 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 	delimiter += HTTP_TERM.size();
 	headers = CGIresp.substr(0, delimiter - HTTP_NL.size());
 	body = CGIresp.substr(delimiter);
-	this->_gotFullContent = true;
+	this->_gotFullBody = true;
 	HTTPstruct::_setBody(body);
 	_setHeaders(headers);
 	_addHeader("Date", _getDateTime());
@@ -51,7 +51,7 @@ void	HTTPresponse::readHTML( void )
     ssize_t 	readChar = -1;
     char        buffer[DEF_BUF_SIZE];
 
-	if (this->_gotFullContent == true)
+	if (this->_gotFullBody == true)
 	{
 		std::cout << "HTML already parsed\n";
 		return ;
@@ -70,7 +70,7 @@ void	HTTPresponse::readHTML( void )
 	}
 	this->_tmpBody += std::string(buffer, buffer + readChar);
 	if (readChar < DEF_BUF_SIZE)
-		this->_gotFullContent = true;
+		this->_gotFullBody = true;
 }
 
 void	HTTPresponse::readContentDirectory( t_path const& pathDir)
@@ -86,7 +86,7 @@ void	HTTPresponse::writeContent( void )
 
 	if (this->_responseDone == true)
 		throw(ServerException({"response already sent"}));
-	else if (this->_gotFullContent == false)
+	else if (this->_gotFullBody == false)
 		throw(ServerException({"incomplete body"}));
 	if ((toString().size() - written) < DEF_BUF_SIZE)
 		charsToWrite = toString().size() - written;
@@ -110,7 +110,7 @@ void	HTTPresponse::updateContentType( std::string newContentType ) noexcept
 
 void	HTTPresponse::updateStatic500( void ) noexcept
 {
-	this->_gotFullContent = true;
+	this->_gotFullBody = true;
 	this->_tmpBody = ERROR_500_CONTENT;
 }
 
@@ -170,7 +170,7 @@ int		HTTPresponse::getHTMLfd( void ) const noexcept
 
 bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept
 {
-	return (this->_gotFullContent);
+	return (this->_gotFullBody);
 }
 
 bool	HTTPresponse::isDoneWriting( void ) const noexcept
@@ -193,14 +193,18 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 		catch(const std::exception& e) {
 			throw(ResponseException({"invalid status code"}, 500));
 		}
-		this->_headers.at("Status");
 		this->_headers.at("Server");
 		if (this->_hasBody == true)
 		{
 			this->_headers.at("Content-type");
 			this->_headers.at("Content-Length");
-			if (this->_statusCode < 400)
-				this->_headers.at("Location");
+			if (this->isFileUpload())
+			{
+				if (this->_statusCode < 400)
+					this->_headers.at("Location");
+				else
+					this->_isFileUpload = false;
+			}
 		}
 	}
 	catch(const std::out_of_range& e) {

@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/11 23:39:48 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/12 17:48:39 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,7 +61,7 @@
 // 	}
 // }
 
-HTTPstruct::HTTPstruct( int socket ) : _hasBody(false)
+HTTPstruct::HTTPstruct( int socket ) : _hasBody(false) , _gotFullBody(false) , _isCGI(false) , _isFileUpload(false)
 {
 	this->_version.scheme = HTTP_SCHEME;
 	this->_version.major = 1;
@@ -97,6 +97,31 @@ std::string const&	HTTPstruct::getTmpBody( void )
 void	HTTPstruct::setTmpBody( std::string const& tmpBody )
 {
     this->_tmpBody = tmpBody;
+}
+
+bool	HTTPstruct::isCGI( void ) const noexcept
+{
+	return (this->_isCGI);
+}
+
+void	HTTPstruct::setIsCGI( bool isCGI ) noexcept
+{
+	this->_isCGI = isCGI;
+}
+
+bool	HTTPstruct::isFileUpload( void ) const noexcept
+{
+	return (this->_isFileUpload);
+}
+
+void	HTTPstruct::setFileUpload( bool isFileUpload ) noexcept
+{
+	this->_isFileUpload = isFileUpload;
+}
+
+bool	HTTPstruct::gotFullBody( void ) const noexcept
+{
+	return(this->_gotFullBody);
 }
 
 void	HTTPstruct::_setHeaders( std::string const& headers )
