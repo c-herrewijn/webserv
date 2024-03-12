@@ -21,13 +21,16 @@ if fileitem.filename:
     file_path = os.path.join(upload_dir, file_name)
     if os.path.exists(file_path):
         message = 'Not uploaded: file with same name already present on server!'
+        status_code = '409 Conflict'
     else:
         if not os.path.exists(upload_dir):
             os.makedirs(upload_dir)
         open(file_path, 'wb').write(fileitem.file.read())
         message = 'The file "' + file_name + '" was uploaded successfully'
+        status_code = '201 Created'
 else:
     message = 'No file found in request!'
+    status_code = '400 Bad Request'
 
 html_content = f'''<html><body>
                 <h1>File upload</h1>
@@ -43,11 +46,11 @@ html_content = f'''<html><body>
 # for name, value in environ.items():
 # #     print("{0}: {1}".format(name, value), file=sys.stderr)
 
-# print("HTTP/1.0 200 OK")  # start line
-# print(f"Server: {environ['SERVER_NAME']}")
-print("Status: 201 Created", end='\r\n')
+print(f"Status: {status_code}", end='\r\n')
 print("Content-type: text/html", end='\r\n')
 print(f"Content-Length: {len(html_content)}", end='\r\n')
+if (status_code == '201 Created'):
+    print(f"Location: {os.path.join('/uploads', file_name)}", end='\r\n')
 print(f"Server: {environ['SERVER_NAME']}", end='\r\n\r\n')
 print(html_content)
 

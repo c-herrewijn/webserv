@@ -371,8 +371,8 @@ void	WebServer::handleNewConnections( int listenerFd )
 	if (connFd == -1)
 		throw(ServerException({"connection with", this->_getAddress(&client), "failed"}));
 	fcntl(connFd, F_SETFL, O_NONBLOCK);
-	std::cout << "connected to " << this->_getAddress(&client) << '\n';
 	this->_addConn(connFd, CLIENT_CONNECTION, READ_REQ_HEADER);
+	std::cout << "connected to " << this->_getAddress(&client) << '\n';
 }
 
 void	WebServer::readRequestHeaders( int clientSocket )
