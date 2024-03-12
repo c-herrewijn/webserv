@@ -297,19 +297,6 @@ void	WebServer::_clearEmptyConns( void ) noexcept
 	}
 }
 
-std::string	WebServer::_getHTMLfromCode( int code ) const noexcept
-{
-	std::filesystem::path	HTMLfolder = HTML_ERROR_FOLDER;
-	std::string				filePath = DEFAULT_ERROR_PAGE_PATH;
-
-	for (auto const& dir_entry : std::filesystem::directory_iterator{HTMLfolder})
-	{
-		if (dir_entry.path().stem() == std::to_string(code))
-			filePath = std::filesystem::absolute(dir_entry.path());
-	}
-	return (filePath);
-}
-
 int		WebServer::_getSocketFromFd( int fd )
 {
 	if (this->_pollitems[fd].pollType == CGI_DATA_PIPE)
