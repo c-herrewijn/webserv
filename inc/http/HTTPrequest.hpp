@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/12 18:20:12 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/12 21:51:35 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,8 @@
 
 #define MAIN_PAGE_PATH	 		t_path("var/www/mainPage.html")
 #define FAVICON_PATH			t_path("var/www/favicon.ico")
-#define MAX_TIMEOUT				60000
+#define MAX_TIMEOUT				5
+#define MAX_HEADER_SIZE			8192
 
 using namespace std::chrono;
 
@@ -48,7 +49,8 @@ class HTTPrequest : public HTTPstruct
 			HTTPstruct(socket) ,
 			_contentLength(0) ,
 			_isChunked(false),
-			_endConn(false) {};
+			_endConn(false),
+			_gotFullHead(false) {};
 		virtual ~HTTPrequest( void ) override {};
 
 		void		readHead( void );
@@ -70,6 +72,7 @@ class HTTPrequest : public HTTPstruct
 		// t_path const&	getRealPath( void ) const noexcept;
 		t_path const&		getRoot( void ) const noexcept;
 		t_string_map const&	getErrorPages( void ) const noexcept;
+		bool				gotFullHead( void ) const noexcept;
 		bool				isAutoIndex( void ) const noexcept;
 		bool				isChunked( void ) const noexcept;
 		bool				isEndConn( void ) const noexcept;
@@ -80,7 +83,7 @@ class HTTPrequest : public HTTPstruct
 		RequestValidate	_validator;
 
 		size_t		_contentLength;
-		bool		_isChunked, _endConn;
+		bool		_isChunked, _endConn, _gotFullHead;
 
 		void	_parseHeads( std::string&, std::string& );
 		void	_setHead( std::string const& );

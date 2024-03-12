@@ -355,7 +355,7 @@ t_path	WebServer::_getHTMLerrorPage( int statusCode, t_string_map const& localEr
 					if (dir_entry.path().stem() == std::to_string(statusCode))
 						return (dir_entry.path());
 				}
-				throw(HTTPexception({"absolutely no HTML found for code:", std::to_string(statusCode)}, 500));
+				throw(HTTPexception({"absolutely no HTML found for code", std::to_string(statusCode)}, 500));
 	// 		}
 	// 	}
 	// }
@@ -386,18 +386,23 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	int 			HTMLfd = -1;
 	fdState			nextState;
 
-	request = new HTTPrequest(clientSocket);
-	response = new HTTPresponse(clientSocket);
-	this->_requests.insert(std::pair<int, HTTPrequest*>(clientSocket, request));
-	this->_responses.insert(std::pair<int, HTTPresponse*>(clientSocket, response));
+	if (!this->_requests[clientSocket] and !this->_responses[clientSocket])
+	{
+		this->_requests[clientSocket] = new HTTPrequest(clientSocket);
+		this->_responses[clientSocket] = new HTTPresponse(clientSocket);
+	}
+	request = this->_requests[clientSocket];
+	response = this->_responses[clientSocket];
 	request->readHead();
+	if (request->gotFullHead() == false)
+		return ;
 	if (!std::filesystem::exists(request->getRealPath()))	// NB: temporary until validation works
 		throw(RequestException({"file not found"}, 404));
 	request->validateRequest(_getHandler(request->getHost()));
 	if (request->isCGI()) {		// GET (CGI), POST and DELETE
-		response->setIsCGI(request->isCGI());
+		response->setIsCGI(true);
 		cgiPtr = new CGI(*request);
-		this->_cgi.insert(std::pair<int, CGI*>(clientSocket, cgiPtr));
+		this->_cgi[clientSocket] = cgiPtr;
 		this->_addConn(cgiPtr->getResponsePipe()[0], CGI_RESPONSE_PIPE, READ_CGI_RESPONSE);
 		cgiPtr->run();
 		if (request->hasBody()) {

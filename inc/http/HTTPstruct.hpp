@@ -26,7 +26,7 @@
 #define HTTP_TERM		std::string("\r\n\r\n")		// http terminator
 #define HTTP_NL			std::string("\r\n")			// http delimiter
 #define HTTP_SP			' '							// shortcut for space
-#define DEF_BUF_SIZE 	8192
+#define DEF_BUF_SIZE 	1024
 
 // void	testReqs( void );
 
@@ -70,7 +70,7 @@ class HTTPstruct
 
 	protected:
 		dict 		_headers;
-		std::string	_servName, _body, _tmpBody;
+		std::string	_servName, _tmpHead, _body, _tmpBody;
     	HTTPversion	_version;
 		bool		_hasBody, _gotFullBody, _isCGI, _isFileUpload;
 		int			_socket;

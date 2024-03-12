@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/12 20:58:43 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/12 21:54:08 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,26 +20,44 @@ void	HTTPrequest::readHead( void )
 	size_t		endHead=0, endReq=0;
 	ssize_t		charsRead = -1;
 
+	static steady_clock::time_point lastRead = steady_clock::now();
+	steady_clock::time_point 		currentRead;
+	duration<double> 				time_span;
+	
+	if (this->_gotFullHead)
+		return;
 	bzero(buffer, DEF_BUF_SIZE);
 	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
 	if (charsRead < 0)
 		throw(ServerException({"unavailable socket"}));
 	else if (charsRead == 0)
 		throw(EndConnectionException());
-	content = std::string(buffer, buffer + charsRead);
-	endReq = content.find(HTTP_TERM);		// look for head + headers
-	if (endReq == std::string::npos)
+	else if (this->_tmpHead.size() + charsRead > MAX_HEADER_SIZE)
 		throw(RequestException({"headers too large"}, 431));
-	endHead = content.find(HTTP_NL);		// look for headers
-	if (endHead >= endReq)
-		throw(RequestException({"no headers in request"}, 400));
-	strHead = content.substr(0, endHead);
-	strHeaders = content.substr(endHead + HTTP_NL.size(), endReq - endHead - 1) + HTTP_NL;
-	endReq += HTTP_TERM.size();
-	if ((endReq + 1) < content.size())		// if there's the beginning of the body
-		this->_tmpBody = content.substr(endReq);
-	_setHead(strHead);
-	_setHeaders(strHeaders);
+
+	//NB: handle also time from the beginning()
+	currentRead = steady_clock::now();
+	time_span = duration_cast<duration<int>>(currentRead - lastRead);
+	std::cout << "elapsed time: " << time_span.count() << '\n';
+	if (time_span.count() > MAX_TIMEOUT)
+		throw(RequestException({"timeout request"}, 408));
+
+	this->_tmpHead += std::string(buffer, buffer + charsRead);
+	endReq = this->_tmpHead.find(HTTP_TERM);		// look for terminator in request
+	if (endReq != std::string::npos)
+	{
+		this->_gotFullHead = true;
+		endHead = this->_tmpHead.find(HTTP_NL);		// look for headers
+		if (endHead >= endReq)
+			throw(RequestException({"bad format request"}, 400));
+		strHead = this->_tmpHead.substr(0, endHead);
+		strHeaders = this->_tmpHead.substr(endHead + HTTP_NL.size(), endReq - endHead - 1) + HTTP_NL;
+		endReq += HTTP_TERM.size();
+		if ((endReq + 1) < this->_tmpHead.size())		// if there's the beginning of the body
+			this->_tmpBody = this->_tmpHead.substr(endReq);
+		_setHead(strHead);
+		_setHeaders(strHeaders);
+	}
 }
 
 void	HTTPrequest::readPlainBody( void )
@@ -274,6 +292,11 @@ t_path const&	HTTPrequest::getRoot( void ) const noexcept
 t_string_map const&	HTTPrequest::getErrorPages( void ) const noexcept
 {
 	return (this->_validator.getErrorPages());
+}
+
+bool	HTTPrequest::gotFullHead( void ) const noexcept
+{
+	return (this->_gotFullHead);
 }
 
 void	HTTPrequest::_setHead( std::string const& header )

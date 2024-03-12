@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/12 17:48:39 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/12 21:38:27 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -136,7 +136,7 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 	{
 		del2 = tmpHeaders.find(": ");
 		if (del2 == std::string::npos)
-			throw(HTTPexception({"invalid header format:", tmpHeaders}, 400));
+			throw(HTTPexception({"invalid header format:", tmpHeaders.substr(0, del1)}, 400));
 		key = tmpHeaders.substr(0, del2);
 		value = tmpHeaders.substr(del2 + 2, del1 - del2 - 2);
 		_addHeader(key, value);
