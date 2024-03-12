@@ -15,13 +15,11 @@
 // throws: ServerException , RequestException
 void	HTTPrequest::parseMain( void )
 {
-	std::string	strHead, strHeaders, strBody;
+	std::string	strHead, strHeaders;
 
-	_parseHeads(strHead, strHeaders, strBody);
+	_parseHeads(strHead, strHeaders);
 	_setHead(strHead);
 	_setHeaders(strHeaders);
-	if (strBody.empty() == false)
-		this->_tmpBody = strBody;
 }
 
 void	HTTPrequest::readPlainBody( void )
@@ -51,15 +49,14 @@ void	HTTPrequest::readPlainBody( void )
 	{
 		lastRead = steady_clock::now();
 		countChars += readChar;
-		// if (countChars > this->_contentLength)
-		// 	throw(RequestException({"content body is longer than expected"}, 400));
-		this->_tmpBody += std::string(buffer, buffer + countChars);
+		this->_tmpBody += std::string(buffer, buffer + readChar);
 	}
-	if (countChars == this->_contentLength)
+	if (countChars == this->_contentLength) {
 		this->_gotFullBody = true;
+	}
 }
 
-void	HTTPrequest::_parseHeads( std::string& strHead, std::string& strHeaders, std::string& strBody )
+void	HTTPrequest::_parseHeads( std::string& strHead, std::string& strHeaders )
 {
 	char		buffer[DEF_BUF_SIZE];
 	std::string content;
@@ -83,7 +80,7 @@ void	HTTPrequest::_parseHeads( std::string& strHead, std::string& strHeaders, st
 	strHeaders = content.substr(endHead + HTTP_NL.size(), endReq - endHead - 1) + HTTP_NL;
 	endReq += HTTP_TERM.size();
 	if ((endReq + 1) < content.size())		// if there's the beginning of the body
-		strBody = content.substr(endReq);
+		this->_tmpBody = content.substr(endReq);
 }
 
 //NB: add timeout error: 408
@@ -528,6 +525,8 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 		}
 	}
 	this->_contentLength = contentLength;
+	if (this->_tmpBody.size() == this->_contentLength)
+        this->_gotFullBody = true;
 	this->_hasBody = true;
 }
 
