@@ -451,6 +451,8 @@ void	WebServer::readRequestBody( int clientSocket )
 	// TODO: only needs to be done when (request->_tmpBody == "")
 }
 
+// NB: it does a lot (like a lot) of calls for sending the body, if the exception
+// is de-commented it falls into that, failing the upload
 void	WebServer::writeToCGI( int cgiPipe )
 {
 	std::cout << "cgiUploadPipeFd - socketFd: " << cgiPipe << std::endl; // debug
@@ -473,8 +475,8 @@ void	WebServer::writeToCGI( int cgiPipe )
 			// NB.: add to the emptyCon list 
 		}
 	}
-	else
-		throw(ServerException({"request not found"}));
+	// else
+	// 	throw(ServerException({"request not found"}));
 }
 
 void	WebServer::readCGIResponses( int cgiPipe )
