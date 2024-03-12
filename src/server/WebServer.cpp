@@ -380,8 +380,8 @@ void	WebServer::handleNewConnections( int listenerFd )
 	if (connFd == -1)
 		throw(ServerException({"connection with", this->_getAddress(&client), "failed"}));
 	fcntl(connFd, F_SETFL, O_NONBLOCK);
-	std::cout << "connected to " << this->_getAddress(&client) << '\n';
 	this->_addConn(connFd, CLIENT_CONNECTION, READ_REQ_HEADER);
+	std::cout << "connected to " << this->_getAddress(&client) << '\n';
 }
 
 void	WebServer::readRequestHeaders( int clientSocket )
@@ -545,7 +545,6 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 	HTTPresponse	*response = nullptr;
 	HTTPrequest		*request = nullptr;
 	int				clientSocket=_getSocketFromFd(genericFd), HTMLfd=-1;
-	ConfigServer	handler;
 	t_path			HTMLerrPage;
 
 	if ((this->_pollitems[genericFd].pollType == STATIC_FILE) or
@@ -554,11 +553,6 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 		this->_emptyConns.push_back(genericFd);
 	request = this->_requests.at(clientSocket);
 	response = this->_responses.at(clientSocket);
-	if (statusCode == 412)
-		handler = _getDefaultHandler();
-	else
-		handler = _getHandler(request->getHost());
-	response->setServName(handler.getPrimaryName());
 	response->setStatusCode(statusCode);
 	if (statusCode == 500)
 	{
