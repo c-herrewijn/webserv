@@ -71,7 +71,7 @@ t_path	const& RequestValidate::getRoot( void ) const
 	return (this->_validParams->getRoot());
 }
 
-t_string_map const&	RequestValidate::getErrPages( void ) const
+t_string_map const&	RequestValidate::getErrorPages( void ) const
 {
 	return (this->_validParams->getErrorPages());
 }

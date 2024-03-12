@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/11 22:36:58 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/12 01:55:19 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,7 @@ void	HTTPrequest::_parseHeads( std::string& strHead, std::string& strHeaders, st
 	if (charsRead < 0)
 		throw(ServerException({"unavailable socket"}));
 	else if (charsRead == 0)
-		throw(ServerException({"connection closed"}));
+		throw(EndConnectionException());
 	content = std::string(buffer, buffer + charsRead);
 	endReq = content.find(HTTP_TERM);		// look for head + headers
 	if (endReq == std::string::npos)
@@ -62,6 +62,7 @@ void	HTTPrequest::parseBody( void )
 		_readPlainBody();
 }
 
+// NB: fix after validation is ok
 void		HTTPrequest::validateRequest( ConfigServer const& configServer )
 {
 	this->_servName = configServer.getPrimaryName();
@@ -74,12 +75,14 @@ void		HTTPrequest::validateRequest( ConfigServer const& configServer )
 	// _checkMaxBodySize(this->_validator.getMaxBodySize());
 }
 
+// NB: fix after validation is ok
 bool	HTTPrequest::isCGI( void ) const noexcept
 {
 	// return (this->_validator.isCGI());
 	return (this->_url.path.extension() == ".cgi");
 }
 
+// NB: fix after validation is ok
 bool	HTTPrequest::isAutoIndex( void ) const noexcept
 {
 	// return (this->_validator.isAutoIndex());
@@ -204,17 +207,18 @@ std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 	return (boundary);
 }
 
+// NB: fix after validation is ok
 // t_path const&	HTTPrequest::getRealPath( void ) const noexcept
 t_path HTTPrequest::getRealPath( void ) const noexcept
 {
+	t_path cwd = std::filesystem::current_path() / "var/www/";
 	if (this->_url.path == "/")		// NB: should be done by validation
-		return (MAIN_PAGE_PATH);
+		cwd = MAIN_PAGE_PATH;
 	else if (this->_url.path.extension() == ".ico")	// NB: should be done by validation, update content-type of response
-		return (FAVICON_PATH);
-	else if (this->_url.path.extension() == ".cgi")
-		return (t_path("/home/fra/Codam/webserv/var/www") / this->_url.path);
+		cwd = FAVICON_PATH;
 	else
-		return (this->_url.path);
+	cwd /= this->_url.path.string().substr(1);
+	return (cwd);
 	// return (this->_validator.getRealPath());
 }
 
@@ -223,15 +227,9 @@ t_path const&	HTTPrequest::getRoot( void ) const noexcept
 	return (this->_validator.getRoot());
 }
 
-// NB: check error handling
-t_path	HTTPrequest::getErrPageFromCode( int errCode ) const
+t_string_map const&	HTTPrequest::getErrorPages( void ) const noexcept
 {
-	try {
-		return (this->_validator.getErrPages().at(errCode));
-	}
-	catch(const std::out_of_range& e) {
-		throw(RequestException({"error page not found for code: ", std::to_string(errCode)}, 500));
-	}
+	return (this->_validator.getErrorPages());
 }
 
 void	HTTPrequest::_setHead( std::string const& header )
@@ -289,7 +287,7 @@ void	HTTPrequest::_setURL( std::string const& strURL )
 		tmpURL = tmpURL.substr(2);
 		delimiter = tmpURL.find("/");
 		if (delimiter == 0)
-			_setHostPort("localhost");
+			_setHostPort(DEF_NAME);
 		else
 			_setHostPort(tmpURL.substr(0, delimiter));
 		tmpURL = tmpURL.substr(delimiter);

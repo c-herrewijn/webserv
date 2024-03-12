@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/11 22:43:02 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/12 00:42:38 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -102,10 +102,11 @@ class WebServer
 		void			_dropConn( int ) noexcept;
 		void			_clearEmptyConns( void ) noexcept;
 		std::string			_getAddress( const struct sockaddr_storage*) const noexcept ;
-		ConfigServer const&	_getHandler( std::string const& ) noexcept;
-		ConfigServer const&	_getDefaultHandler( void ) noexcept;
+		ConfigServer const&	_getHandler( std::string const& ) const noexcept;
+		ConfigServer const&	_getDefaultHandler( void ) const noexcept;
 		std::string		_getHTMLfromCode( int ) const noexcept;
 		int				_getSocketFromFd( int );
+		t_path			_getHTMLerrorPage( int, HTTPrequest* ) const;
 		void			handleNewConnections( int ); // keep - DONE
 		void			readRequestHeaders( int ); // keep / rework
 		void			readStaticFiles( int ); // keep / rework

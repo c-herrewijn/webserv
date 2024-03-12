@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/11 18:16:46 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/12 01:30:41 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,10 +49,9 @@ class HTTPrequest : public HTTPstruct
 			_endConn(false) {};
 		virtual ~HTTPrequest( void ) override {};
 
-		void			parseMain( void );
-		void			parseBody( void );
-		void			validateRequest( ConfigServer const& );
-
+		void		parseMain( void );
+		void		parseBody( void );
+		void		validateRequest( ConfigServer const& );
 		std::string	toString( void ) const noexcept override;
 
 		HTTPmethod		 	getMethod( void ) const noexcept;
@@ -63,9 +62,10 @@ class HTTPrequest : public HTTPstruct
 		std::string	const& 	getBody( void ) const noexcept;
 		std::string	const&	getQueryRaw( void ) const noexcept;
 		std::string			getContentTypeBoundary( void ) const noexcept;
-		t_path					getRealPath( void ) const noexcept;
+		t_path				getRealPath( void ) const noexcept;
+		// t_path const&	getRealPath( void ) const noexcept;
 		t_path const&		getRoot( void ) const noexcept;
-		t_path				getErrPageFromCode( int ) const;
+		t_string_map const&	getErrorPages( void ) const noexcept;
 		bool				isCGI( void ) const noexcept;
 		bool				isAutoIndex( void ) const noexcept;
 		bool				isChunked( void ) const noexcept;

@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/18 14:04:58 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/11 16:32:11 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/12 01:33:59 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,11 +36,6 @@ HTTPexception::HTTPexception( std::initializer_list<std::string> const& prompts,
 		this->_msg += " " + prompt;
 	this->_msg += " - error code: " + std::to_string(status);
 	this->_status = status;
-}
-
-int	HTTPexception::getStatus( void ) const
-{
-	return (this->_status);
 }
 
 RequestException::RequestException( std::initializer_list<std::string> const& prompts, int status) noexcept

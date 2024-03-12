@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/18 14:04:44 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/06 10:07:57 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/12 01:34:19 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,11 +37,17 @@ class ServerException : public WebServerException
 		ServerException( std::initializer_list<std::string> const& ) noexcept;
 };
 
+class EndConnectionException : public WebServerException
+{
+	public:
+		EndConnectionException( void ) noexcept {};
+};
+
 class HTTPexception : public WebServerException
 {
 	public:
 		HTTPexception( std::initializer_list<std::string> const&, int ) noexcept;
-		int	getStatus( void ) const ;
+		int	getStatus( void ) const {return (this->_status);}
 
 	protected:
 		int	_status;

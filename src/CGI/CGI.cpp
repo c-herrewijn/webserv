@@ -38,8 +38,8 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(const HTTPrequest &req)
         "REMOTE_IDENT=",
         "REMOTE_USER=",
         "REQUEST_METHOD=" + req.getStrMethod(),
-        "SCRIPT_NAME=" + req.getRealPath().filename().generic_string(), // script name, e.g. myScript.cgi
-        "SCRIPT_FILENAME=" + tmp.generic_string(), // script path relative to document root, e.g. /cgi-bin/myScript.cgi
+        "SCRIPT_NAME=" + req.getRealPath().filename().string(), // script name, e.g. myScript.cgi
+        "SCRIPT_FILENAME=" + req.getRealPath().string(), // script path relative to document root, e.g. /cgi-bin/myScript.cgi - NB: temporary until validation works
         "SERVER_NAME=" + req.getServName(),
         "SERVER_PORT=" + req.getPort(),
         "SERVER_PROTOCOL=HTTP/1.1", // fixed
@@ -66,10 +66,8 @@ void CGI::run()
 {
     pid_t childPid = fork();
     if (childPid == 0) {
-        t_path CGIfilePath = std::filesystem::current_path();   // NB: temporary
-        CGIfilePath += "/var/www/";
-        CGIfilePath += _req.getRealPath();
-        std::string CGIfileName = _req.getRealPath().filename(); // fully stripped, only used for execve
+        std::string CGIfilePath = _req.getRealPath().string();   // NB: temporary until validation works
+        std::string CGIfileName = _req.getRealPath().filename().string(); // fully stripped, only used for execve
         close(this->_responsePipe[0]);
         dup2(this->_responsePipe[1], STDOUT_FILENO); // write to pipe
         close(this->_uploadPipe[1]);

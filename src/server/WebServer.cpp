@@ -100,11 +100,15 @@ void			WebServer::loop( void )
 					this->_emptyConns.push_back(pollfdItem.fd);
 			}
 			catch (const ServerException& e) {
-				std::cerr << e.what() << '\n';
+				std::cerr << C_RED << e.what()  << C_RESET << '\n';
+				this->_emptyConns.push_back(pollfdItem.fd);
+			}
+			catch (const EndConnectionException& e) {
+				std::cout << C_GREEN << "CLOSED CONNECTION - " << pollfdItem.fd << C_RESET << std::endl;
 				this->_emptyConns.push_back(pollfdItem.fd);
 			}
 			catch (const HTTPexception& e) {
-				std::cerr << e.what() << '\n';
+				std::cerr << C_RED << e.what()  << C_RESET << '\n';
 				redirectToErrorPage(pollfdItem.fd, e.getStatus());
 			}
 		_clearEmptyConns();
@@ -132,7 +136,7 @@ std::string		WebServer::_getAddress( const struct sockaddr_storage *addr ) const
 	return (ipAddress);
 }
 
-ConfigServer const&	WebServer::_getHandler( std::string const& servName ) noexcept
+ConfigServer const&	WebServer::_getHandler( std::string const& servName ) const noexcept
 {
 	std::string	tmpServName = servName;
 
@@ -149,7 +153,7 @@ ConfigServer const&	WebServer::_getHandler( std::string const& servName ) noexce
 	return (_getDefaultHandler());
 }
 
-ConfigServer const&	WebServer::_getDefaultHandler( void ) noexcept
+ConfigServer const&	WebServer::_getDefaultHandler( void ) const noexcept
 {
 	return (this->_defaultServer);
 }
@@ -195,32 +199,32 @@ void	WebServer::_listenTo( std::string const& hostname, std::string const& port 
 	this->_addConn(listenSocket, LISTENER, WAITING_FOR_CONNECTION);
 }
 
-void	WebServer::_readData( int readFd )
+void	WebServer::_readData( int readFd )	// POLLIN
 {
 	switch (this->_pollitems[readFd].pollState)
 	{
 		case WAITING_FOR_CONNECTION:
-			std::cout << C_GREEN << "POLLIN - NEWCONNECTION - " << readFd << C_RESET << std::endl;
+			std::cout << C_GREEN << "NEW_CONNECTION - " << readFd << C_RESET << std::endl;
 			handleNewConnections(readFd);
 			break;
 
 		case READ_REQ_HEADER:
-			std::cout << C_GREEN << "POLLIN - READ_REQ_HEADER - " << readFd << C_RESET << std::endl;
+			std::cout << C_GREEN << "READ_REQ_HEADER - " << readFd << C_RESET << std::endl;
 			readRequestHeaders(readFd);
 			break;
 
 		case FORWARD_REQ_BODY_TO_CGI:
-			std::cout << C_GREEN << "POLLIN - FORWARD_REQ_BODY_TO_CGI - " << readFd << C_RESET << std::endl;
+			std::cout << C_GREEN << "FORWARD_REQ_BODY_TO_CGI - " << readFd << C_RESET << std::endl;
 			readRequestBody(readFd);
 			break;
 
 		case READ_CGI_RESPONSE:
-			std::cout << C_GREEN << "POLLIN - READ_CGI_RESPONSE " << readFd << C_RESET << std::endl;
+			std::cout << C_GREEN << "READ_CGI_RESPONSE " << readFd << C_RESET << std::endl;
 			readCGIResponses(readFd);
 			break;
 
 		case READ_STATIC_FILE:
-			std::cout << C_GREEN << "POLLIN - READ_STATIC_FILE - " << readFd << C_RESET << std::endl;
+			std::cout << C_GREEN << "READ_STATIC_FILE - " << readFd << C_RESET << std::endl;
 			readStaticFiles(readFd);
 			break;
 
@@ -229,17 +233,17 @@ void	WebServer::_readData( int readFd )
 	}
 }
 
-void	WebServer::_writeData( int writeFd )
+void	WebServer::_writeData( int writeFd )	// POLLOUT
 {
 	switch (this->_pollitems[writeFd].pollState)
 	{
 		case FORWARD_REQ_BODY_TO_CGI:
-			std::cout << C_GREEN << "POLLOUT - FORWARD_REQ_BODY_TO_CGI - " << writeFd << C_RESET << std::endl;
+			std::cout << C_GREEN << "FORWARD_REQ_BODY_TO_CGI - " << writeFd << C_RESET << std::endl;
 			writeToCGI(writeFd);
 			break;
 
 		case WRITE_TO_CLIENT:
-			std::cout << C_GREEN << "POLLOUT - WRITE_TO_CLIENT - " << writeFd << C_RESET << std::endl;
+			std::cout << C_GREEN << "WRITE_TO_CLIENT - " << writeFd << C_RESET << std::endl;
 			writeToClients(writeFd);
 			break;
 
@@ -337,6 +341,35 @@ int		WebServer::_getSocketFromFd( int fd )
 	throw(ServerException({"invalid file descriptor or not found"}));	// entity not found, this should not happen
 }
 
+//NB: building absolut path?
+// NB: fix after validation is ok
+t_path	WebServer::_getHTMLerrorPage( int statusCode, HTTPrequest* request ) const
+{
+	(void) request;
+	// try {
+	// 	return (request->getErrorPages().at(statusCode));
+	// }
+	// catch(const std::out_of_range& e1)
+	// {
+	// 	try {
+	// 		return (_getHandler(request->getHost()).getParams().getErrorPages().at(statusCode));
+	// 	}
+	// 	catch(const std::out_of_range& e2) {
+	// 		try {
+	// 			return (_getDefaultHandler().getParams().getErrorPages().at(statusCode));
+	// 		}
+	// 		catch(const std::out_of_range& e3) {
+				for (auto const& dir_entry : std::filesystem::directory_iterator{HTML_ERROR_FOLDER})
+				{
+					if (dir_entry.path().stem() == std::to_string(statusCode))
+						return (dir_entry.path());
+				}
+				throw(HTTPexception({"absolutely no HTML found for code:", std::to_string(statusCode)}, 500));
+	// 		}
+	// 	}
+	// }
+}
+
 void	WebServer::handleNewConnections( int listenerFd )
 {
 	struct sockaddr_storage client;
@@ -364,6 +397,9 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	this->_requests.insert(std::pair<int, HTTPrequest*>(clientSocket, request));
 	this->_responses.insert(std::pair<int, HTTPresponse*>(clientSocket, response));
 	request->parseMain();
+	// std::cout << request->getRealPath() << "\n";
+	if (!std::filesystem::exists(request->getRealPath()))	// NB: temporary until validation works
+		throw(RequestException({"file not found"}, 404));
 	// request->validateRequest(_getHandler(request->getHost()));
 	if (request->isCGI()) {		// GET (CGI), POST and DELETE
 		cgiPtr = new CGI(*request);
@@ -483,8 +519,11 @@ void	WebServer::writeToClients( int clientSocket )
 		delete (cgi);
 		this->_cgi.erase(clientSocket);
 	}
-	else 
+	else
+	{
+		response->setServName(_getHandler(request->getHost()).getPrimaryName());
 		response->parseFromStatic();
+	}
 	response->writeContent();
 	if (response->isDoneWriting())
 	{
@@ -525,9 +564,8 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 		return ;
 	}
 	try {
-		// HTMLerrPage = request->getErrPageFromCode(statusCode).c_str();
-		// HTMLfd = open(HTMLerrPage.c_str(), O_RDONLY);
-		HTMLfd = open(_getHTMLfromCode(statusCode).c_str(), O_RDONLY);
+		HTMLerrPage = _getHTMLerrorPage(statusCode, request);
+		HTMLfd = open(HTMLerrPage.c_str(), O_RDONLY);
 		response->setHTMLfd(HTMLfd);
 		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
 		this->_pollitems[clientSocket].pollState = READ_STATIC_FILE;
