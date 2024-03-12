@@ -334,11 +334,11 @@ int		WebServer::_getSocketFromFd( int fd )
 
 //NB: building absolut path?
 // NB: fix after validation is ok
-t_path	WebServer::_getHTMLerrorPage( int statusCode, HTTPrequest* request ) const
+t_path	WebServer::_getHTMLerrorPage( int statusCode, t_string_map const& localErrPages ) const
 {
-	(void) request;
+	(void) localErrPages;
 	// try {
-	// 	return (request->getErrorPages().at(statusCode));
+	// 	return (localErrPages.at(statusCode));
 	// }
 	// catch(const std::out_of_range& e1)
 	// {
@@ -369,7 +369,10 @@ void	WebServer::handleNewConnections( int listenerFd )
 
 	connFd = accept(listenerFd, (struct sockaddr *) &client, &sizeAddr);
 	if (connFd == -1)
-		throw(ServerException({"connection with", this->_getAddress(&client), "failed"}));
+	{
+		std::cerr << C_RED  << "connection with: " << this->_getAddress(&client) << " failed\n" << C_RESET;
+		return;
+	}
 	fcntl(connFd, F_SETFL, O_NONBLOCK);
 	this->_addConn(connFd, CLIENT_CONNECTION, READ_REQ_HEADER);
 	std::cout << "connected to " << this->_getAddress(&client) << '\n';
@@ -392,6 +395,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 		throw(RequestException({"file not found"}, 404));
 	request->validateRequest(_getHandler(request->getHost()));
 	if (request->isCGI()) {		// GET (CGI), POST and DELETE
+		response->setIsCGI(request->isCGI());
 		cgiPtr = new CGI(*request);
 		this->_cgi.insert(std::pair<int, CGI*>(clientSocket, cgiPtr));
 		this->_addConn(cgiPtr->getResponsePipe()[0], CGI_RESPONSE_PIPE, READ_CGI_RESPONSE);
@@ -422,16 +426,13 @@ void	WebServer::readRequestHeaders( int clientSocket )
 void	WebServer::readStaticFiles( int staticFileFd )
 {
 	int 			socket = _getSocketFromFd(staticFileFd);
-	HTTPresponse	*response = nullptr;
-
-	response = this->_responses.at(socket);
-	if (!response)	// that should not happen
-		throw(ServerException({"response not found"}));
+	HTTPresponse	*response = this->_responses.at(socket);
+	
 	response->readHTML();
 	if (response->isDoneReadingHTML())
 	{
 		this->_emptyConns.push_back(staticFileFd);
-		this->_pollitems[response->getSocket()].pollState = WRITE_TO_CLIENT;
+		this->_pollitems[socket].pollState = WRITE_TO_CLIENT;
 	}
 }
 
@@ -448,7 +449,6 @@ void	WebServer::readRequestBody( int clientSocket )
 	// (it's not empty)
 	// // write body to CGI
 }
-
 
 // NB: it does a lot (like a lot) of calls for sending the body, if the exception throw
 // is de-commented it falls into that, failing the upload
@@ -553,7 +553,7 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 	}
 	response->setStatusCode(statusCode);
 	try {
-		HTMLerrPage = _getHTMLerrorPage(statusCode, request);
+		HTMLerrPage = _getHTMLerrorPage(statusCode, request->getErrorPages());
 		HTMLfd = open(HTMLerrPage.c_str(), O_RDONLY);
 		if (HTMLfd == -1)
 			throw(HTTPexception({"invalid file descriptor from HTML eror page"}, 500));

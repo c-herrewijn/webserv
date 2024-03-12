@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/12 18:20:12 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/12 20:54:29 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -123,12 +123,11 @@ void		HTTPrequest::validateRequest( ConfigServer const& configServer )
 	this->_validator.setMethod(this->_method);
 	this->_validator.setPath(this->_url.path);
 	// this->_validator.solvePath();
+	// if (this->_validator.getStatusCode() >= 400)
+	// 	throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
 	// if (this->_validator.isCGI() == true) // NB: fix after validation is ok
 	if (this->_url.path.extension() == ".cgi")
 		this->_isCGI = true;
-	// study edge cases
-	// if (this->_validator.getStatusCode() >= 500)
-	// 	throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
 	// _checkMaxBodySize(this->_validator.getMaxBodySize());
 }
 

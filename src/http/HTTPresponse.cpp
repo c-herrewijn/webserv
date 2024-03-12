@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/12 17:53:14 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/12 20:26:06 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,7 +66,7 @@ void	HTTPresponse::readHTML( void )
 			return ;
 		}
 		this->_tmpBody.clear();
-		throw(ResponseException({"fd unavailable"}, 500));
+		throw(ServerException({"fd unavailable"}));
 	}
 	this->_tmpBody += std::string(buffer, buffer + readChar);
 	if (readChar < DEF_BUF_SIZE)
