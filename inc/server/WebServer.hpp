@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/12 20:20:35 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/12 22:00:03 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,9 +69,10 @@ enum fdState
 
 typedef struct PollItem
 {
-	int				fd;
-	fdType          pollType;
-    fdState         pollState;
+	int							fd;
+	fdType          			pollType;
+    fdState         			pollState;
+	steady_clock::time_point	lastActivity;
 } t_PollItem;
 
 // NB: in case of terminating error child process must be killed with signals
@@ -89,7 +90,7 @@ class WebServer
 		std::vector<ConfigServer>	 _servers;
 		std::vector<Listen>			 _listenAddress;
 		std::vector<struct pollfd>	 _pollfds;
-		std::unordered_map<int, t_PollItem>	 	_pollitems;
+		std::unordered_map<int, t_PollItem*>	 	_pollitems;
 		std::unordered_map<int, HTTPrequest*> 	_requests;
 		std::unordered_map<int, HTTPresponse*> 	_responses;
 		std::unordered_map<int, CGI*> 			_cgi;	// NOTE: the key is the client socket fd, not any of the cgi-pipes

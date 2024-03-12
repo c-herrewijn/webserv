@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/12 21:54:08 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/12 21:55:53 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,7 +38,6 @@ void	HTTPrequest::readHead( void )
 	//NB: handle also time from the beginning()
 	currentRead = steady_clock::now();
 	time_span = duration_cast<duration<int>>(currentRead - lastRead);
-	std::cout << "elapsed time: " << time_span.count() << '\n';
 	if (time_span.count() > MAX_TIMEOUT)
 		throw(RequestException({"timeout request"}, 408));
 
