@@ -450,8 +450,6 @@ void	WebServer::readRequestBody( int clientSocket )
 	// // write body to CGI
 }
 
-// NB: it does a lot (like a lot) of calls for sending the body, if the exception throw
-// is de-commented it falls into that, failing the upload
 void	WebServer::writeToCGI( int cgiPipe )
 {
 	std::cout << "cgiUploadPipeFd - socketFd: " << cgiPipe << std::endl; // debug

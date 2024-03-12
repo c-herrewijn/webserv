@@ -82,7 +82,7 @@ class HTTPrequest : public HTTPstruct
 		size_t		_contentLength;
 		bool		_isChunked, _endConn;
 
-		void	_parseHeads( std::string&, std::string&, std::string& );
+		void	_parseHeads( std::string&, std::string& );
 		void	_setHead( std::string const& );
 		void	_setHeaders(std::string const& ) override;
 
@@ -97,5 +97,4 @@ class HTTPrequest : public HTTPstruct
 
 		void		_checkMaxBodySize( size_t );
 		std::string	_unchunkBody( std::string const& );
-		
 };
