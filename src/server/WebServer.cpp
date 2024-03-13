@@ -451,7 +451,7 @@ void	WebServer::writeToCGI( int cgiPipe )
 		}
 	}
 	if (request != nullptr) {
-		close(this->_cgi[request->getSocket()]->getuploadPipe()[0]);
+		close(this->_cgi[request->getSocket()]->getuploadPipe()[0]); // close read end of cgi upload pipe
 		std::string tmpBody = request->getTmpBody();
 		if (tmpBody != "") {
 			write(cgiPipe, tmpBody.data(), tmpBody.length());
@@ -459,9 +459,9 @@ void	WebServer::writeToCGI( int cgiPipe )
 
 			// drop from pollList after writing is done
 			if (request->gotFullBody()) {
-				// NB.: add to the emptyCon list
-				std::cout << "closing cgi pipe: " << cgiPipe << std::endl; // debug
-				close(this->_cgi[request->getSocket()]->getuploadPipe()[1]);
+				close(cgiPipe); // close write end of cgi upload pipe
+				this->_emptyConns.push_back(cgiPipe);
+				this->_pollitems[request->getSocket()].pollState = READ_CGI_RESPONSE;
 			}
 		}
 	}
