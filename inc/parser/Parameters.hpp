@@ -33,7 +33,7 @@
 # define DEF_ROOT t_path("/var/www")
 # define MAX_SIZE 20
 # define DEF_CGI_ALLOWED false
-# define DEF_CGI_EXTENTION "cgi"
+# define DEF_CGI_EXTENTION ".cgi"
 
 typedef std::unordered_map<size_t, std::string> t_string_map;
 typedef	std::filesystem::path	t_path;

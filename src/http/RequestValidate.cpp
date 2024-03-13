@@ -91,7 +91,7 @@ void	RequestValidate::setMethod( HTTPmethod method )
 
 void	RequestValidate::setPath( t_path const& newPath )
 {
-	this->_requestPath = newPath;
+	this->_requestPath = std::filesystem::weakly_canonical(newPath);
 }
 
 void	RequestValidate::_setStatusCode(const size_t& code)
@@ -150,18 +150,36 @@ void	RequestValidate::_initValidLocation(void)
 	if (!valid)
 		return ;
 	_validLocation = valid;
-	_validParams = const_cast<Parameters*>(&valid->getParams());
+	_validParams = &valid->getParams();
 }
 
 void	RequestValidate::_separateFolders(std::string const& input, std::vector<std::string>& output)
 {
-    std::istringstream iss(input);
-    std::string folder;
-    while (std::getline(iss, folder, '/'))
+	std::istringstream iss(input);
+	std::string folder;
+	while (std::getline(iss, folder, '/'))
 	{
-        if (!folder.empty())
-            output.push_back(folder);
-    }
+		if (!folder.empty())
+			output.push_back(folder);
+	}
+}
+// ╭───────────────────────────╮
+// │     FILE/FOLDER PERMS     │
+// ╰───────────────────────────╯
+bool	RequestValidate::_checkPerm(t_path const& path, PermType type)
+{
+	t_perms perm = std::filesystem::status(path).permissions();
+	switch (type)
+	{
+		case PERM_READ:
+			return ((perm & (t_perms::owner_read | t_perms::group_read | t_perms::others_read)) != t_perms::none);
+		case PERM_WRITE:
+			return ((perm & (t_perms::owner_write | t_perms::group_write | t_perms::others_write)) != t_perms::none);
+		case PERM_EXEC:
+			return ((perm & (t_perms::owner_exec | t_perms::group_exec | t_perms::others_exec)) != t_perms::none);
+		default:
+			return ((perm & (t_perms::owner_all | t_perms::group_all | t_perms::others_all)) != t_perms::none);
+	}
 }
 
 // ╭───────────────────────────╮
@@ -198,9 +216,8 @@ bool	RequestValidate::_handleFolder(void)
 	// check autoindex
 	if (!_validParams->getAutoindex())
 		return (_setStatusCode(404), false); // 404 error, not found
-	std::filesystem::perms permissions = std::filesystem::status(dirPath).permissions();
-	if ((permissions & std::filesystem::perms::others_read) == std::filesystem::perms::none)
-		return (_setStatusCode(403), false); // Handle 403 error, permissions
+	if (!_checkPerm(dirPath, PERM_READ))
+		return (_setStatusCode(403), false);
 	_autoIndex = true;
 	return(true);
 }
@@ -208,36 +225,38 @@ bool	RequestValidate::_handleFolder(void)
 bool	RequestValidate::_handleFile(void)
 {
 	t_path dirPath = _validParams->getRoot();
-	dirPath += "";
+	dirPath += "/";
 	dirPath += targetDir;
-	t_path filePath = dirPath / targetFile;
+	dirPath += "/";
+	t_path filePath = dirPath;
+	filePath += "/";
+	filePath += targetFile;
+
 	_isCGI = false;
 	// check filePath
-	// if (!std::filesystem::is_regular_file(filePath))
-	if (std::filesystem::exists(filePath))
+	std::cout << "handlefile dirpath: " << dirPath << "\n";
+	std::cout << "handlefile exists: " << filePath << "\n";
+	if (!std::filesystem::exists(filePath))
+		return (_setStatusCode(404), false);
+	if (std::filesystem::is_directory(filePath))
 	{
-		if (std::filesystem::is_directory(filePath))	// index
-		{
-			_realPath = std::filesystem::weakly_canonical(dirPath);
-			return (_handleFolder());
-		}
+		_realPath = std::filesystem::weakly_canonical(dirPath);
+		return (_handleFolder());
 	}
+
 	_realPath = std::filesystem::weakly_canonical(filePath);
-	// check permission
-	std::error_code ec;
-	std::filesystem::perms permissions = std::filesystem::status(filePath, ec).permissions();
-	if (ec.value())
-		return (_setStatusCode(403), false);
 	// Check request type for permission check
 	if (_validParams->getCgiAllowed() &&
 		filePath.has_extension() &&
-		filePath.extension() == _validParams->getCgiExtension()) {
-		if ((permissions & std::filesystem::perms::others_exec) == std::filesystem::perms::none)
-			return _setStatusCode(403), false; // 403 error, permission denied
+		filePath.extension() == _validParams->getCgiExtension())
+	{
+		// check permission
+		if (!_checkPerm(filePath, PERM_EXEC))
+			return (_setStatusCode(403), false);
 		_isCGI = true;
 	}
-	else if ((permissions & std::filesystem::perms::others_read) == std::filesystem::perms::none)
-		return _setStatusCode(403), false; // 403 error, permission denied
+	else if (!_checkPerm(filePath, PERM_READ))
+		return (_setStatusCode(403), false);
 	return (true);
 }
 
@@ -247,25 +266,19 @@ bool	RequestValidate::_handleFile(void)
 bool	RequestValidate::_handleReturns(void)
 {
 	auto it = _validParams->getReturns().find(_statusCode);
-	if (it != _validParams->getReturns().end())
-	{
-		// There is a file to return associated
-		targetFile = std::filesystem::weakly_canonical((*it).second);
-		// check if it exists
-		return (_handleFile());
-	}
-	// there is no file associated
-	return (false);
+	if (it == _validParams->getReturns().end())
+		return (false);
+	targetFile = std::filesystem::weakly_canonical((*it).second);
+	return (_handleFile());
 }
 
 bool	RequestValidate::_handleErrorCode(void)
 {
 	auto it = _validParams->getErrorPages().find(_statusCode);
-	if (it != _validParams->getErrorPages().end())
-	{
-		targetFile = std::filesystem::weakly_canonical((*it).second);
-		return (_handleFile());
-	}
+	if (it == _validParams->getErrorPages().end())
+		return (false);
+	targetFile = std::filesystem::weakly_canonical((*it).second);
+	return (_handleFile());
 	return (false);
 }
 
@@ -275,14 +288,13 @@ bool	RequestValidate::_handleServerPages(void)
 	t_path lastChance = std::filesystem::current_path();
 	lastChance += "/var/www/errors/";
 	lastChance += (std::to_string(_statusCode) + ".html");
-	// std::cout << "'" << lastChance << "'\n";
 	if (!std::filesystem::is_regular_file(lastChance))
 		return (false);
 	std::error_code ec;
-	std::filesystem::perms permissions = std::filesystem::status(lastChance, ec).permissions();
+	t_perms permissions = std::filesystem::status(lastChance, ec).permissions();
 	if (ec.value())
 		return (false);
-	if ((permissions & std::filesystem::perms::others_read) == std::filesystem::perms::none)
+	if ((permissions & t_perms::others_read) == t_perms::none)
 		return (false);
 	_realPath = std::filesystem::weakly_canonical(lastChance);
 	return (true);
@@ -290,30 +302,23 @@ bool	RequestValidate::_handleServerPages(void)
 
 void	RequestValidate::_handleStatus(void)
 {
-	std::cout << _realPath << " normal " << std::to_string(_statusCode) << "\n";
-	if (_statusCode == 404)
-	{
-		_handleServerPages();
-		std::cout << _realPath << " serverpages\n";
+	// handle return
+	if (_handleReturns())
 		return ;
-	}
-	if (_statusCode != 200)
-	{
-		std::cout << _realPath << " internal\n";
-		return (_setStatusCode(500));
-	}
-	
-	// if (_handleReturns() || _statusCode == 200)
-	// 	return ;
-	// if (_handleErrorCode())
-	// 	return ;
-	// _validParams = const_cast<Parameters*>(&_requestConfig->getParams());
-	// if (_handleErrorCode())
-	// 	return ;
-	// if (_handleServerPages())
-	// 	return ;
-	// // use servers error page
-	// _setStatusCode(500); // handleInternal();
+	// handle error_pages
+	if (_handleErrorCode())
+		return ;
+	// use server scope error pages
+	_validParams = &(_requestConfig->getParams());
+	if (_handleErrorCode() || _statusCode < 400)
+		return ;
+	// use servers error page
+	if (_handleServerPages())
+		return ;
+	_realPath = "/";
+	targetDir.clear();
+	targetFile.clear();
+	_setStatusCode(500);
 }
 
 // ╭───────────────────────────╮
@@ -352,4 +357,5 @@ void	RequestValidate::solvePath(void)
 	else
 		_handleFile();
 	_handleStatus();
+	std::cout << "Realpath: " << _realPath << " : " << _statusCode << "\n";
 }

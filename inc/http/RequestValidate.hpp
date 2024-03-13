@@ -20,6 +20,14 @@
 // filesystem management
 # include "Exceptions.hpp"
 
+typedef std::filesystem::perms t_perms;
+
+typedef enum PermType_s
+{
+	PERM_READ,
+	PERM_WRITE,
+	PERM_EXEC,
+} PermType;
 
 class RequestValidate
 {
@@ -28,33 +36,34 @@ class RequestValidate
 		HTTPmethod			_requestMethod;
 		t_path				_requestPath;
 
+		size_t				_statusCode;
 		t_path				_realPath;
 		bool				_autoIndex;
 		bool				_isCGI;
 
 		Location const*		_validLocation;
-		Parameters*			_validParams;
+		Parameters const*	_validParams;
 
 		// t_path				targetRoot;
 		t_path				targetDir;
 		t_path				targetFile;
 
-		size_t				_statusCode;
 
-		void		_setStatusCode(const size_t& code);
-
+		bool			_checkPerm(t_path const& path, PermType type);
 		void			_separateFolders(std::string const& input, std::vector<std::string>& output);
 		Location const*	_diveLocation(Location const& cur, std::vector<std::string>::iterator itDirectory, std::vector<std::string>& folders);
 
 		void		_initValidLocation( void );
 		void		_initTargetElements( void );
 
-		bool		_handleFolder( void );
-		bool		_handleFile( void );
-		void		_handleStatus( void );
-		bool		_handleReturns( void );
-		bool		_handleErrorCode( void );
-		bool		_handleServerPages( void );
+		bool	_handleFolder( void );
+		bool	_handleFile( void );
+		void	_handleStatus( void );
+		bool	_handleReturns( void );
+		bool	_handleErrorCode( void );
+		bool	_handleServerPages( void );
+
+		void		_setStatusCode(const size_t& code);
 
 	public:
 		RequestValidate( void );
