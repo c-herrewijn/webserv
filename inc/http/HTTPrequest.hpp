@@ -47,6 +47,7 @@ class HTTPrequest : public HTTPstruct
 		HTTPrequest( int socket ) :
 			HTTPstruct(socket) ,
 			_contentLength(0) ,
+			_contentLengthRead(0),
 			_isChunked(false),
 			_isFileUpload(false),
 			_endConn(false),
@@ -84,7 +85,7 @@ class HTTPrequest : public HTTPstruct
 		HTTPurl			_url;
 		RequestValidate	_validator;
 
-		size_t		_contentLength;
+		size_t		_contentLength, _contentLengthRead;
 		bool		_isChunked, _isFileUpload, _endConn, _gotFullBody;
 
 		void	_parseHeads( std::string&, std::string& );

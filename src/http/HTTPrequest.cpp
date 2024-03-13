@@ -26,7 +26,6 @@ void	HTTPrequest::readPlainBody( void )
 {
     ssize_t 		readChar = -1;
     char        	buffer[DEF_BUF_SIZE + 1];
-	static size_t	countChars = this->_tmpBody.length();
 
 	static steady_clock::time_point lastRead = steady_clock::now();
 	steady_clock::time_point 		currentRead;
@@ -48,10 +47,10 @@ void	HTTPrequest::readPlainBody( void )
 	else
 	{
 		lastRead = steady_clock::now();
-		countChars += readChar;
+		this->_contentLengthRead += readChar;
 		this->_tmpBody += std::string(buffer, buffer + readChar);
 	}
-	if (countChars == this->_contentLength) {
+	if (this->_contentLengthRead == this->_contentLength) {
 		this->_gotFullBody = true;
 	}
 }
@@ -79,8 +78,10 @@ void	HTTPrequest::_parseHeads( std::string& strHead, std::string& strHeaders )
 	strHead = content.substr(0, endHead);
 	strHeaders = content.substr(endHead + HTTP_NL.size(), endReq - endHead - 1) + HTTP_NL;
 	endReq += HTTP_TERM.size();
-	if ((endReq + 1) < content.size())		// if there's the beginning of the body
+	if ((endReq + 1) < content.size()) {		// if there's the beginning of the body
 		this->_tmpBody = content.substr(endReq);
+		this->_contentLengthRead = this->_tmpBody.length();
+	}
 }
 
 //NB: add timeout error: 408
