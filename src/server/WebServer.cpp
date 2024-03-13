@@ -214,7 +214,7 @@ void	WebServer::_readData( int readFd )	// POLLIN
 			break;
 
 		case FORWARD_REQ_BODY_TO_CGI:
-			std::cout << C_GREEN << "FORWARD_REQ_BODY_TO_CGI - " << readFd << C_RESET << std::endl;
+			std::cout << C_GREEN << "POLLIN - FORWARD_REQ_BODY_TO_CGI - " << readFd << C_RESET << std::endl;
 			readRequestBody(readFd);
 			break;
 
@@ -238,7 +238,7 @@ void	WebServer::_writeData( int writeFd )	// POLLOUT
 	switch (this->_pollitems[writeFd].pollState)
 	{
 		case FORWARD_REQ_BODY_TO_CGI:
-			std::cout << C_GREEN << "FORWARD_REQ_BODY_TO_CGI - " << writeFd << C_RESET << std::endl;
+			std::cout << C_GREEN << "POLLOUT - FORWARD_REQ_BODY_TO_CGI - " << writeFd << C_RESET << std::endl;
 			writeToCGI(writeFd);
 			break;
 
@@ -431,18 +431,18 @@ void	WebServer::readStaticFiles( int staticFileFd )
 	}
 }
 
-// what is the triggering poll item?
 void	WebServer::readRequestBody( int clientSocket )
 {
-	std::cout << "readRequestBody - socketFd: " << clientSocket <<std::endl; // debug
-	// TODO: only needs to be done when (request->_tmpBody == "")
+	HTTPrequest *request = this->_requests[clientSocket];
+	if (request->getTmpBody() == "") {
+		request->readPlainBody();
+	}
 }
 
 // NB: it does a lot (like a lot) of calls for sending the body, if the exception
 // is de-commented it falls into that, failing the upload
 void	WebServer::writeToCGI( int cgiPipe )
 {
-	std::cout << "cgiUploadPipeFd - socketFd: " << cgiPipe << std::endl; // debug
 	HTTPrequest *request = nullptr;
 	for (auto& cgiMapItem : this->_cgi) {
 		if (cgiMapItem.second->getuploadPipe()[1] == cgiPipe) {
@@ -458,8 +458,11 @@ void	WebServer::writeToCGI( int cgiPipe )
 			request->setTmpBody("");
 
 			// drop from pollList after writing is done
-			close(this->_cgi[request->getSocket()]->getuploadPipe()[1]);
-			// NB.: add to the emptyCon list 
+			if (request->gotFullBody()) {
+				// NB.: add to the emptyCon list
+				std::cout << "closing cgi pipe: " << cgiPipe << std::endl; // debug
+				close(this->_cgi[request->getSocket()]->getuploadPipe()[1]);
+			}
 		}
 	}
 	// else
