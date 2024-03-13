@@ -188,14 +188,14 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 		catch(const std::exception& e) {
 			throw(ResponseException({"invalid status code"}, 500));
 		}
-		
+
 		this->_headers.at("Status");
 		this->_headers.at("Server");
 		if (this->_hasBody == true)
 		{
 			this->_headers.at("Content-type");
 			this->_headers.at("Content-Length");
-			if (this->_statusCode > 400)
+			if (this->_statusCode == 201)
 				this->_headers.at("Location");
 		}
 	}
@@ -298,4 +298,3 @@ std::string	HTTPresponse::_getDateTime( void ) const noexcept
     std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
 	return (std::string(buffer));
 }
-

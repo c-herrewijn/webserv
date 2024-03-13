@@ -503,7 +503,7 @@ void	WebServer::writeToClients( int clientSocket )
 
 	if (!request or !response)	// that should not happen
 		throw(ServerException({"request or response not found"}));
-	if ((request->isCGI()) and (response->getStatusCode() < 400)) {
+	if (request->isCGI()) {
 		CGI *cgi = this->_cgi[clientSocket];
 		if (!cgi)	// that should not happen
 			throw(ServerException({"cgi not found"}));
