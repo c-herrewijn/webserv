@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/12 21:50:06 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/13 11:39:19 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -158,8 +158,10 @@ int		HTTPresponse::getStatusCode( void ) const noexcept
 	return (this->_statusCode);
 }
 
-void	HTTPresponse::setHTMLfd( int HTMLfd ) noexcept
+void	HTTPresponse::setHTMLfd( int HTMLfd )
 {
+	if (HTMLfd == -1)
+		throw(ResponseException({"Invalid file descriptor"}, 500));
 	this->_HTMLfd = HTMLfd;
 }
 

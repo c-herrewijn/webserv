@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/12 17:47:19 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/13 11:38:37 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,7 +45,7 @@ class HTTPresponse : public HTTPstruct
 
 		void		setStatusCode( int ) noexcept;
 		int			getStatusCode( void ) const noexcept;
-		void		setHTMLfd( int HTMLfd ) noexcept;
+		void		setHTMLfd( int HTMLfd );
 		int			getHTMLfd( void ) const noexcept;
 		bool		isDoneReadingHTML( void ) const noexcept;
 		bool		isDoneWriting( void ) const noexcept;

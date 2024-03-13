@@ -51,6 +51,7 @@ WebServer::~WebServer ( void ) noexcept
 			(item.second->pollType == CLIENT_CONNECTION))
 			shutdown(item.first, SHUT_RDWR);
 		close(item.first);
+		delete item.second;
 	}
 }
 
@@ -289,15 +290,26 @@ void	WebServer::_dropConn(int toDrop) noexcept
 		{}						//NB: close pipes properly
 	delete this->_pollitems[toDrop];
 	this->_pollitems.erase(toDrop);
-	if (this->_requests[toDrop])
+	_dropStructs(toDrop);
+}
+
+void	WebServer::_dropStructs( int toDrop ) noexcept
+{
+	if (this->_requests.count(toDrop) > 0)
+	{
 		delete this->_requests[toDrop];
-	this->_requests.erase(toDrop);
-	if (this->_responses[toDrop])
+		this->_requests.erase(toDrop);
+	}
+	if (this->_responses.count(toDrop) > 0)
+	{
 		delete this->_responses[toDrop];
-	this->_responses.erase(toDrop);
-	if (this->_cgi[toDrop])
+		this->_responses.erase(toDrop);
+	}
+	if (this->_cgi.count(toDrop) > 0)
+	{
 		delete this->_cgi[toDrop];
-	this->_cgi.erase(toDrop);
+		this->_cgi.erase(toDrop);
+	}
 }
 
 void	WebServer::_clearEmptyConns( void ) noexcept
@@ -369,6 +381,17 @@ t_path	WebServer::_getHTMLerrorPage( int statusCode, t_string_map const& localEr
 	// }
 }
 
+void	WebServer::_checkLastActivity( int fd )
+{
+	steady_clock::time_point 	currentRead = steady_clock::now();
+	steady_clock::time_point	lastRead = this->_pollitems[fd]->lastActivity;
+	duration<double> 			time_span;
+
+	time_span = duration_cast<duration<int>>(currentRead - lastRead);
+	if (time_span.count() > MAX_TIMEOUT)
+		throw(HTTPexception({"timeout request"}, 408));
+}
+
 void	WebServer::handleNewConnections( int listenerFd )
 {
 	struct sockaddr_storage client;
@@ -389,18 +412,15 @@ void	WebServer::handleNewConnections( int listenerFd )
 void	WebServer::readRequestHeaders( int clientSocket )
 {
 	HTTPrequest 	*request = nullptr;
-	HTTPresponse	*response = nullptr;
-	CGI 			*cgiPtr = nullptr;
-	int 			HTMLfd = -1;
-	fdState			nextState;
 
-	if (!this->_requests[clientSocket] and !this->_responses[clientSocket])
+	if (!this->_requests[clientSocket])
 	{
 		this->_requests[clientSocket] = new HTTPrequest(clientSocket);
 		this->_responses[clientSocket] = new HTTPresponse(clientSocket);
 	}
+	else
+		_checkLastActivity(clientSocket);
 	request = this->_requests[clientSocket];
-	response = this->_responses[clientSocket];
 	request->readHead();
 	if (request->gotFullHead() == false)
 		return ;
@@ -408,32 +428,48 @@ void	WebServer::readRequestHeaders( int clientSocket )
 		throw(RequestException({"file not found"}, 404));
 	request->validateRequest(_getHandler(request->getHost()));
 	if (request->isCGI()) {		// GET (CGI), POST and DELETE
-		response->setIsCGI(true);
-		cgiPtr = new CGI(*request);
-		this->_cgi[clientSocket] = cgiPtr;
-		this->_addConn(cgiPtr->getResponsePipe()[0], CGI_RESPONSE_PIPE, READ_CGI_RESPONSE);
-		cgiPtr->run();
-		if (request->hasBody()) {
-			response->setFileUpload(request->isFileUpload());
-			this->_addConn(cgiPtr->getuploadPipe()[1], CGI_DATA_PIPE, FORWARD_REQ_BODY_TO_CGI);
-			nextState = FORWARD_REQ_BODY_TO_CGI;
-		}
+		_startCGI(clientSocket);
+		if (request->hasBody()) 
+			this->_pollitems[clientSocket]->pollState = FORWARD_REQ_BODY_TO_CGI;
 		else
-			nextState = READ_CGI_RESPONSE;
+			this->_pollitems[clientSocket]->pollState = READ_CGI_RESPONSE;
 	}
 	else if (request->isAutoIndex())	//	GET (index)
-	{
-		response->readContentDirectory(request->getRealPath());
-		nextState = WRITE_TO_CLIENT;
-	}
+		this->_pollitems[clientSocket]->pollState = WRITE_TO_CLIENT;
 	else		// GET (HTML)
 	{
-		HTMLfd = open(request->getRealPath().c_str(), O_RDONLY);
-		response->setHTMLfd(HTMLfd);
-		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
-		nextState = READ_STATIC_FILE;
+		_addStaticFileFd(request->getRealPath(), clientSocket);
+		this->_pollitems[clientSocket]->pollState = READ_STATIC_FILE;
 	}
-	this->_pollitems[clientSocket]->pollState = nextState;
+}
+
+void	WebServer::_startCGI( int clientSocket)
+{
+	HTTPrequest 	*request = this->_requests.at(clientSocket);
+	HTTPresponse 	*response = this->_responses.at(clientSocket);
+	CGI				*cgiPtr = nullptr;
+
+	response->setIsCGI(true);
+	cgiPtr = new CGI(*request);
+	this->_cgi[clientSocket] = cgiPtr;
+	this->_addConn(cgiPtr->getResponsePipe()[0], CGI_RESPONSE_PIPE, READ_CGI_RESPONSE);
+	cgiPtr->run();
+	if (request->hasBody()) 
+	{
+		response->setFileUpload(request->isFileUpload());
+		this->_addConn(cgiPtr->getuploadPipe()[1], CGI_DATA_PIPE, FORWARD_REQ_BODY_TO_CGI);
+	}
+}
+
+void	WebServer::_addStaticFileFd( std::string const& fileName, int clientSocket)
+{
+	HTTPresponse	*response = this->_responses.at(clientSocket);
+	int 			HTMLfd = open(fileName.c_str(), O_RDONLY);
+
+	if (HTMLfd == -1)
+		throw(HTTPexception({"invalid fd for static file:", fileName}, 500));
+	response->setHTMLfd(HTMLfd);
+	_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
 }
 
 void	WebServer::readStaticFiles( int staticFileFd )
@@ -524,11 +560,11 @@ void	WebServer::writeToClients( int clientSocket )
 	if ((request->isCGI()) and (response->getStatusCode() < 400)) {
 		CGI *cgi = this->_cgi.at(clientSocket);
 		response->parseFromCGI(cgi->getResponse());
-		delete (cgi);
-		this->_cgi.erase(clientSocket);
 	}
 	else
 	{
+		if ((request->isAutoIndex()) and (response->getStatusCode() < 400))
+			response->readContentDirectory(request->getRealPath());
 		response->setServName(_getHandler(request->getHost()).getPrimaryName());
 		response->parseFromStatic();
 	}
@@ -538,17 +574,16 @@ void	WebServer::writeToClients( int clientSocket )
 		if (request->isEndConn())
 			this->_emptyConns.push_back(clientSocket);
 		else
+		{
+			_dropStructs(clientSocket);
 			this->_pollitems[clientSocket]->pollState = READ_REQ_HEADER;
-		delete (response);
-		this->_responses.erase(clientSocket);
-		delete (request);
-		this->_requests.erase(clientSocket);
+		}
 	}
 }
 
 void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 {
-	int				clientSocket=_getSocketFromFd(genericFd), HTMLfd=-1;
+	int				clientSocket = _getSocketFromFd(genericFd);
 	HTTPresponse	*response = this->_responses[clientSocket];
 	HTTPrequest		*request = this->_requests[clientSocket];
 	t_PollItem		*pollItem = nullptr;
@@ -567,11 +602,7 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 	response->setStatusCode(statusCode);
 	try {
 		HTMLerrPage = _getHTMLerrorPage(statusCode, request->getErrorPages());
-		HTMLfd = open(HTMLerrPage.c_str(), O_RDONLY);
-		if (HTMLfd == -1)
-			throw(HTTPexception({"invalid file descriptor from HTML eror page"}, 500));
-		response->setHTMLfd(HTMLfd);
-		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
+		_addStaticFileFd(HTMLerrPage, clientSocket);
 		this->_pollitems[clientSocket]->pollState = READ_STATIC_FILE;
 	}
 	catch(const HTTPexception& e) {

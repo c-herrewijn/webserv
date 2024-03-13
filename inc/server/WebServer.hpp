@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/12 22:00:03 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/13 12:27:16 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,6 +46,8 @@
 
 #define BACKLOG 				10		// max pending connection queued up
 #define HTML_ERROR_FOLDER		std::filesystem::path("var/www/errors")
+
+using namespace std::chrono;
 
 enum fdType
 {
@@ -90,7 +92,7 @@ class WebServer
 		std::vector<ConfigServer>	 _servers;
 		std::vector<Listen>			 _listenAddress;
 		std::vector<struct pollfd>	 _pollfds;
-		std::unordered_map<int, t_PollItem*>	 	_pollitems;
+		std::unordered_map<int, t_PollItem*>	 _pollitems;
 		std::unordered_map<int, HTTPrequest*> 	_requests;
 		std::unordered_map<int, HTTPresponse*> 	_responses;
 		std::unordered_map<int, CGI*> 			_cgi;	// NOTE: the key is the client socket fd, not any of the cgi-pipes
@@ -101,12 +103,14 @@ class WebServer
 		void			_writeData( int );
 		void			_addConn( int , fdType , fdState );
 		void			_dropConn( int ) noexcept;
+		void			_dropStructs( int ) noexcept;
 		void			_clearEmptyConns( void ) noexcept;
 		std::string			_getAddress( const struct sockaddr_storage*) const noexcept ;
 		ConfigServer const&	_getHandler( std::string const& ) const noexcept;
 		ConfigServer const&	_getDefaultHandler( void ) const noexcept;
 		int				_getSocketFromFd( int );
 		t_path			_getHTMLerrorPage( int, t_string_map const& ) const;
+		void			_checkLastActivity( int );
 		void			handleNewConnections( int ); // keep - DONE
 		void			readRequestHeaders( int ); // keep / rework
 		void			readStaticFiles( int ); // keep / rework
@@ -115,4 +119,7 @@ class WebServer
 		void			writeToCGI( int item );
 		void			writeToClients( int );
 		void			redirectToErrorPage( int, int ) noexcept;
+
+		void			_startCGI( int );
+		void			_addStaticFileFd( std::string const&, int );
 };

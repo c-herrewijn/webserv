@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/12 21:55:53 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/13 08:43:10 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,9 +20,14 @@ void	HTTPrequest::readHead( void )
 	size_t		endHead=0, endReq=0;
 	ssize_t		charsRead = -1;
 
-	static steady_clock::time_point lastRead = steady_clock::now();
-	steady_clock::time_point 		currentRead;
-	duration<double> 				time_span;
+	// static steady_clock::time_point lastRead = steady_clock::now();
+	// steady_clock::time_point 		currentRead;
+	// duration<double> 				time_span;
+
+	// currentRead = steady_clock::now();
+	// time_span = duration_cast<duration<int>>(currentRead - lastRead);
+	// if (time_span.count() > MAX_TIMEOUT)
+	// 	throw(RequestException({"timeout request"}, 408));
 	
 	if (this->_gotFullHead)
 		return;
@@ -36,11 +41,6 @@ void	HTTPrequest::readHead( void )
 		throw(RequestException({"headers too large"}, 431));
 
 	//NB: handle also time from the beginning()
-	currentRead = steady_clock::now();
-	time_span = duration_cast<duration<int>>(currentRead - lastRead);
-	if (time_span.count() > MAX_TIMEOUT)
-		throw(RequestException({"timeout request"}, 408));
-
 	this->_tmpHead += std::string(buffer, buffer + charsRead);
 	endReq = this->_tmpHead.find(HTTP_TERM);		// look for terminator in request
 	if (endReq != std::string::npos)
