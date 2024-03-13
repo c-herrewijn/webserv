@@ -557,6 +557,7 @@ void	WebServer::writeToClients( int clientSocket )
 	HTTPrequest 	*request = this->_requests.at(clientSocket);
 	HTTPresponse 	*response = this->_responses.at(clientSocket);
 
+	// NB: we have to go in these if condtions only when when we start writing, not every time we have smt to write
 	if ((request->isCGI()) and (response->getStatusCode() < 400)) {
 		CGI *cgi = this->_cgi.at(clientSocket);
 		response->parseFromCGI(cgi->getResponse());
