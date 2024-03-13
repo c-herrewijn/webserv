@@ -68,7 +68,7 @@ void	Parameters::_parseCgiExtension(std::vector<std::string>& block)
 	block.erase(block.begin());
 	if (block.front().find_first_not_of("abcdefghijklmnoprstuvyzwqxABCDEFGHIJKLMNOPRSTUVYZWQX") != std::string::npos)
 		throw ParserException({"Only alpha characters expected in cgi_extension: '" + block.front() + "'"});
-	cgi_extension = block.front();
+	cgi_extension = "." + block.front();
 	block.erase(block.begin());
 	if (block.front() != ";")
 		throw ParserException({"Unexpected element in cgi_extension: '" + block.front() + "', a ';' is expected"});

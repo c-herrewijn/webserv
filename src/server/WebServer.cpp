@@ -400,7 +400,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	// std::cout << request->getRealPath() << "\n";
 	if (!std::filesystem::exists(request->getRealPath()))	// NB: temporary until validation works
 		throw(RequestException({"file not found"}, 404));
-	// request->validateRequest(_getHandler(request->getHost()));
+	request->validateRequest(_getHandler(request->getHost()));
 	if (request->isCGI()) {		// GET (CGI), POST and DELETE
 		cgiPtr = new CGI(*request);
 		this->_cgi.insert(std::pair<int, CGI*>(clientSocket, cgiPtr));
