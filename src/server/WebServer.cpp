@@ -213,8 +213,8 @@ void	WebServer::_readData( int readFd )	// POLLIN
 			readRequestHeaders(readFd);
 			break;
 
-		case FORWARD_REQ_BODY_TO_CGI:
-			std::cout << C_GREEN << "POLLIN - FORWARD_REQ_BODY_TO_CGI - " << readFd << C_RESET << std::endl;
+		case READ_REQ_BODY:
+			std::cout << C_GREEN << "READ_REQ_BODY - " << readFd << C_RESET << std::endl;
 			readRequestBody(readFd);
 			break;
 
@@ -237,8 +237,8 @@ void	WebServer::_writeData( int writeFd )	// POLLOUT
 {
 	switch (this->_pollitems[writeFd].pollState)
 	{
-		case FORWARD_REQ_BODY_TO_CGI:
-			std::cout << C_GREEN << "POLLOUT - FORWARD_REQ_BODY_TO_CGI - " << writeFd << C_RESET << std::endl;
+		case WRITE_TO_CGI:
+			std::cout << C_GREEN << "WRITE_TO_CGI - " << writeFd << C_RESET << std::endl;
 			writeToCGI(writeFd);
 			break;
 
@@ -394,8 +394,8 @@ void	WebServer::readRequestHeaders( int clientSocket )
 		this->_addConn(cgiPtr->getResponsePipe()[0], CGI_RESPONSE_PIPE, READ_CGI_RESPONSE);
 		cgiPtr->run();
 		if (request->hasBody()) {
-			this->_addConn(cgiPtr->getuploadPipe()[1], CGI_DATA_PIPE, FORWARD_REQ_BODY_TO_CGI);
-			nextState = FORWARD_REQ_BODY_TO_CGI;
+			this->_addConn(cgiPtr->getuploadPipe()[1], CGI_DATA_PIPE, WRITE_TO_CGI);
+			nextState = READ_REQ_BODY;
 		}
 		else
 			nextState = READ_CGI_RESPONSE;
