@@ -72,6 +72,7 @@ void			WebServer::startListen( void )
 
 // NB: update for codes 20X
 // NB: use relative root in Config File for multi-platform functionality
+// NB: move back timeout back inside requests and responses, define a specific member that sotred last_action_time
 void			WebServer::loop( void )
 {
 	int				nConn=-1;
@@ -554,18 +555,8 @@ void	WebServer::writeToClients( int clientSocket )
 	HTTPrequest 	*request = this->_requests.at(clientSocket);
 	HTTPresponse 	*response = this->_responses.at(clientSocket);
 
-	// NB: we have to go in these if condtions only when when we start writing, not every time we have smt to write
-	if ((request->isCGI()) and (response->getStatusCode() < 400)) {
-		CGI *cgi = this->_cgi.at(clientSocket);
-		response->parseFromCGI(cgi->getResponse());
-	}
-	else
-	{
-		if ((request->isAutoIndex()) and (response->getStatusCode() < 400))
-			response->readContentDirectory(request->getRealPath());
-		response->setServName(_getHandler(request->getHost()).getPrimaryName());
-		response->parseFromStatic();
-	}
+	if (response->parsingNeeded() == true)
+		_parseResponse(clientSocket);
 	response->writeContent();
 	if (response->isDoneWriting())
 	{
@@ -576,6 +567,24 @@ void	WebServer::writeToClients( int clientSocket )
 			_dropStructs(clientSocket);
 			this->_pollitems[clientSocket]->pollState = READ_REQ_HEADER;
 		}
+	}
+}
+
+void	WebServer::_parseResponse( int clientSocket )
+{
+	HTTPrequest 	*request = this->_requests.at(clientSocket);
+	HTTPresponse 	*response = this->_responses.at(clientSocket);
+
+	if ((request->isCGI()) and (response->getStatusCode() < 400)) {
+		CGI *cgi = this->_cgi.at(clientSocket);
+		response->parseFromCGI(cgi->getResponse());
+	}
+	else
+	{
+		if ((request->isAutoIndex()) and (response->getStatusCode() < 400))
+			response->readContentDirectory(request->getRealPath());
+		response->setServName(_getHandler(request->getHost()).getPrimaryName());
+		response->parseFromStatic();
 	}
 }
 

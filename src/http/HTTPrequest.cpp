@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/14 02:26:39 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/14 03:40:57 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,8 +29,8 @@ void	HTTPrequest::readHead( void )
 	// if (time_span.count() > MAX_TIMEOUT)
 	// 	throw(RequestException({"timeout request"}, 408));
 	
-	if (this->_gotFullHead)
-		return;
+	if (this->_gotFullHead == true)
+		throw(RequestException({"head and headers already read"}, 500));
 	bzero(buffer, DEF_BUF_SIZE);
 	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
 	if (charsRead < 0)
@@ -59,32 +59,36 @@ void	HTTPrequest::readHead( void )
 	}
 }
 
+// NB: set written as a member variable not a countChars variable, the value is shared among all the instances
 void	HTTPrequest::readPlainBody( void )
 {
     ssize_t 		readChar = -1;
     char        	buffer[DEF_BUF_SIZE + 1];
 	static size_t	countChars = this->_tmpBody.length();
 
-	static steady_clock::time_point lastRead = steady_clock::now();
-	steady_clock::time_point 		currentRead;
-	duration<double> 				time_span;
+	// static steady_clock::time_point lastRead = steady_clock::now();
+	// steady_clock::time_point 		currentRead;
+	// duration<double> 				time_span;
 
-	if (this->_gotFullBody)
-		return;
+	if (this->_gotFullHead == false)
+		throw(RequestException({"head and headers not read yet"}, 500));
+	else if (this->_gotFullBody == true)
+		throw(RequestException({"body already received"}, 500));
 	bzero(buffer, DEF_BUF_SIZE + 1);
 	readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
 	if (readChar < 0 )
 		throw(ServerException({"unavailable socket"}));
 	else if (readChar == 0)
 	{
-		currentRead = steady_clock::now();
-		time_span = duration_cast<duration<int>>(currentRead - lastRead);
-		if (time_span.count() > MAX_TIMEOUT)
-			throw(RequestException({"timeout request"}, 408));
+		;
+		// currentRead = steady_clock::now();
+		// time_span = duration_cast<duration<int>>(currentRead - lastRead);
+		// if (time_span.count() > MAX_TIMEOUT)
+		// 	throw(RequestException({"timeout request"}, 408));
 	}
 	else
 	{
-		lastRead = steady_clock::now();
+		// lastRead = steady_clock::now();
 		countChars += readChar;
 		if (countChars > this->_contentLength)
 		{
