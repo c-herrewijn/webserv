@@ -20,6 +20,8 @@
 // filesystem management
 # include "Exceptions.hpp"
 
+# define SERVER_DEF_PAGES "var/www/errors/";
+
 typedef std::filesystem::perms t_perms;
 
 typedef enum PermType_s

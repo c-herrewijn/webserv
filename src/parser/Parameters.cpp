@@ -20,7 +20,7 @@ Parameters::Parameters(void)
 	for (int tmp = 0; tmp < M_SIZE; tmp++)
 		allowedMethods[tmp] = 0;
 	max_size = static_cast<std::uintmax_t>(DEF_SIZE) * 1024 * 1024 * 1024;
-
+	returns = {0, ""};
 }
 
 Parameters::~Parameters(void)
@@ -48,7 +48,6 @@ Parameters&	Parameters::operator=(const Parameters& assign)
 	if (this != &assign)
 	{
 		error_pages.clear();
-		returns.clear();
 		allowedMethods = assign.allowedMethods;
 		block_index = assign.block_index;
 		max_size = assign.max_size;
@@ -273,7 +272,7 @@ void	Parameters::_parseReturn(std::vector<std::string>& block)
 		throw ParserException({"File name for return must start with a '/': " + block.front()});
 	if (block.front().find_first_of('/') != block.front().find_last_of('/'))
 		throw ParserException({"'return' must be file '" + block.front() + "'"});
-	returns[(size_t)code] = block.front();
+	returns = {(size_t)code, block.front()};
 	block.erase(block.begin());
 	if (block.front() != ";")
 		throw ParserException({"'return' keyword must have 2 parameters"});
@@ -310,7 +309,7 @@ const	t_string_map& Parameters::getErrorPages(void) const
 	return (error_pages);
 }
 
-const	t_string_map& Parameters::getReturns(void) const
+const	std::pair<size_t, std::string>& Parameters::getReturns(void) const
 {
 	return (returns);
 }
