@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/14 18:10:17 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/14 18:32:14 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -177,7 +177,7 @@ std::string	HTTPrequest::toString( void ) const noexcept
 {
 	std::string	strReq;
 
-	strReq += getStrMethod();
+	strReq += getMethod();
 	strReq += HTTP_SP;
 	strReq += this->_url.scheme;
 	strReq += "://";
@@ -219,12 +219,7 @@ std::string	HTTPrequest::toString( void ) const noexcept
 	return (strReq);
 }
 
-HTTPmethod		HTTPrequest::getMethod( void ) const noexcept
-{
-	return (this->_method);
-}
-
-std::string 	HTTPrequest::getStrMethod( void ) const noexcept
+std::string 	HTTPrequest::getMethod( void ) const noexcept
 {
 	switch (this->_method)
 	{
@@ -501,13 +496,16 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 	size_t	contentLength = 0;
 	HTTPstruct::_setHeaders(strHeaders);
 
-	if (this->_headers.count("Host") == 0)
-		throw(RequestException({"no Host header"}, 412));
+	if (this->_headers["Host"] == "")
+	{
+		this->_endConn = true;
+		throw(RequestException({"no Host header"}, 444));	// NGINX custom error Code
+	}
 	if (this->_url.host == "")
 		_setHostPort(this->_headers["Host"]);
 	else if (this->_headers["Host"].find(this->_url.host) == std::string::npos)
 		throw(RequestException({"hosts do not match"}, 412));
-	if (this->_headers.count("Connecton") != 0)
+	if (this->_headers.count("Connection") != 0)
 		this->_endConn = this->_headers["Connection"] == "close";
 	if (this->_headers.count("Content-Length") == 0)
 	{

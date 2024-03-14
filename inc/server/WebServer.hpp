@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/13 12:27:16 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/14 18:18:50 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -123,4 +123,5 @@ class WebServer
 
 		void			_startCGI( int );
 		void			_addStaticFileFd( std::string const&, int );
+		void			_parseResponse( int );
 };

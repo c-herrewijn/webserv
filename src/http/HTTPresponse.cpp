@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/14 18:10:50 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/14 18:22:25 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,7 @@ void	HTTPresponse::parseFromStatic( void )
 	// 	_addHeader("Location", "something");
 	// 	...
 	// }
+	this->_parsingNeeded = false;
 }
 
 void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
@@ -44,6 +45,7 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 	HTTPstruct::_setBody(body);
 	_setHeaders(headers);
 	_addHeader("Date", _getDateTime());
+	this->_parsingNeeded = false;
 }
 
 void	HTTPresponse::readHTML( void )
@@ -52,10 +54,7 @@ void	HTTPresponse::readHTML( void )
     char        buffer[DEF_BUF_SIZE];
 
 	if (this->_gotFullBody == true)
-	{
-		std::cout << "HTML already parsed\n";
-		return ;
-	}
+		throw(ResponseException({"HTML already parsed"}, 500));
 	bzero(buffer, DEF_BUF_SIZE);
 	readChar = read(this->_HTMLfd, buffer, DEF_BUF_SIZE);
 	if (readChar < 0)
@@ -84,10 +83,12 @@ void	HTTPresponse::writeContent( void )
     ssize_t 		readChar = -1;
 	size_t			charsToWrite = 0;
 
-	if (this->_responseDone == true)
-		throw(ServerException({"response already sent"}));
-	else if (this->_gotFullBody == false)
-		throw(ServerException({"incomplete body"}));
+	if (this->_gotFullBody == false)
+		throw(ResponseException({"incomplete body"}, 500));
+	else if (this->_parsingNeeded == true)
+		throw(ResponseException({"need to parse the response"}, 500));
+	else if (this->_writingDone == true)
+		throw(ResponseException({"response already sent"}, 500));
 	if ((toString().size() - written) < DEF_BUF_SIZE)
 		charsToWrite = toString().size() - written;
 	else
@@ -99,7 +100,7 @@ void	HTTPresponse::writeContent( void )
 	if (readChar < DEF_BUF_SIZE)
 	{
 		written = 0;
-		this->_responseDone = true;
+		this->_writingDone = true;
 	}
 }
 
@@ -175,9 +176,14 @@ bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept
 	return (this->_gotFullBody);
 }
 
+bool	HTTPresponse::parsingNeeded( void ) const noexcept
+{
+	return (this->_parsingNeeded);
+}
+
 bool	HTTPresponse::isDoneWriting( void ) const noexcept
 {
-	return (this->_responseDone);
+	return (this->_writingDone);
 }
 
 void	HTTPresponse::_setHeaders( std::string const& strHeaders )

@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/13 11:38:37 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/14 18:25:54 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,8 @@ class HTTPresponse : public HTTPstruct
 			HTTPstruct(socket) ,
 			_statusCode(200),
 			_HTMLfd(-1),
-			_responseDone(false),
+			_parsingNeeded(true),
+			_writingDone(false),
 			_contentType(STD_CONTENT_TYPE) {};
 
 		virtual ~HTTPresponse( void ) override {};
@@ -48,11 +49,12 @@ class HTTPresponse : public HTTPstruct
 		void		setHTMLfd( int HTMLfd );
 		int			getHTMLfd( void ) const noexcept;
 		bool		isDoneReadingHTML( void ) const noexcept;
+		bool		parsingNeeded( void ) const noexcept;
 		bool		isDoneWriting( void ) const noexcept;
 
 	protected:
 		int			_statusCode, _HTMLfd;
-		bool		_responseDone;
+		bool		_parsingNeeded, _writingDone;
 		std::string	_contentType;
 
 		void		_setHeaders( std::string const& ) override;
