@@ -219,8 +219,8 @@ void	WebServer::_readData( int readFd )	// POLLIN
 			readRequestHeaders(readFd);
 			break;
 
-		case FORWARD_REQ_BODY_TO_CGI:
-			std::cout << C_GREEN << "FORWARD_REQ_BODY_TO_CGI - " << readFd << C_RESET << std::endl;
+		case READ_REQ_BODY:
+			std::cout << C_GREEN << "READ_REQ_BODY - " << readFd << C_RESET << std::endl;
 			readRequestBody(readFd);
 			break;
 
@@ -243,8 +243,8 @@ void	WebServer::_writeData( int writeFd )	// POLLOUT
 {
 	switch (this->_pollitems[writeFd]->pollState)
 	{
-		case FORWARD_REQ_BODY_TO_CGI:
-			std::cout << C_GREEN << "FORWARD_REQ_BODY_TO_CGI - " << writeFd << C_RESET << std::endl;
+		case WRITE_TO_CGI:
+			std::cout << C_GREEN << "WRITE_TO_CGI - " << writeFd << C_RESET << std::endl;
 			writeToCGI(writeFd);
 			break;
 
@@ -430,7 +430,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	if (request->isCGI()) {		// GET (CGI), POST and DELETE
 		_startCGI(clientSocket);
 		if (request->hasBody()) 
-			this->_pollitems[clientSocket]->pollState = FORWARD_REQ_BODY_TO_CGI;
+			this->_pollitems[clientSocket]->pollState = READ_REQ_BODY;
 		else
 			this->_pollitems[clientSocket]->pollState = READ_CGI_RESPONSE;
 	}
@@ -457,7 +457,7 @@ void	WebServer::_startCGI( int clientSocket)
 	if (request->hasBody()) 
 	{
 		response->setFileUpload(request->isFileUpload());
-		this->_addConn(cgiPtr->getuploadPipe()[1], CGI_DATA_PIPE, FORWARD_REQ_BODY_TO_CGI);
+		this->_addConn(cgiPtr->getuploadPipe()[1], CGI_DATA_PIPE, WRITE_TO_CGI);
 	}
 }
 
@@ -485,23 +485,16 @@ void	WebServer::readStaticFiles( int staticFileFd )
 	}
 }
 
-// what is the triggering poll item?
 void	WebServer::readRequestBody( int clientSocket )
 {
-	std::cout << "readRequestBody - socketFd: " << clientSocket <<std::endl; // debug
-	// TODO: only needs to be done when (request->_tmpBody == "")
-	// check tmpBody: should be empty
-	// if tmpBody == ""
-	//	 then readBody()
-	// else 
-	//	do nothing
-	// (it's not empty)
-	// // write body to CGI
+	HTTPrequest *request = this->_requests[clientSocket];
+	if (request->getTmpBody() == "") {
+		request->readPlainBody();
+	}
 }
 
 void	WebServer::writeToCGI( int cgiPipe )
 {
-	std::cout << "cgiUploadPipeFd - socketFd: " << cgiPipe << std::endl; // debug
 	HTTPrequest *request = nullptr;
 	for (auto& cgiMapItem : this->_cgi) {
 		if (cgiMapItem.second->getuploadPipe()[1] == cgiPipe) {
@@ -510,15 +503,18 @@ void	WebServer::writeToCGI( int cgiPipe )
 		}
 	}
 	if (request != nullptr) {
-		close(this->_cgi[request->getSocket()]->getuploadPipe()[0]);
+		close(this->_cgi[request->getSocket()]->getuploadPipe()[0]); // close read end of cgi upload pipe
 		std::string tmpBody = request->getTmpBody();
 		if (tmpBody != "") {
 			write(cgiPipe, tmpBody.data(), tmpBody.length());
 			request->setTmpBody("");
 
 			// drop from pollList after writing is done
-			close(this->_cgi[request->getSocket()]->getuploadPipe()[1]);
-			// NB.: add to the emptyCon list 
+			if (request->gotFullBody()) {
+				close(cgiPipe); // close write end of cgi upload pipe
+				this->_emptyConns.push_back(cgiPipe);
+				this->_pollitems[request->getSocket()]->pollState = READ_CGI_RESPONSE;
+			}
 		}
 	}
 	// else

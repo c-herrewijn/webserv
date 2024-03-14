@@ -63,9 +63,10 @@ enum fdState
 	WAITING_FOR_CONNECTION,			// LISTENER (read)
 	READ_REQ_HEADER,				// CLIENT_CONNECTION (read)
 	READ_STATIC_FILE,				// STATIC_FILE (read)
-	FORWARD_REQ_BODY_TO_CGI,		// CLIENT_CONNECTION (read), CGI_DATA_PIPE (write)
+	READ_REQ_BODY,					// CLIENT_CONNECTION (read)
 	READ_CGI_RESPONSE,				// CGI_RESPONSE_PIPE (read)
-	WRITE_TO_CLIENT					// CLIENT_CONNECTION (write)
+	WRITE_TO_CLIENT,				// CLIENT_CONNECTION (write)
+	WRITE_TO_CGI					// CGI_DATA_PIPE (write)
 };
 
 
@@ -86,7 +87,7 @@ class WebServer
 
 		void			startListen( void );
 		void			loop( void );
-		
+
 	private:
 		ConfigServer				 _defaultServer;
 		std::vector<ConfigServer>	 _servers;

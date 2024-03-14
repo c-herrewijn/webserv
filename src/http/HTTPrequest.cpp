@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/13 08:43:10 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/14 18:10:17 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 void	HTTPrequest::readHead( void )
 {
 	char		buffer[DEF_BUF_SIZE];
-	std::string content, strHead, strHeaders;
+	std::string strHead, strHeaders;
 	size_t		endHead=0, endReq=0;
 	ssize_t		charsRead = -1;
 
@@ -53,7 +53,10 @@ void	HTTPrequest::readHead( void )
 		strHeaders = this->_tmpHead.substr(endHead + HTTP_NL.size(), endReq - endHead - 1) + HTTP_NL;
 		endReq += HTTP_TERM.size();
 		if ((endReq + 1) < this->_tmpHead.size())		// if there's the beginning of the body
+		{
+			this->_contentLengthRead = this->_tmpBody.length();
 			this->_tmpBody = this->_tmpHead.substr(endReq);
+		}
 		_setHead(strHead);
 		_setHeaders(strHeaders);
 	}
@@ -63,11 +66,10 @@ void	HTTPrequest::readPlainBody( void )
 {
     ssize_t 		readChar = -1;
     char        	buffer[DEF_BUF_SIZE + 1];
-	static size_t	countChars = this->_tmpBody.length();
 
-	static steady_clock::time_point lastRead = steady_clock::now();
-	steady_clock::time_point 		currentRead;
-	duration<double> 				time_span;
+	// static steady_clock::time_point lastRead = steady_clock::now();
+	// steady_clock::time_point 		currentRead;
+	// duration<double> 				time_span;
 
 	if (this->_gotFullBody)
 		return;
@@ -77,20 +79,26 @@ void	HTTPrequest::readPlainBody( void )
 		throw(ServerException({"unavailable socket"}));
 	else if (readChar == 0)
 	{
-		currentRead = steady_clock::now();
-		time_span = duration_cast<duration<int>>(currentRead - lastRead);
-		if (time_span.count() > MAX_TIMEOUT)
-			throw(RequestException({"timeout request"}, 408));
+		// currentRead = steady_clock::now();
+		// time_span = duration_cast<duration<int>>(currentRead - lastRead);
+		// if (time_span.count() > MAX_TIMEOUT)
+		// 	throw(RequestException({"timeout request"}, 408));
 	}
 	else
 	{
-		lastRead = steady_clock::now();
-		countChars += readChar;
-		// if (countChars > this->_contentLength)
-		// 	throw(RequestException({"content body is longer than expected"}, 400));
-		this->_tmpBody += std::string(buffer, buffer + readChar);
-		if (countChars == this->_contentLength)
+		// lastRead = steady_clock::now();
+		if ((this->_contentLengthRead + readChar) > this->_contentLength)
+		{
+			this->_tmpBody += std::string(buffer, buffer + this->_contentLength - this->_contentLengthRead);
 			this->_gotFullBody = true;
+		}
+		else
+		{
+			this->_contentLengthRead += readChar;
+			this->_tmpBody += std::string(buffer, buffer + readChar);
+			if (this->_contentLengthRead == this->_contentLength)
+				this->_gotFullBody = true;
+		}
 	}
 }
 

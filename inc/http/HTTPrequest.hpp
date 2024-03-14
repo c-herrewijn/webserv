@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/13 08:42:40 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/14 18:07:24 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,7 @@ class HTTPrequest : public HTTPstruct
 		HTTPrequest( int socket ) :
 			HTTPstruct(socket) ,
 			_contentLength(0) ,
+			_contentLengthRead(0),
 			_isChunked(false),
 			_endConn(false),
 			_gotFullHead(false) {};
@@ -82,7 +83,7 @@ class HTTPrequest : public HTTPstruct
 		HTTPurl			_url;
 		RequestValidate	_validator;
 
-		size_t		_contentLength;
+		size_t		_contentLength, _contentLengthRead;
 		bool		_isChunked, _endConn, _gotFullHead;
 
 		void	_parseHeads( std::string&, std::string& );
