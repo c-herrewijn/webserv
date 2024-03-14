@@ -284,7 +284,7 @@ void	WebServer::_dropConn(int toDrop) noexcept
 			break;
 		}
 	}
-	if ((this->_pollitems[toDrop]->pollType == CGI_DATA_PIPE) or
+	if ((this->_pollitems[toDrop]->pollType == CGI_REQUEST_PIPE) or
 		(this->_pollitems[toDrop]->pollType == CGI_RESPONSE_PIPE))
 		{}						//NB: close pipes properly
 	delete this->_pollitems[toDrop];
@@ -322,7 +322,7 @@ void	WebServer::_clearEmptyConns( void ) noexcept
 
 int		WebServer::_getSocketFromFd( int fd )
 {
-	if (this->_pollitems[fd]->pollType == CGI_DATA_PIPE)
+	if (this->_pollitems[fd]->pollType == CGI_REQUEST_PIPE)
 	{
 		for (auto& item : this->_cgi)
 		{
@@ -442,8 +442,8 @@ void	WebServer::_startCGI( int clientSocket)
 	cgiPtr->run();
 	if (request->hasBody()) 
 	{
-		response->setFileUpload(request->isFileUpload());
-		this->_addConn(cgiPtr->getuploadPipe()[1], CGI_DATA_PIPE, WRITE_TO_CGI);
+		response->setFileUpload(true);
+		this->_addConn(cgiPtr->getuploadPipe()[1], CGI_REQUEST_PIPE, WRITE_TO_CGI);
 	}
 }
 
@@ -462,7 +462,7 @@ void	WebServer::readStaticFiles( int staticFileFd )
 {
 	int 			socket = _getSocketFromFd(staticFileFd);
 	HTTPresponse	*response = this->_responses.at(socket);
-	
+
 	response->readHTML();
 	if (response->isDoneReadingHTML())
 	{
@@ -473,10 +473,12 @@ void	WebServer::readStaticFiles( int staticFileFd )
 
 void	WebServer::readRequestBody( int clientSocket )
 {
-	HTTPrequest *request = this->_requests[clientSocket];
-	if (request->getTmpBody() == "") {
+	HTTPrequest *request = this->_requests.at(clientSocket);
+	// if (request->getTmpBody() == "") {
 		request->parseBody();
-	}
+		this->_pollitems[clientSocket]->pollState = WRITE_TO_CGI;
+		std::cout << " body: " << request->getTmpBody() << "|\n";
+	// }
 }
 
 void	WebServer::writeToCGI( int cgiPipe )
@@ -500,11 +502,13 @@ void	WebServer::writeToCGI( int cgiPipe )
 				close(cgiPipe); // close write end of cgi upload pipe
 				this->_emptyConns.push_back(cgiPipe);
 				this->_pollitems[request->getSocket()]->pollState = READ_CGI_RESPONSE;
+				return;
 			}
 		}
 	}
-	// else
-	// 	throw(ServerException({"request not found"}));
+	else
+		throw(ServerException({"request not found"}));
+	this->_pollitems[request->getSocket()]->pollState = READ_REQ_BODY;
 }
 
 void	WebServer::readCGIResponses( int cgiPipe )
@@ -584,7 +588,7 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 
 	pollItem = this->_pollitems[genericFd];
 	if ((pollItem->pollType == STATIC_FILE) or
-		(pollItem->pollType == CGI_DATA_PIPE) or		// NB: pipes need to be closed differently see _dropConn()
+		(pollItem->pollType == CGI_REQUEST_PIPE) or		// NB: pipes need to be closed differently see _dropConn()
 		(pollItem->pollType == CGI_RESPONSE_PIPE))
 		this->_emptyConns.push_back(genericFd);
 	else if (!response or !request)

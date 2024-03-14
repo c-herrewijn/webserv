@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/14 19:16:45 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/14 21:51:17 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@ void	HTTPrequest::parseHead( void )
 	size_t		endHead=0, endReq=0;
 
 	_readHead();
-	if (this->_gotFullBody == true)
+	if (this->_gotFullHead == true)
 	{
 		endReq = this->_tmpHead.find(HTTP_TERM);
 		endHead = this->_tmpHead.find(HTTP_NL);		// look for headers
@@ -214,6 +214,8 @@ void	HTTPrequest::_readHead( void )
 	char				buffer[DEF_BUF_SIZE];
 	ssize_t				charsRead = -1;
 	duration<double> 	time_span;
+	std::string			content;
+	size_t				endHead;
 
 	if (this->_gotFullHead)
 		return;
@@ -235,9 +237,14 @@ void	HTTPrequest::_readHead( void )
 		return;
 	}
 	this->_lastActivity = steady_clock::now();
-	this->_tmpHead += std::string(buffer, buffer + charsRead);
-	if (this->_tmpHead.find(HTTP_TERM) != std::string::npos)	// look for terminator in request
+	content = std::string(buffer, buffer + charsRead);
+	endHead = content.find(HTTP_TERM);
+	if (endHead != std::string::npos)	// look for terminator in request
+	{
+		endHead += HTTP_TERM.size();
 		this->_gotFullHead = true;
+	}
+	this->_tmpHead += content.substr(0, endHead);
 }
 
 void	HTTPrequest::_readPlainBody( void )
@@ -301,7 +308,6 @@ void	HTTPrequest::_readChunkedBody( void )
 	body = _unchunkBody(body.substr(0, delimiter + HTTP_TERM.size()));
 	HTTPstruct::_setBody(body);
 }
-
 
 void	HTTPrequest::_setHead( std::string const& header )
 {
@@ -534,10 +540,13 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 				this->_isFileUpload = true;
 		}
 	}
-	this->_contentLength = contentLength;
-	if (this->_tmpBody.size() == this->_contentLength)
-		this->_gotFullBody = true;
 	this->_hasBody = true;
+	this->_contentLength = contentLength;
+	if (this->_tmpBody.size() > this->_contentLength)
+	{
+		this->_tmpBody = this->_tmpBody.substr(0, this->_contentLength);
+		this->_gotFullBody = true;
+	}
 }
 
 std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
