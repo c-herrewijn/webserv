@@ -37,7 +37,7 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(const HTTPrequest &req)
         "REMOTE_HOST=",
         "REMOTE_IDENT=",
         "REMOTE_USER=",
-        "REQUEST_METHOD=" + req.getStrMethod(),
+        "REQUEST_METHOD=" + req.getMethod(),
         "SCRIPT_NAME=" + req.getRealPath().filename().string(), // script name, e.g. myScript.cgi
         "SCRIPT_FILENAME=" + req.getRealPath().string(), // script path relative to document root, e.g. /cgi-bin/myScript.cgi - NB: temporary until validation works
         "SERVER_NAME=" + req.getServName(),

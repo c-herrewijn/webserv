@@ -155,6 +155,7 @@ const std::vector<std::string>& ConfigServer::getNames(void) const
 	return (names);
 }
 
+// it should return the hostname if no servName is present, but gethostname() is not allowed :(
 const std::string&		ConfigServer::getPrimaryName(void) const
 {
 	return (names[0]);

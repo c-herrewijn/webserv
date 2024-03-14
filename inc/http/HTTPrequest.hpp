@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/13 08:42:40 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/14 01:30:21 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,16 +60,14 @@ class HTTPrequest : public HTTPstruct
 		void		validateRequest( ConfigServer const& );
 		std::string	toString( void ) const noexcept override;
 
-		HTTPmethod		 	getMethod( void ) const noexcept;
-		std::string		 	getStrMethod( void ) const noexcept;
+		std::string		 	getMethod( void ) const noexcept;
 		t_path const&		getPath( void ) const noexcept;
 		std::string const&	getHost( void ) const noexcept;
 		std::string		 	getPort( void ) const noexcept;
 		std::string	const& 	getBody( void ) const noexcept;
 		std::string	const&	getQueryRaw( void ) const noexcept;
 		std::string			getContentTypeBoundary( void ) const noexcept;
-		t_path				getRealPath( void ) const noexcept;
-		// t_path const&	getRealPath( void ) const noexcept;
+		t_path const&		getRealPath( void ) const noexcept;
 		t_path const&		getRoot( void ) const noexcept;
 		t_string_map const&	getErrorPages( void ) const noexcept;
 		bool				gotFullHead( void ) const noexcept;

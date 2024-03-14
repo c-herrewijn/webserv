@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/13 08:43:10 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/14 02:26:39 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -86,14 +86,19 @@ void	HTTPrequest::readPlainBody( void )
 	{
 		lastRead = steady_clock::now();
 		countChars += readChar;
-		// if (countChars > this->_contentLength)
-		// 	throw(RequestException({"content body is longer than expected"}, 400));
-		this->_tmpBody += std::string(buffer, buffer + readChar);
-		if (countChars == this->_contentLength)
+		if (countChars > this->_contentLength)
+		{
+			this->_tmpBody += std::string(buffer, buffer + this->_contentLength);
 			this->_gotFullBody = true;
+		}
+		else
+		{
+			this->_tmpBody += std::string(buffer, buffer + readChar);
+			if (countChars == this->_contentLength)
+				this->_gotFullBody = true;
+		}
 	}
 }
-
 
 //NB: add timeout error: 408
 void	HTTPrequest::readChunkedBody( void )
@@ -132,27 +137,23 @@ void	HTTPrequest::readChunkedBody( void )
 // 		_readPlainBody();
 // }
 
-// NB: fix after validation is ok
 void		HTTPrequest::validateRequest( ConfigServer const& configServer )
 {
 	this->_servName = configServer.getPrimaryName();
 	this->_validator.setConfig(configServer);
 	this->_validator.setMethod(this->_method);
 	this->_validator.setPath(this->_url.path);
-	// this->_validator.solvePath();
-	// if (this->_validator.getStatusCode() >= 400)
-	// 	throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
-	// if (this->_validator.isCGI() == true) // NB: fix after validation is ok
-	if (this->_url.path.extension() == ".cgi")
+	this->_validator.solvePath();
+	if (this->_validator.getStatusCode() >= 400)
+		throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
+	if (this->_validator.isCGI() == true) // NB: fix after validation is ok
 		this->_isCGI = true;
-	// _checkMaxBodySize(this->_validator.getMaxBodySize());
+	_checkMaxBodySize(this->_validator.getMaxBodySize());
 }
 
-// NB: fix after validation is ok
 bool	HTTPrequest::isAutoIndex( void ) const noexcept
 {
-	// return (this->_validator.isAutoIndex());
-	return (false);
+	return (this->_validator.isAutoIndex());
 }
 
 bool	HTTPrequest::isChunked( void ) const noexcept
@@ -169,7 +170,7 @@ std::string	HTTPrequest::toString( void ) const noexcept
 {
 	std::string	strReq;
 
-	strReq += getStrMethod();
+	strReq += getMethod();
 	strReq += HTTP_SP;
 	strReq += this->_url.scheme;
 	strReq += "://";
@@ -211,12 +212,7 @@ std::string	HTTPrequest::toString( void ) const noexcept
 	return (strReq);
 }
 
-HTTPmethod		HTTPrequest::getMethod( void ) const noexcept
-{
-	return (this->_method);
-}
-
-std::string 	HTTPrequest::getStrMethod( void ) const noexcept
+std::string 	HTTPrequest::getMethod( void ) const noexcept
 {
 	switch (this->_method)
 	{
@@ -268,19 +264,17 @@ std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 	return (boundary);
 }
 
-// NB: fix after validation is ok
-// t_path const&	HTTPrequest::getRealPath( void ) const noexcept
-t_path HTTPrequest::getRealPath( void ) const noexcept
+t_path const&	HTTPrequest::getRealPath( void ) const noexcept
 {
-	t_path cwd = std::filesystem::current_path() / "var/www/";
-	if (this->_url.path == "/")		// NB: should be done by validation
-		cwd = MAIN_PAGE_PATH;
-	else if (this->_url.path.extension() == ".ico")	// NB: should be done by validation, update content-type of response
-		cwd = FAVICON_PATH;
-	else
-	cwd /= this->_url.path.string().substr(1);
-	return (cwd);
-	// return (this->_validator.getRealPath());
+	// t_path cwd = std::filesystem::current_path() / "var/www/";
+	// if (this->_url.path == "/")		// NB: should be done by validation
+	// 	cwd = MAIN_PAGE_PATH;
+	// else if (this->_url.path.extension() == ".ico")	// NB: should be done by validation, update content-type of response
+	// 	cwd = FAVICON_PATH;
+	// else
+	// cwd /= this->_url.path.string().substr(1);
+	// return (cwd);
+	return (this->_validator.getRealPath());
 }
 
 t_path const&	HTTPrequest::getRoot( void ) const noexcept
@@ -493,8 +487,11 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 	size_t	contentLength = 0;
 	HTTPstruct::_setHeaders(strHeaders);
 
-	if (this->_headers.count("Host") == 0)
-		throw(RequestException({"no Host header"}, 412));
+	if (this->_headers["Host"] == "")
+	{
+		this->_endConn = true;
+		throw(RequestException({"no Host header"}, 444));	// NGINX custom error Code
+	}
 	if (this->_url.host == "")
 		_setHostPort(this->_headers["Host"]);
 	else if (this->_headers["Host"].find(this->_url.host) == std::string::npos)
@@ -555,7 +552,6 @@ std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
 	} while (sizeChunk != 0);
 	return (tmpChunkedBody);
 }
-
 
 // std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
 // {
