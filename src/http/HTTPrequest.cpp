@@ -6,46 +6,22 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/14 18:32:14 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/14 19:16:45 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPrequest.hpp"
 
 // throws: ServerException , RequestException
-void	HTTPrequest::readHead( void )
+void	HTTPrequest::parseHead( void )
 {
-	char		buffer[DEF_BUF_SIZE];
 	std::string strHead, strHeaders;
 	size_t		endHead=0, endReq=0;
-	ssize_t		charsRead = -1;
 
-	// static steady_clock::time_point lastRead = steady_clock::now();
-	// steady_clock::time_point 		currentRead;
-	// duration<double> 				time_span;
-
-	// currentRead = steady_clock::now();
-	// time_span = duration_cast<duration<int>>(currentRead - lastRead);
-	// if (time_span.count() > MAX_TIMEOUT)
-	// 	throw(RequestException({"timeout request"}, 408));
-	
-	if (this->_gotFullHead)
-		return;
-	bzero(buffer, DEF_BUF_SIZE);
-	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-	if (charsRead < 0)
-		throw(ServerException({"unavailable socket"}));
-	else if (charsRead == 0)
-		throw(EndConnectionException());
-	else if (this->_tmpHead.size() + charsRead > MAX_HEADER_SIZE)
-		throw(RequestException({"headers too large"}, 431));
-
-	//NB: handle also time from the beginning()
-	this->_tmpHead += std::string(buffer, buffer + charsRead);
-	endReq = this->_tmpHead.find(HTTP_TERM);		// look for terminator in request
-	if (endReq != std::string::npos)
+	_readHead();
+	if (this->_gotFullBody == true)
 	{
-		this->_gotFullHead = true;
+		endReq = this->_tmpHead.find(HTTP_TERM);
 		endHead = this->_tmpHead.find(HTTP_NL);		// look for headers
 		if (endHead >= endReq)
 			throw(RequestException({"bad format request"}, 400));
@@ -62,83 +38,15 @@ void	HTTPrequest::readHead( void )
 	}
 }
 
-void	HTTPrequest::readPlainBody( void )
-{
-    ssize_t 		readChar = -1;
-    char        	buffer[DEF_BUF_SIZE + 1];
-
-	// static steady_clock::time_point lastRead = steady_clock::now();
-	// steady_clock::time_point 		currentRead;
-	// duration<double> 				time_span;
-
-	if (this->_gotFullBody)
-		return;
-	bzero(buffer, DEF_BUF_SIZE + 1);
-	readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-	if (readChar < 0 )
-		throw(ServerException({"unavailable socket"}));
-	else if (readChar == 0)
-	{
-		// currentRead = steady_clock::now();
-		// time_span = duration_cast<duration<int>>(currentRead - lastRead);
-		// if (time_span.count() > MAX_TIMEOUT)
-		// 	throw(RequestException({"timeout request"}, 408));
-	}
-	else
-	{
-		// lastRead = steady_clock::now();
-		if ((this->_contentLengthRead + readChar) > this->_contentLength)
-		{
-			this->_tmpBody += std::string(buffer, buffer + this->_contentLength - this->_contentLengthRead);
-			this->_gotFullBody = true;
-		}
-		else
-		{
-			this->_contentLengthRead += readChar;
-			this->_tmpBody += std::string(buffer, buffer + readChar);
-			if (this->_contentLengthRead == this->_contentLength)
-				this->_gotFullBody = true;
-		}
-	}
-}
-
-
-//NB: add timeout error: 408
-void	HTTPrequest::readChunkedBody( void )
-{
-    ssize_t 	readChar = -1;
-    char    	buffer[DEF_BUF_SIZE + 1];
-	std::string body = this->_tmpBody;
-	size_t		delimiter=0, countChars=this->_tmpBody.length(), maxSize=this->_validator.getMaxBodySize();
-
-	do
-	{
-		bzero(buffer, DEF_BUF_SIZE + 1);
-		readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-		if (readChar < 0)
-			throw(ServerException({"unavailable socket"}));
-		else if (readChar == 0)
-			continue;
-		countChars += readChar;
-		if ((maxSize > 0) and (countChars > maxSize))
-			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
-		body += buffer;
-		delimiter = std::string(buffer).find(HTTP_TERM);
-	} while (delimiter != std::string::npos);
-	body = _unchunkBody(body.substr(0, delimiter + HTTP_TERM.size()));
-	HTTPstruct::_setBody(body);
-}
-
 // NB: needs to change
-// void	HTTPrequest::parseBody( void )
-// {
-// 	if (this->_hasBody == false)
-// 		return ;
-// 	else if (this->_isChunked == true)
-// 		_readChunkedBody();
-// 	else
-// 		_readPlainBody();
-// }
+void	HTTPrequest::parseBody( void )
+{
+	if (this->_isChunked == true)
+		_readChunkedBody();
+	else
+		_readPlainBody();
+
+}
 
 // NB: fix after validation is ok
 void		HTTPrequest::validateRequest( ConfigServer const& configServer )
@@ -300,6 +208,100 @@ bool	HTTPrequest::gotFullHead( void ) const noexcept
 {
 	return (this->_gotFullHead);
 }
+
+void	HTTPrequest::_readHead( void )
+{
+	char				buffer[DEF_BUF_SIZE];
+	ssize_t				charsRead = -1;
+	duration<double> 	time_span;
+
+	if (this->_gotFullHead)
+		return;
+	else if (this->_tmpHead.size() == 0)
+		this->_lastActivity = steady_clock::now();
+	bzero(buffer, DEF_BUF_SIZE);
+	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+	if (charsRead < 0)
+		throw(ServerException({"unavailable socket"}));
+	else if (charsRead == 0)
+		throw(EndConnectionException());
+	else if (this->_tmpHead.size() + charsRead > MAX_HEADER_SIZE)
+		throw(RequestException({"headers too large"}, 431));
+	else if (charsRead == 0)
+	{
+		time_span = duration_cast<duration<int>>(steady_clock::now() - this->_lastActivity);
+		if (time_span.count() > MAX_TIMEOUT)
+			throw(RequestException({"timeout request"}, 408));
+		return;
+	}
+	this->_lastActivity = steady_clock::now();
+	this->_tmpHead += std::string(buffer, buffer + charsRead);
+	if (this->_tmpHead.find(HTTP_TERM) != std::string::npos)	// look for terminator in request
+		this->_gotFullHead = true;
+}
+
+void	HTTPrequest::_readPlainBody( void )
+{
+    ssize_t 			charsRead = -1;
+    char        		buffer[DEF_BUF_SIZE + 1];
+	duration<double> 	time_span;
+
+	if (this->_gotFullBody)
+		return;
+	else if (this->_contentLengthRead == 0)
+		this->_lastActivity = steady_clock::now();
+	bzero(buffer, DEF_BUF_SIZE + 1);
+	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+	if (charsRead < 0 )
+		throw(ServerException({"unavailable socket"}));
+	else if (charsRead == 0)
+	{
+		time_span = duration_cast<duration<int>>(steady_clock::now() - this->_lastActivity);
+		if (time_span.count() > MAX_TIMEOUT)
+			throw(RequestException({"timeout request"}, 408));
+		return;
+	}
+	this->_lastActivity = steady_clock::now();
+	if ((this->_contentLengthRead + charsRead) > this->_contentLength)
+	{
+		this->_tmpBody += std::string(buffer, buffer + this->_contentLength - this->_contentLengthRead);
+		this->_gotFullBody = true;
+	}
+	else
+	{
+		this->_contentLengthRead += charsRead;
+		this->_tmpBody += std::string(buffer, buffer + charsRead);
+		if (this->_contentLengthRead == this->_contentLength)
+			this->_gotFullBody = true;
+	}
+}
+
+//NB: add timeout error: 408
+void	HTTPrequest::_readChunkedBody( void )
+{
+    ssize_t 	readChar = -1;
+    char    	buffer[DEF_BUF_SIZE + 1];
+	std::string body = this->_tmpBody;
+	size_t		delimiter=0, countChars=this->_tmpBody.length(), maxSize=this->_validator.getMaxBodySize();
+
+	do
+	{
+		bzero(buffer, DEF_BUF_SIZE + 1);
+		readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+		if (readChar < 0)
+			throw(ServerException({"unavailable socket"}));
+		else if (readChar == 0)
+			continue;
+		countChars += readChar;
+		if ((maxSize > 0) and (countChars > maxSize))
+			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
+		body += buffer;
+		delimiter = std::string(buffer).find(HTTP_TERM);
+	} while (delimiter != std::string::npos);
+	body = _unchunkBody(body.substr(0, delimiter + HTTP_TERM.size()));
+	HTTPstruct::_setBody(body);
+}
+
 
 void	HTTPrequest::_setHead( std::string const& header )
 {

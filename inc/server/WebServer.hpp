@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/14 18:18:50 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/14 19:15:54 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,7 +75,6 @@ typedef struct PollItem
 	int							fd;
 	fdType          			pollType;
     fdState         			pollState;
-	steady_clock::time_point	lastActivity;
 } t_PollItem;
 
 // NB: in case of terminating error child process must be killed with signals
@@ -111,7 +110,6 @@ class WebServer
 		ConfigServer const&	_getDefaultHandler( void ) const noexcept;
 		int				_getSocketFromFd( int );
 		t_path			_getHTMLerrorPage( int, t_string_map const& ) const;
-		void			_checkLastActivity( int );
 		void			handleNewConnections( int ); // keep - DONE
 		void			readRequestHeaders( int ); // keep / rework
 		void			readStaticFiles( int ); // keep / rework

@@ -269,7 +269,6 @@ void	WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePoll
 	newPollitem->fd = newSocket;
 	newPollitem->pollType = typePollItem;
 	newPollitem->pollState = statePollItem;
-	newPollitem->lastActivity = steady_clock::now();
 	this->_pollitems[newSocket] = newPollitem;
 }
 
@@ -381,17 +380,6 @@ t_path	WebServer::_getHTMLerrorPage( int statusCode, t_string_map const& localEr
 	// }
 }
 
-void	WebServer::_checkLastActivity( int fd )
-{
-	steady_clock::time_point 	currentRead = steady_clock::now();
-	steady_clock::time_point	lastRead = this->_pollitems[fd]->lastActivity;
-	duration<double> 			time_span;
-
-	time_span = duration_cast<duration<int>>(currentRead - lastRead);
-	if (time_span.count() > MAX_TIMEOUT)
-		throw(HTTPexception({"timeout request"}, 408));
-}
-
 void	WebServer::handleNewConnections( int listenerFd )
 {
 	struct sockaddr_storage client;
@@ -418,10 +406,8 @@ void	WebServer::readRequestHeaders( int clientSocket )
 		this->_requests[clientSocket] = new HTTPrequest(clientSocket);
 		this->_responses[clientSocket] = new HTTPresponse(clientSocket);
 	}
-	else
-		_checkLastActivity(clientSocket);
 	request = this->_requests[clientSocket];
-	request->readHead();
+	request->parseHead();
 	if (request->gotFullHead() == false)
 		return ;
 	if (!std::filesystem::exists(request->getRealPath()))	// NB: temporary until validation works
@@ -489,7 +475,7 @@ void	WebServer::readRequestBody( int clientSocket )
 {
 	HTTPrequest *request = this->_requests[clientSocket];
 	if (request->getTmpBody() == "") {
-		request->readPlainBody();
+		request->parseBody();
 	}
 }
 

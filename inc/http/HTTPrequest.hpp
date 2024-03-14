@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/14 18:29:29 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/14 19:14:04 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,13 +51,12 @@ class HTTPrequest : public HTTPstruct
 			_contentLengthRead(0),
 			_isChunked(false),
 			_endConn(false),
-			_gotFullHead(false) {};
+			_gotFullHead(false),
+			_lastActivity(steady_clock::now()) {};
 		virtual ~HTTPrequest( void ) override {};
 
-		void		readHead( void );
-		void		readPlainBody( void );
-		void		readChunkedBody( void );
-		// void		parseBody( void );
+		void		parseHead( void );
+		void		parseBody( void );
 		void		validateRequest( ConfigServer const& );
 		std::string	toString( void ) const noexcept override;
 
@@ -85,7 +84,11 @@ class HTTPrequest : public HTTPstruct
 		size_t		_contentLength, _contentLengthRead;
 		bool		_isChunked, _endConn, _gotFullHead;
 
-		void	_parseHeads( std::string&, std::string& );
+		steady_clock::time_point	_lastActivity;
+
+		void	_readHead( void );
+		void	_readPlainBody( void );
+		void	_readChunkedBody( void );
 		void	_setHead( std::string const& );
 		void	_setHeaders(std::string const& ) override;
 
