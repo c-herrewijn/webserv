@@ -300,7 +300,7 @@ bool	RequestValidate::_handleServerPages(void)
 void	RequestValidate::_handleStatus(void)
 {
 	// handle error_pages
-	if (_handleErrorCode())
+	if (_handleErrorCode() || _statusCode < 400)
 		return ;
 	// use server scope error pages
 	_validParams = &(_requestConfig->getParams());
