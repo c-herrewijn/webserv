@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/14 21:51:17 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/15 14:16:10 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,15 +30,14 @@ void	HTTPrequest::parseHead( void )
 		endReq += HTTP_TERM.size();
 		if ((endReq + 1) < this->_tmpHead.size())		// if there's the beginning of the body
 		{
-			this->_contentLengthRead = this->_tmpBody.length();
 			this->_tmpBody = this->_tmpHead.substr(endReq);
+			this->_contentLengthRead = this->_tmpBody.length();
 		}
 		_setHead(strHead);
 		_setHeaders(strHeaders);
 	}
 }
 
-// NB: needs to change
 void	HTTPrequest::parseBody( void )
 {
 	if (this->_isChunked == true)
@@ -214,8 +213,6 @@ void	HTTPrequest::_readHead( void )
 	char				buffer[DEF_BUF_SIZE];
 	ssize_t				charsRead = -1;
 	duration<double> 	time_span;
-	std::string			content;
-	size_t				endHead;
 
 	if (this->_gotFullHead)
 		return;
@@ -237,27 +234,22 @@ void	HTTPrequest::_readHead( void )
 		return;
 	}
 	this->_lastActivity = steady_clock::now();
-	content = std::string(buffer, buffer + charsRead);
-	endHead = content.find(HTTP_TERM);
-	if (endHead != std::string::npos)	// look for terminator in request
-	{
-		endHead += HTTP_TERM.size();
+	this->_tmpHead += std::string(buffer, buffer + charsRead);
+	if (this->_tmpHead.find(HTTP_TERM) != std::string::npos)	// look for terminator in request
 		this->_gotFullHead = true;
-	}
-	this->_tmpHead += content.substr(0, endHead);
 }
 
 void	HTTPrequest::_readPlainBody( void )
 {
     ssize_t 			charsRead = -1;
-    char        		buffer[DEF_BUF_SIZE + 1];
+    char        		buffer[DEF_BUF_SIZE];
 	duration<double> 	time_span;
 
 	if (this->_gotFullBody)
 		return;
 	else if (this->_contentLengthRead == 0)
 		this->_lastActivity = steady_clock::now();
-	bzero(buffer, DEF_BUF_SIZE + 1);
+	bzero(buffer, DEF_BUF_SIZE);
 	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
 	if (charsRead < 0 )
 		throw(ServerException({"unavailable socket"}));
@@ -533,20 +525,18 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 			throw(RequestException({"invalid Content-Length"}, 400));
 		}
 		if (this->_tmpBody.size() > contentLength)
-			throw(RequestException({"body is longer than Content-Length"}, 400));
+		{
+			this->_gotFullBody = true;
+			this->_tmpBody = this->_tmpBody.substr(0, contentLength);
+		}
 		if (this->_headers.count("Content-Type") != 0)
 		{
 			if (this->_headers["Content-Type"].find("multipart/form-data; boundary=-") == 0)
 				this->_isFileUpload = true;
 		}
 	}
-	this->_hasBody = true;
 	this->_contentLength = contentLength;
-	if (this->_tmpBody.size() > this->_contentLength)
-	{
-		this->_tmpBody = this->_tmpBody.substr(0, this->_contentLength);
-		this->_gotFullBody = true;
-	}
+	this->_hasBody = true;
 }
 
 std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
@@ -572,7 +562,6 @@ std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
 	} while (sizeChunk != 0);
 	return (tmpChunkedBody);
 }
-
 
 // std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
 // {

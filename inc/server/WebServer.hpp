@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/14 21:30:27 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/14 19:15:54 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,7 +53,7 @@ enum fdType
 {
     LISTENER,
     CLIENT_CONNECTION,
-    CGI_REQUEST_PIPE,
+    CGI_DATA_PIPE,
     CGI_RESPONSE_PIPE,
     STATIC_FILE
 };
@@ -66,7 +66,7 @@ enum fdState
 	READ_REQ_BODY,					// CLIENT_CONNECTION (read)
 	READ_CGI_RESPONSE,				// CGI_RESPONSE_PIPE (read)
 	WRITE_TO_CLIENT,				// CLIENT_CONNECTION (write)
-	WRITE_TO_CGI					// CGI_REQUEST_PIPE (write)
+	WRITE_TO_CGI					// CGI_DATA_PIPE (write)
 };
 
 
