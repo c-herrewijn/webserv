@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/14 19:14:04 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/15 00:22:29 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@
 #include "ConfigServer.hpp"
 #include "RequestValidate.hpp"
 
-#define MAIN_PAGE_PATH	 		t_path("var/www/mainPage.html")
+#define MAIN_PAGE_PATH	 		t_path("var/www/index.html")
 #define FAVICON_PATH			t_path("var/www/favicon.ico")
 #define MAX_TIMEOUT				5
 #define MAX_HEADER_SIZE			8192

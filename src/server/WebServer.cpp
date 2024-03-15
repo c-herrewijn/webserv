@@ -72,10 +72,12 @@ void			WebServer::startListen( void )
 
 // NB: update for codes 20X
 // NB: use relative root in Config File for multi-platform functionality
-// NB: move back timeout back inside requests and responses, define a specific member that sotred last_action_time
+// NB: remove static variable from HTTPresponse.writeContent()
+// NB: when the HTTPrequest._setHeaders() fails the error is not generated properly
+// NB: in file upload the Pipe upload is not dropped correctly
 void			WebServer::loop( void )
 {
-	int				nConn=-1;
+	int				nConn = -1;
 	struct pollfd 	pollfdItem;
 
 	while (true)
@@ -93,6 +95,7 @@ void			WebServer::loop( void )
 		for(size_t i=0; i<this->_pollfds.size(); i++)
 		{
 			pollfdItem = this->_pollfds[i];
+			// std::cout << "checking fd: " << pollfdItem.fd << " type: " << this->_pollitems[pollfdItem.fd]->pollType  << " state: " << this->_pollitems[pollfdItem.fd]->pollState<< "\n"; 
 			try {
 				if (pollfdItem.revents & POLLIN)
 					_readData(pollfdItem.fd);
@@ -244,7 +247,7 @@ void	WebServer::_writeData( int writeFd )	// POLLOUT
 	switch (this->_pollitems[writeFd]->pollState)
 	{
 		case WRITE_TO_CGI:
-			std::cout << C_GREEN << "WRITE_TO_CGI - " << writeFd << C_RESET << std::endl;
+			// std::cout << C_GREEN << "WRITE_TO_CGI - " << writeFd << C_RESET << std::endl;
 			writeToCGI(writeFd);
 			break;
 
@@ -347,8 +350,11 @@ int		WebServer::_getSocketFromFd( int fd )
 		}
 	}
 	else if (fd != -1)
+	{
+		std::cout << "fd: " << fd << " found\n";
 		return (fd);
-	throw(ServerException({"invalid file descriptor or not found"}));	// entity not found, this should not happen
+	}
+	throw(ServerException({"invalid file descriptor or not found:", std::to_string(fd)}));	// entity not found, this should not happen
 }
 
 //NB: building absolut path?
@@ -456,6 +462,7 @@ void	WebServer::_addStaticFileFd( std::string const& fileName, int clientSocket)
 		throw(HTTPexception({"invalid fd for static file:", fileName}, 500));
 	response->setHTMLfd(HTMLfd);
 	_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
+	std::cout << "created fd: " << HTMLfd << ", from file: " << fileName << " original socket: " << clientSocket << " error code: " << response->getStatusCode() << "\n";
 }
 
 void	WebServer::readStaticFiles( int staticFileFd )
@@ -463,9 +470,13 @@ void	WebServer::readStaticFiles( int staticFileFd )
 	int 			socket = _getSocketFromFd(staticFileFd);
 	HTTPresponse	*response = this->_responses.at(socket);
 	
+	std::cout << "fd: "<< staticFileFd << "\n";
+	if (this->_pollitems[staticFileFd]->pollType != STATIC_FILE)
+		return ;
 	response->readHTML();
 	if (response->isDoneReadingHTML())
 	{
+		std::cout << response->getTmpBody() << "|done reading html\n";
 		this->_emptyConns.push_back(staticFileFd);
 		this->_pollitems[socket]->pollState = WRITE_TO_CLIENT;
 	}
@@ -511,7 +522,7 @@ void	WebServer::readCGIResponses( int cgiPipe )
 {
 	int 			socket = _getSocketFromFd(cgiPipe);
 	CGI				*cgi = nullptr;
-	HTTPresponse	*response = nullptr;
+	// HTTPresponse	*response = nullptr;
 
 	cgi = this->_cgi.at(socket);
 	ssize_t	readChars = -1;
@@ -527,8 +538,8 @@ void	WebServer::readCGIResponses( int cgiPipe )
 	// to know when to close the pipe connection
 	if (true) // TODO keep pipe open for consequtive reads if needed
 	{
-		response = this->_responses[socket];
-		response->parseFromCGI(cgi->getResponse());
+		// response = this->_responses[socket];
+		// response->parseFromCGI(cgi->getResponse());
 		this->_emptyConns.push_back(cgiPipe);
 		this->_pollitems[socket]->pollState = WRITE_TO_CLIENT;
 	}
@@ -540,7 +551,6 @@ void	WebServer::writeToClients( int clientSocket )
 	HTTPresponse 	*response = this->_responses.at(clientSocket);
 
 	// NB: we have to go in these if condtions only when when we start writing, not every time we have smt to write
-	
 	if (response->parsingNeeded() == true)
 		_parseResponse(clientSocket);
 	response->writeContent();

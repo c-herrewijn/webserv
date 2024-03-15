@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/14 19:16:45 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/15 01:41:00 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@ void	HTTPrequest::parseHead( void )
 	size_t		endHead=0, endReq=0;
 
 	_readHead();
-	if (this->_gotFullBody == true)
+	if (this->_gotFullHead == true)
 	{
 		endReq = this->_tmpHead.find(HTTP_TERM);
 		endHead = this->_tmpHead.find(HTTP_NL);		// look for headers
@@ -38,7 +38,6 @@ void	HTTPrequest::parseHead( void )
 	}
 }
 
-// NB: needs to change
 void	HTTPrequest::parseBody( void )
 {
 	if (this->_isChunked == true)
@@ -243,15 +242,16 @@ void	HTTPrequest::_readHead( void )
 void	HTTPrequest::_readPlainBody( void )
 {
     ssize_t 			charsRead = -1;
-    char        		buffer[DEF_BUF_SIZE + 1];
+    char        		buffer[DEF_BUF_SIZE];
 	duration<double> 	time_span;
 
 	if (this->_gotFullBody)
 		return;
 	else if (this->_contentLengthRead == 0)
 		this->_lastActivity = steady_clock::now();
-	bzero(buffer, DEF_BUF_SIZE + 1);
+	bzero(buffer, DEF_BUF_SIZE);
 	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+	// std::cout << "body: " << std::string(buffer, buffer + charsRead) << "|\n";
 	if (charsRead < 0 )
 		throw(ServerException({"unavailable socket"}));
 	else if (charsRead == 0)
@@ -262,6 +262,7 @@ void	HTTPrequest::_readPlainBody( void )
 		return;
 	}
 	this->_lastActivity = steady_clock::now();
+	std::cout << "total: " << this->_contentLength << " - read: " << this->_contentLengthRead + charsRead << "\n";
 	if ((this->_contentLengthRead + charsRead) > this->_contentLength)
 	{
 		this->_tmpBody += std::string(buffer, buffer + this->_contentLength - this->_contentLengthRead);
@@ -301,7 +302,6 @@ void	HTTPrequest::_readChunkedBody( void )
 	body = _unchunkBody(body.substr(0, delimiter + HTTP_TERM.size()));
 	HTTPstruct::_setBody(body);
 }
-
 
 void	HTTPrequest::_setHead( std::string const& header )
 {
@@ -527,7 +527,11 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 			throw(RequestException({"invalid Content-Length"}, 400));
 		}
 		if (this->_tmpBody.size() > contentLength)
-			throw(RequestException({"body is longer than Content-Length"}, 400));
+		{
+			this->_gotFullBody = true;
+			this->_tmpBody = this->_tmpBody.substr(0, contentLength);
+		}
+			// throw(RequestException({"body is longer than Content-Length"}, 400));
 		if (this->_headers.count("Content-Type") != 0)
 		{
 			if (this->_headers["Content-Type"].find("multipart/form-data; boundary=-") == 0)
@@ -535,8 +539,6 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 		}
 	}
 	this->_contentLength = contentLength;
-	if (this->_tmpBody.size() == this->_contentLength)
-		this->_gotFullBody = true;
 	this->_hasBody = true;
 }
 
@@ -563,7 +565,6 @@ std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
 	} while (sizeChunk != 0);
 	return (tmpChunkedBody);
 }
-
 
 // std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
 // {
