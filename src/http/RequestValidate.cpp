@@ -231,11 +231,8 @@ bool	RequestValidate::_handleFile(void)
 	t_path filePath = dirPath;
 	filePath += "/";
 	filePath += targetFile;
-
 	_isCGI = false;
 	// check filePath
-	std::cout << "handlefile dirpath: " << dirPath << "\n";
-	std::cout << "handlefile exists: " << filePath << "\n";
 	if (!std::filesystem::exists(filePath))
 		return (_setStatusCode(404), false);
 	if (std::filesystem::is_directory(filePath))
@@ -265,11 +262,15 @@ bool	RequestValidate::_handleFile(void)
 // ╰───────────────────────────╯
 bool	RequestValidate::_handleReturns(void)
 {
-	auto it = _validParams->getReturns().find(_statusCode);
-	if (it == _validParams->getReturns().end())
-		return (false);
-	targetFile = std::filesystem::weakly_canonical((*it).second);
-	return (_handleFile());
+	if (_validParams->getReturns().first)
+	{
+		_statusCode = _validParams->getReturns().first;
+		targetFile = std::filesystem::weakly_canonical(_validParams->getReturns().second);
+		if (_handleFile())
+			return (true);
+		return (_handleStatus(), true);
+	}
+	return (false);
 }
 
 bool	RequestValidate::_handleErrorCode(void)
@@ -286,15 +287,11 @@ bool	RequestValidate::_handleServerPages(void)
 {
 	// This is a temp solution. NEEDS TO BE REPLACED WITH A MACRO
 	t_path lastChance = std::filesystem::current_path();
-	lastChance += "/var/www/errors/";
+	lastChance += SERVER_DEF_PAGES;
 	lastChance += (std::to_string(_statusCode) + ".html");
 	if (!std::filesystem::is_regular_file(lastChance))
 		return (false);
-	std::error_code ec;
-	t_perms permissions = std::filesystem::status(lastChance, ec).permissions();
-	if (ec.value())
-		return (false);
-	if ((permissions & t_perms::others_read) == t_perms::none)
+	if (!_checkPerm(lastChance, PERM_READ))
 		return (false);
 	_realPath = std::filesystem::weakly_canonical(lastChance);
 	return (true);
@@ -302,19 +299,17 @@ bool	RequestValidate::_handleServerPages(void)
 
 void	RequestValidate::_handleStatus(void)
 {
-	// handle return
-	if (_handleReturns())
-		return ;
 	// handle error_pages
 	if (_handleErrorCode())
 		return ;
 	// use server scope error pages
 	_validParams = &(_requestConfig->getParams());
-	if (_handleErrorCode() || _statusCode < 400)
+	if (_handleErrorCode())
 		return ;
 	// use servers error page
 	if (_handleServerPages())
 		return ;
+	// final solution the case: internal server error 500
 	_realPath = "/";
 	targetDir.clear();
 	targetFile.clear();
@@ -347,6 +342,9 @@ void	RequestValidate::solvePath(void)
 	}
 	if (!_validParams->getAllowedMethods()[_requestMethod])
 		return (_setStatusCode(405));// 405 error, method not allowed
+	// handle return
+	if (_handleReturns())
+		return ;
 	// set indexfile if necessarry
 	if (targetFile.empty() || targetFile == "/")
 		targetFile = _validParams->getIndex();
