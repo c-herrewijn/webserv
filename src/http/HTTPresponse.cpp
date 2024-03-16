@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/16 03:55:57 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/16 18:42:23 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,9 +71,8 @@ void	HTTPresponse::readContentDirectory( t_path const& pathDir)
 
 void	HTTPresponse::writeContent( void )
 {
-	static ssize_t 	written;
-    ssize_t 		readChar = -1;
-	size_t			charsToWrite = 0;
+    ssize_t writtenChars = -1;
+	size_t	charsToWrite = 0;
 
 	if (this->_gotFullBody == false)
 		throw(ResponseException({"incomplete body"}, 500));
@@ -81,19 +80,16 @@ void	HTTPresponse::writeContent( void )
 		throw(ResponseException({"need to parse the response"}, 500));
 	else if (this->_writingDone == true)
 		throw(ResponseException({"response already sent"}, 500));
-	if ((toString().size() - written) < DEF_BUF_SIZE)
-		charsToWrite = toString().size() - written;
+	if ((toString().size() - this->_contentLengthWrite) < DEF_BUF_SIZE)
+		charsToWrite = toString().size() - this->_contentLengthWrite;
 	else
 		charsToWrite = DEF_BUF_SIZE;
-	readChar = send(this->_socket, toString().substr(written, charsToWrite).c_str(), charsToWrite, 0);
-	if (readChar < 0)
+	writtenChars = send(this->_socket, toString().substr(this->_contentLengthWrite, charsToWrite).c_str(), charsToWrite, 0);
+	if (writtenChars < 0)
 		throw(ServerException({"socket not available"}));
-	written += readChar;
-	if (readChar < DEF_BUF_SIZE)
-	{
-		written = 0;
+	this->_contentLengthWrite += writtenChars;
+	if (writtenChars < DEF_BUF_SIZE)
 		this->_writingDone = true;
-	}
 }
 
 void	HTTPresponse::updateContentType( std::string newContentType ) noexcept
@@ -114,6 +110,7 @@ void	HTTPresponse::errorReset( int errorStatus ) noexcept
 	this->_parsingNeeded = true;
 	this->_writingDone = false;
 	this->_contentType = STD_CONTENT_TYPE;
+	this->_contentLengthWrite = 0;
 
 	this->_body.clear();
 	this->_tmpBody.clear();

@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/16 03:07:32 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/16 17:53:53 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,8 @@ class HTTPresponse : public HTTPstruct
 			_HTMLfd(-1),
 			_parsingNeeded(true),
 			_writingDone(false),
-			_contentType(STD_CONTENT_TYPE) {this->_hasBody = true;};
+			_contentType(STD_CONTENT_TYPE),
+			_contentLengthWrite(0) {this->_hasBody = true;};
 
 		virtual ~HTTPresponse( void ) override {};
 
@@ -58,6 +59,7 @@ class HTTPresponse : public HTTPstruct
 		int			_statusCode, _HTMLfd;
 		bool		_parsingNeeded, _writingDone;
 		std::string	_contentType;
+		size_t		_contentLengthWrite;
 
 		void		_setHeaders( std::string const& ) override;
 		std::string	_mapStatusCode( int ) const ;
