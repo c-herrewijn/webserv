@@ -15,26 +15,38 @@
 
 WebServer::WebServer( std::vector<ConfigServer> const& servers ) : _servers(servers)
 {
-	bool defServerFound = false;
+	bool 				defServerFound = false;
+	std::vector<Listen>	listeners;
 
 	if (servers.empty() == true)
 		throw(ServerException({"no Servers provided for configuration"}));
 	for (auto const& server : this->_servers)
 	{
-		for (auto const& listAddress : server.getListens())
+		for (auto const& address : server.getListens())
 		{
-			if (listAddress.getDef() == true)
+			if (address.getDef() == true)
 			{
 				this->_defaultServer = server;
 				defServerFound = true;
 			}
-			auto isPresent = std::find(this->_listenAddress.begin(),this->_listenAddress.end(), listAddress);
-			if ( isPresent == this->_listenAddress.end() )
-				this->_listenAddress.push_back(listAddress);
+			auto isPresent = std::find(listeners.begin(), listeners.end(), address);
+			if ( isPresent == listeners.end() )
+				listeners.push_back(address);
 		}
 	}
 	if (defServerFound == false)
 		this->_defaultServer = servers[0];
+	for (auto const& listener : listeners)
+	{
+		try {
+			this->_listenTo(listener.getIpString(), listener.getPortString());
+		}
+		catch(const ServerException& e) {
+			std::cout << C_RED << e.what() << '\n' << C_RESET;
+		}
+	}
+	if (this->_pollfds.empty() == true)
+		throw(ServerException({"no available host:port in the configuration provided"}));
 }
 
 WebServer::~WebServer ( void ) noexcept
@@ -55,27 +67,12 @@ WebServer::~WebServer ( void ) noexcept
 	}
 }
 
-void			WebServer::startListen( void )
-{
-	for (auto const& listAddress : this->_listenAddress)
-	{
-		try {
-			this->_listenTo(listAddress.getIpString(), listAddress.getPortString());
-		}
-		catch(const ServerException& e) {
-			std::cout << e.what() << '\n';
-		}
-	}
-	if (this->_pollfds.empty() == true)
-		throw(ServerException({"no available host:port in the configuration provided"}));
-}
-
 // NB: update for codes 20X
 // NB: use relative root in Config File for multi-platform functionality
 // NB: remove static variable from HTTPresponse.writeContent()
-// NB: when the HTTPrequest._setHeaders() fails the error is not generated properly
 // NB: in file upload the Pipe upload is not dropped correctly
-void			WebServer::loop( void )
+// NB: if an error occurs while CGI is running (fileupload) the cgi has to be stopped
+void			WebServer::run( void )
 {
 	int				nConn = -1;
 	struct pollfd 	pollfdItem;
@@ -87,8 +84,7 @@ void			WebServer::loop( void )
 		{
 			if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
 				throw(ServerException({"poll failed"}));
-			else
-				continue;
+			continue;
 		}
 		else if (nConn == 0)
 			continue;
@@ -98,72 +94,30 @@ void			WebServer::loop( void )
 			try {
 				if (pollfdItem.revents & POLLIN)
 					_readData(pollfdItem.fd);
-				else if (pollfdItem.revents & POLLOUT)
+				if (pollfdItem.revents & POLLOUT)
 					_writeData(pollfdItem.fd);
-				else if (pollfdItem.revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
+				if (pollfdItem.revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
 					this->_emptyConns.push_back(pollfdItem.fd);
 			}
 			catch (const ServerException& e) {
-				std::cerr << C_RED << e.what()  << C_RESET << '\n';
+				std::cerr << C_RED << e.what() << C_RESET << '\n';
 				this->_emptyConns.push_back(pollfdItem.fd);
 			}
 			catch (const EndConnectionException& e) {
 				std::cout << C_GREEN << "CLOSED CONNECTION - " << pollfdItem.fd << C_RESET << std::endl;
 				this->_emptyConns.push_back(pollfdItem.fd);
 			}
-			catch (const HTTPexception& e) {
-				std::cerr << C_RED << e.what()  << C_RESET << '\n';
-				redirectToErrorPage(pollfdItem.fd, e.getStatus());
-			}
 			catch (const std::out_of_range& e) {
 				std::cerr << C_RED << "entity not found"  << C_RESET << '\n';
 				this->_emptyConns.push_back(pollfdItem.fd);
 			}
+			catch (const HTTPexception& e) {
+				std::cerr << C_RED << e.what()  << C_RESET << '\n';
+				redirectToErrorPage(pollfdItem.fd, e.getStatus());
+			}
 			_clearEmptyConns();
 		}
 	}
-}
-
-std::string		WebServer::_getAddress( const struct sockaddr_storage *addr ) const noexcept
-{
-	std::string ipAddress;
-	if (addr->ss_family == AF_INET)
-	{
-		char ipv4[INET_ADDRSTRLEN];
-		struct sockaddr_in *addr_v4 = (struct sockaddr_in*) addr;
-		inet_ntop(addr_v4->sin_family, &(addr_v4->sin_addr), ipv4, sizeof(ipv4));
-		ipAddress = std::string(ipv4) + std::string(":") + std::to_string(ntohs(addr_v4->sin_port));
-	}
-	else if (addr->ss_family == AF_INET6)
-	{
-		char ipv6[INET6_ADDRSTRLEN];
-		struct sockaddr_in6 *addr_v6 = (struct sockaddr_in6*) addr;
-		inet_ntop(addr_v6->sin6_family, &(addr_v6->sin6_addr), ipv6, sizeof(ipv6));
-		ipAddress = std::string(ipv6) + std::string(":") + std::to_string(ntohs(addr_v6->sin6_port));
-	}
-	return (ipAddress);
-}
-
-ConfigServer const&	WebServer::_getHandler( std::string const& servName ) const noexcept
-{
-	std::string	tmpServName = servName;
-
-	for (auto const& server : this->_servers)
-	{
-		for (auto name : server.getNames())
-		{
-			std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-			std::transform(tmpServName.begin(), tmpServName.end(), tmpServName.begin(), ::tolower);
-			if (tmpServName == name)
-				return (server);
-		}
-	}
-	return (_getDefaultHandler());
-}
-
-ConfigServer const&	WebServer::_getDefaultHandler( void ) const noexcept
-{
-	return (this->_defaultServer);
 }
 
 void	WebServer::_listenTo( std::string const& hostname, std::string const& port )
@@ -185,7 +139,7 @@ void	WebServer::_listenTo( std::string const& hostname, std::string const& port 
 			continue;
 		fcntl(listenSocket, F_SETFL, O_NONBLOCK);
 		if (setsockopt(listenSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) != 0)
-			std::cout << "failed to update socket, trying to bind anyway... \n";
+			std::cout << C_RED << "failed to update socket, trying to bind anyway... \n" << C_RESET;
 		if (bind(listenSocket, tmp->ai_addr, tmp->ai_addrlen) == 0)
 			break;
 		close(listenSocket);
@@ -193,7 +147,7 @@ void	WebServer::_listenTo( std::string const& hostname, std::string const& port 
 	if (tmp == nullptr)
 	{
 		freeaddrinfo(list);
-		std::cout << "no available IP host found for " << hostname << " port " << port << '\n';
+		std::cout << C_RED << "no available IP host found for " << hostname << " port " << port << '\n' << C_RESET;
 		return ;
 	}
 	memmove(&hostIP, tmp->ai_addr, std::min(sizeof(struct sockaddr), sizeof(struct sockaddr_storage)));
@@ -203,7 +157,7 @@ void	WebServer::_listenTo( std::string const& hostname, std::string const& port 
 		close(listenSocket);
 		throw(ServerException({"failed listen on", this->_getAddress(&hostIP)}));
 	}
-	std::cout << "listening on: " << this->_getAddress(&hostIP) << "\n";
+	std::cout << C_GREEN << "listening on: " << this->_getAddress(&hostIP) << "\n" << C_RESET;
 	this->_addConn(listenSocket, LISTENER, WAITING_FOR_CONNECTION);
 }
 
@@ -286,7 +240,7 @@ void	WebServer::_dropConn(int toDrop) noexcept
 			break;
 		}
 	}
-	if ((this->_pollitems[toDrop]->pollType == CGI_DATA_PIPE) or
+	if ((this->_pollitems[toDrop]->pollType == CGI_REQUEST_PIPE) or
 		(this->_pollitems[toDrop]->pollType == CGI_RESPONSE_PIPE))
 		{}						//NB: close pipes properly
 	delete this->_pollitems[toDrop];
@@ -322,9 +276,51 @@ void	WebServer::_clearEmptyConns( void ) noexcept
 	}
 }
 
+std::string		WebServer::_getAddress( const struct sockaddr_storage *addr ) const noexcept
+{
+	std::string ipAddress;
+	if (addr->ss_family == AF_INET)
+	{
+		char ipv4[INET_ADDRSTRLEN];
+		struct sockaddr_in *addr_v4 = (struct sockaddr_in*) addr;
+		inet_ntop(addr_v4->sin_family, &(addr_v4->sin_addr), ipv4, sizeof(ipv4));
+		ipAddress = std::string(ipv4) + std::string(":") + std::to_string(ntohs(addr_v4->sin_port));
+	}
+	if (addr->ss_family == AF_INET6)
+	{
+		char ipv6[INET6_ADDRSTRLEN];
+		struct sockaddr_in6 *addr_v6 = (struct sockaddr_in6*) addr;
+		inet_ntop(addr_v6->sin6_family, &(addr_v6->sin6_addr), ipv6, sizeof(ipv6));
+		ipAddress = std::string(ipv6) + std::string(":") + std::to_string(ntohs(addr_v6->sin6_port));
+	}
+	return (ipAddress);
+}
+
+ConfigServer const&	WebServer::_getHandler( std::string const& servName ) const noexcept
+{
+	std::string	tmpServName = servName;
+
+	for (auto const& server : this->_servers)
+	{
+		for (auto name : server.getNames())
+		{
+			std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+			std::transform(tmpServName.begin(), tmpServName.end(), tmpServName.begin(), ::tolower);
+			if (tmpServName == name)
+				return (server);
+		}
+	}
+	return (_getDefaultHandler());
+}
+
+ConfigServer const&	WebServer::_getDefaultHandler( void ) const noexcept
+{
+	return (this->_defaultServer);
+}
+
 int		WebServer::_getSocketFromFd( int fd )
 {
-	if (this->_pollitems[fd]->pollType == CGI_DATA_PIPE)
+	if (this->_pollitems[fd]->pollType == CGI_REQUEST_PIPE)
 	{
 		for (auto& item : this->_cgi)
 		{
@@ -353,7 +349,7 @@ int		WebServer::_getSocketFromFd( int fd )
 	throw(ServerException({"invalid file descriptor or not found:", std::to_string(fd)}));	// entity not found, this should not happen
 }
 
-//NB: building absolut path?
+// NB: building absolut path?
 // NB: fix after validation is ok
 t_path	WebServer::_getHTMLerrorPage( int statusCode, t_string_map const& localErrPages ) const
 {
@@ -396,7 +392,7 @@ void	WebServer::handleNewConnections( int listenerFd )
 	}
 	fcntl(connFd, F_SETFL, O_NONBLOCK);
 	this->_addConn(connFd, CLIENT_CONNECTION, READ_REQ_HEADER);
-	std::cout << "connected to " << this->_getAddress(&client) << '\n';
+	std::cout << C_GREEN << "connected to " << this->_getAddress(&client) << '\n' << C_RESET;
 }
 
 void	WebServer::readRequestHeaders( int clientSocket )
@@ -417,7 +413,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	request->validateRequest(_getHandler(request->getHost()));
 	if (request->isCGI()) {		// GET (CGI), POST and DELETE
 		_startCGI(clientSocket);
-		if (request->hasBody()) 
+		if (request->hasBody())
 			this->_pollitems[clientSocket]->pollState = READ_REQ_BODY;
 		else
 			this->_pollitems[clientSocket]->pollState = READ_CGI_RESPONSE;
@@ -445,7 +441,7 @@ void	WebServer::_startCGI( int clientSocket)
 	if (request->hasBody()) 
 	{
 		response->setFileUpload(request->isFileUpload());
-		this->_addConn(cgiPtr->getuploadPipe()[1], CGI_DATA_PIPE, WRITE_TO_CGI);
+		this->_addConn(cgiPtr->getuploadPipe()[1], CGI_REQUEST_PIPE, WRITE_TO_CGI);
 	}
 }
 
@@ -458,7 +454,6 @@ void	WebServer::_addStaticFileFd( std::string const& fileName, int clientSocket)
 		throw(HTTPexception({"invalid fd for static file:", fileName}, 500));
 	response->setHTMLfd(HTMLfd);
 	_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
-	// std::cout << "created fd: " << HTMLfd << ", from file: " << fileName << " original socket: " << clientSocket << " error code: " << response->getStatusCode() << "\n";
 }
 
 void	WebServer::readStaticFiles( int staticFileFd )
@@ -542,7 +537,7 @@ void	WebServer::writeToClients( int clientSocket )
 	HTTPrequest 	*request = this->_requests.at(clientSocket);
 	HTTPresponse 	*response = this->_responses.at(clientSocket);
 
-	if (response->parsingNeeded() == true)
+	if (response->isParsingNeeded() == true)
 		_parseResponse(clientSocket);
 	response->writeContent();
 	if (response->isDoneWriting())
@@ -577,31 +572,37 @@ void	WebServer::_parseResponse( int clientSocket )
 
 void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 {
-	int				clientSocket = _getSocketFromFd(genericFd);
-	HTTPresponse	*response = this->_responses[clientSocket];
-	HTTPrequest		*request = this->_requests[clientSocket];
-	t_PollItem		*pollItem = nullptr;
+	int				clientSocket = -1;
+	HTTPresponse	*response = nullptr;
+	HTTPrequest		*request = nullptr;
 	t_path			HTMLerrPage;
 
-	pollItem = this->_pollitems[genericFd];
-	if ((pollItem->pollType == STATIC_FILE) or
-		(pollItem->pollType == CGI_DATA_PIPE) or		// NB: pipes need to be closed differently see _dropConn()
-		(pollItem->pollType == CGI_RESPONSE_PIPE))
-		this->_emptyConns.push_back(genericFd);
-	else if (!response or !request)
+	try
 	{
-		this->_emptyConns.push_back(clientSocket);
-		return ;
-	}
-	response->setStatusCode(statusCode);
-	try {
-		HTMLerrPage = _getHTMLerrorPage(statusCode, request->getErrorPages());
+		clientSocket = _getSocketFromFd(genericFd);
+		response = this->_responses.at(clientSocket);	// drop current response, create a new one
+		request = this->_requests.at(clientSocket);
+		if ((this->_pollitems[genericFd]->pollType == STATIC_FILE) or
+			(this->_pollitems[genericFd]->pollType == CGI_REQUEST_PIPE) or		// NB: pipes need to be closed differently see _dropConn()
+			(this->_pollitems[genericFd]->pollType == CGI_RESPONSE_PIPE))
+			this->_emptyConns.push_back(genericFd);
+		response->errorReset(statusCode);
+		if (statusCode == 500)
+			throw(HTTPexception({"internal error"}, 500));
+		HTMLerrPage = _getHTMLerrorPage(statusCode, request->getErrorPages());	// NB: change _getHTMLerrorPage() after validation is ok
 		_addStaticFileFd(HTMLerrPage, clientSocket);
 		this->_pollitems[clientSocket]->pollState = READ_STATIC_FILE;
 	}
-	catch(const HTTPexception& e) {
-		std::cerr << e.what() << '\n';
+	catch(const HTTPexception& e1) {
+		std::cerr << C_RED << e1.what() << '\n' << C_RESET;
 		response->updateStatic500();
 		this->_pollitems[clientSocket]->pollState = WRITE_TO_CLIENT;
+	}
+	catch(const std::exception& e2)
+	{
+		std::cerr << C_RED << "invalid fd or request/response not found\n" << C_RESET;
+		this->_emptyConns.push_back(genericFd);
+		if (clientSocket != -1)
+			this->_emptyConns.push_back(clientSocket);
 	}
 }

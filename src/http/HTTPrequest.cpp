@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/15 14:16:10 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/16 03:51:35 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -477,9 +477,9 @@ void	HTTPrequest::_setVersion( std::string const& strVersion )
 
 void	HTTPrequest::_checkMaxBodySize( size_t maxSize )
 {
-	if ((hasBody() == false) or (maxSize == 0))
+	if ((this->_hasBody == false) or (maxSize == 0))
 		return;
-	if (isChunked() == true)
+	if (this->_isChunked == true)
 	{
 		if (maxSize < this->_tmpBody.size())
 			throw(RequestException({"Content-Length longer than config max body length"}, 413));

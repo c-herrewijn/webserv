@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/14 19:15:54 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/16 03:58:17 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,7 +53,7 @@ enum fdType
 {
     LISTENER,
     CLIENT_CONNECTION,
-    CGI_DATA_PIPE,
+    CGI_REQUEST_PIPE,
     CGI_RESPONSE_PIPE,
     STATIC_FILE
 };
@@ -66,31 +66,27 @@ enum fdState
 	READ_REQ_BODY,					// CLIENT_CONNECTION (read)
 	READ_CGI_RESPONSE,				// CGI_RESPONSE_PIPE (read)
 	WRITE_TO_CLIENT,				// CLIENT_CONNECTION (write)
-	WRITE_TO_CGI					// CGI_DATA_PIPE (write)
+	WRITE_TO_CGI					// CGI_REQUEST_PIPE (write)
 };
-
 
 typedef struct PollItem
 {
-	int							fd;
-	fdType          			pollType;
-    fdState         			pollState;
+	int		fd;
+	fdType  pollType;
+    fdState pollState;
 } t_PollItem;
 
-// NB: in case of terminating error child process must be killed with signals
 class WebServer
 {
 	public:
 		WebServer ( std::vector<ConfigServer> const& );
 		~WebServer ( void ) noexcept;
 
-		void			startListen( void );
-		void			loop( void );
+		void	run( void );
 
 	private:
 		ConfigServer				 _defaultServer;
 		std::vector<ConfigServer>	 _servers;
-		std::vector<Listen>			 _listenAddress;
 		std::vector<struct pollfd>	 _pollfds;
 		std::unordered_map<int, t_PollItem*>	 _pollitems;
 		std::unordered_map<int, HTTPrequest*> 	_requests;
@@ -98,18 +94,19 @@ class WebServer
 		std::unordered_map<int, CGI*> 			_cgi;	// NOTE: the key is the client socket fd, not any of the cgi-pipes
 		std::vector<int>						_emptyConns;
 
-		void			_listenTo( std::string const&, std::string const& );
-		void			_readData( int );
-		void			_writeData( int );
-		void			_addConn( int , fdType , fdState );
-		void			_dropConn( int ) noexcept;
-		void			_dropStructs( int ) noexcept;
-		void			_clearEmptyConns( void ) noexcept;
+		void				_listenTo( std::string const&, std::string const& );
+		void				_readData( int );
+		void				_writeData( int );
+		void				_addConn( int , fdType , fdState );
+		void				_dropConn( int ) noexcept;
+		void				_dropStructs( int ) noexcept;
+		void				_clearEmptyConns( void ) noexcept;
 		std::string			_getAddress( const struct sockaddr_storage*) const noexcept ;
 		ConfigServer const&	_getHandler( std::string const& ) const noexcept;
 		ConfigServer const&	_getDefaultHandler( void ) const noexcept;
-		int				_getSocketFromFd( int );
-		t_path			_getHTMLerrorPage( int, t_string_map const& ) const;
+		int					_getSocketFromFd( int );
+		t_path				_getHTMLerrorPage( int, t_string_map const& ) const;
+
 		void			handleNewConnections( int ); // keep - DONE
 		void			readRequestHeaders( int ); // keep / rework
 		void			readStaticFiles( int ); // keep / rework

@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/14 18:22:25 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/16 03:55:57 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,13 +16,12 @@ void	HTTPresponse::parseFromStatic( void )
 {
 	_addHeader("Date", _getDateTime());
 	_addHeader("Server", this->_servName);
-	if (this->_tmpBody.empty() == false)
-	{
-		_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
-		_addHeader("Content-Type", this->_contentType);
-		HTTPstruct::_setBody(this->_tmpBody);
-	}
-	// else if ((this->_statusCode >= 300) and (this->_statusCode < 400))
+	if (this->_gotFullBody == false)
+		throw(ResponseException({"body not fully parsed"}, 500));
+	_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
+	_addHeader("Content-Type", this->_contentType);
+	HTTPstruct::_setBody(this->_tmpBody);
+	// if ((this->_statusCode >= 300) and (this->_statusCode < 400))
 	// {
 	// 	_addHeader("Location", "something");
 	// 	...
@@ -41,6 +40,7 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 	delimiter += HTTP_TERM.size();
 	headers = CGIresp.substr(0, delimiter - HTTP_NL.size());
 	body = CGIresp.substr(delimiter);
+	this->_hasBody = true;
 	this->_gotFullBody = true;
 	HTTPstruct::_setBody(body);
 	_setHeaders(headers);
@@ -58,15 +58,7 @@ void	HTTPresponse::readHTML( void )
 	bzero(buffer, DEF_BUF_SIZE);
 	readChar = read(this->_HTMLfd, buffer, DEF_BUF_SIZE);
 	if (readChar < 0)
-	{
-		if (this->_statusCode >= 400)
-		{
-			updateStatic500();
-			return ;
-		}
-		this->_tmpBody.clear();
 		throw(ServerException({"fd unavailable"}));
-	}
 	this->_tmpBody += std::string(buffer, buffer + readChar);
 	if (readChar < DEF_BUF_SIZE)
 		this->_gotFullBody = true;
@@ -113,6 +105,22 @@ void	HTTPresponse::updateStatic500( void ) noexcept
 {
 	this->_gotFullBody = true;
 	this->_tmpBody = ERROR_500_CONTENT;
+}
+
+void	HTTPresponse::errorReset( int errorStatus ) noexcept
+{
+	this->_statusCode = errorStatus;
+	this->_HTMLfd = -1;
+	this->_parsingNeeded = true;
+	this->_writingDone = false;
+	this->_contentType = STD_CONTENT_TYPE;
+
+	this->_body.clear();
+	this->_tmpBody.clear();
+	this->_body.clear();
+	this->_gotFullBody = false;
+	this->_isCGI = false;
+	this->_isFileUpload = false;	
 }
 
 std::string	HTTPresponse::toString( void ) const noexcept
@@ -176,7 +184,7 @@ bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept
 	return (this->_gotFullBody);
 }
 
-bool	HTTPresponse::parsingNeeded( void ) const noexcept
+bool	HTTPresponse::isParsingNeeded( void ) const noexcept
 {
 	return (this->_parsingNeeded);
 }
@@ -202,17 +210,14 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 			throw(ResponseException({"invalid status code"}, 500));
 		}
 		this->_headers.at("Server");
-		if (this->_hasBody == true)
+		this->_headers.at("Content-type");
+		this->_headers.at("Content-Length");
+		if (this->_isFileUpload == true)
 		{
-			this->_headers.at("Content-type");
-			this->_headers.at("Content-Length");
-			if (this->isFileUpload())
-			{
-				if (this->_statusCode < 400)
-					this->_headers.at("Location");
-				else
-					this->_isFileUpload = false;
-			}
+			if (this->_statusCode < 400)
+				this->_headers.at("Location");
+			else
+				this->_isFileUpload = false;
 		}
 	}
 	catch(const std::out_of_range& e) {
