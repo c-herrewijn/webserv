@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/12 21:38:27 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/15 21:26:00 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,7 +69,7 @@ HTTPstruct::HTTPstruct( int socket ) : _hasBody(false) , _gotFullBody(false) , _
 	this->_socket = socket;
 }
 
-bool	HTTPstruct::hasBody( void) const noexcept
+bool	HTTPstruct::hasBody( void ) const noexcept
 {
 	return(this->_hasBody);
 }

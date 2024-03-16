@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/14 03:24:37 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/16 16:53:04 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,9 +19,9 @@
 
 
 #include "HTTPstruct.hpp"
-#define STD_CONTENT_TYPE "text/html; charset=utf-8"
-#define ICO_CONTENT_TYPE "image/vnd.microsoft.icon"
-#define ERROR_500_CONTENT "<!DOCTYPE html>\r\n<html>\r\n\t<head>\r\n\t\t<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">\r\n\t\t<title>500 - Internal Server Error</title>\r\n\t</head>\r\n\r\n\t<body>\r\n\t\t<div id=\"app\">\r\n\t\t\t<div>500</div>\r\n\t\t\t<div class=\"txt\">\r\n\t\t\t\tInternal Server Error<span class=\"blink\"></span>\r\n\t\t\t</div>\r\n\t\t\t<a href=\"/\">go home</a>\r\n\t\t</div>\r\n\t</body>\r\n</html>"
+#define STD_CONTENT_TYPE	"text/html; charset=utf-8"
+#define ICO_CONTENT_TYPE	"image/vnd.microsoft.icon"
+#define ERROR_500_CONTENT	"<!DOCTYPE html>\r\n<html>\r\n\t<head>\r\n\t\t<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">\r\n\t\t<title>500 - Internal Server Error</title>\r\n\t</head>\r\n\r\n\t<body>\r\n\t\t<div id=\"app\">\r\n\t\t\t<div>500</div>\r\n\t\t\t<div class=\"txt\">\r\n\t\t\t\tInternal Server Error<span class=\"blink\"></span>\r\n\t\t\t</div>\r\n\t\t\t<a href=\"/\">go home</a>\r\n\t\t</div>\r\n\t</body>\r\n</html>"
 
 class HTTPresponse : public HTTPstruct
 {
@@ -32,9 +32,10 @@ class HTTPresponse : public HTTPstruct
 			_HTMLfd(-1),
 			_parsingNeeded(true),
 			_writingDone(false),
-			_contentType(STD_CONTENT_TYPE) {};
+			_contentType(STD_CONTENT_TYPE) {this->_hasBody = true;};
 
 		virtual ~HTTPresponse( void ) override {};
+
 		void		parseFromStatic( void );
 		void		parseFromCGI( std::string const& );
 		void		readHTML( void );
@@ -42,6 +43,7 @@ class HTTPresponse : public HTTPstruct
 		void		writeContent( void ) ;
 		void		updateContentType( std::string ) noexcept;
 		void		updateStatic500( void ) noexcept;
+		void		errorReset( int ) noexcept;
 		std::string	toString( void ) const noexcept override;
 
 		void		setStatusCode( int ) noexcept;
@@ -49,7 +51,7 @@ class HTTPresponse : public HTTPstruct
 		void		setHTMLfd( int HTMLfd );
 		int			getHTMLfd( void ) const noexcept;
 		bool		isDoneReadingHTML( void ) const noexcept;
-		bool		parsingNeeded( void ) const noexcept;
+		bool		isParsingNeeded( void ) const noexcept;
 		bool		isDoneWriting( void ) const noexcept;
 
 	protected:

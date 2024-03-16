@@ -74,8 +74,7 @@ int main(int ac, char **av)
 	try
 	{
 		WebServer	webserv(servers);
-		webserv.startListen();
-		webserv.loop();
+		webserv.run();
 	}
 	catch(const WebServerException& e) {
 		std::cerr << e.what() << '\n';

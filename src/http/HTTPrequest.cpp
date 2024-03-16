@@ -6,46 +6,22 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/14 03:40:57 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/16 16:56:52 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPrequest.hpp"
 
 // throws: ServerException , RequestException
-void	HTTPrequest::readHead( void )
+void	HTTPrequest::parseHead( void )
 {
-	char		buffer[DEF_BUF_SIZE];
-	std::string content, strHead, strHeaders;
+	std::string strHead, strHeaders;
 	size_t		endHead=0, endReq=0;
-	ssize_t		charsRead = -1;
 
-	// static steady_clock::time_point lastRead = steady_clock::now();
-	// steady_clock::time_point 		currentRead;
-	// duration<double> 				time_span;
-
-	// currentRead = steady_clock::now();
-	// time_span = duration_cast<duration<int>>(currentRead - lastRead);
-	// if (time_span.count() > MAX_TIMEOUT)
-	// 	throw(RequestException({"timeout request"}, 408));
-	
+	_readHead();
 	if (this->_gotFullHead == true)
-		throw(RequestException({"head and headers already read"}, 500));
-	bzero(buffer, DEF_BUF_SIZE);
-	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-	if (charsRead < 0)
-		throw(ServerException({"unavailable socket"}));
-	else if (charsRead == 0)
-		throw(EndConnectionException());
-	else if (this->_tmpHead.size() + charsRead > MAX_HEADER_SIZE)
-		throw(RequestException({"headers too large"}, 431));
-
-	//NB: handle also time from the beginning()
-	this->_tmpHead += std::string(buffer, buffer + charsRead);
-	endReq = this->_tmpHead.find(HTTP_TERM);		// look for terminator in request
-	if (endReq != std::string::npos)
 	{
-		this->_gotFullHead = true;
+		endReq = this->_tmpHead.find(HTTP_TERM);
 		endHead = this->_tmpHead.find(HTTP_NL);		// look for headers
 		if (endHead >= endReq)
 			throw(RequestException({"bad format request"}, 400));
@@ -53,94 +29,25 @@ void	HTTPrequest::readHead( void )
 		strHeaders = this->_tmpHead.substr(endHead + HTTP_NL.size(), endReq - endHead - 1) + HTTP_NL;
 		endReq += HTTP_TERM.size();
 		if ((endReq + 1) < this->_tmpHead.size())		// if there's the beginning of the body
+		{
 			this->_tmpBody = this->_tmpHead.substr(endReq);
+			this->_contentLengthRead = this->_tmpBody.length();
+		}
 		_setHead(strHead);
 		_setHeaders(strHeaders);
 	}
 }
 
-// NB: set written as a member variable not a countChars variable, the value is shared among all the instances
-void	HTTPrequest::readPlainBody( void )
+void	HTTPrequest::parseBody( void )
 {
-    ssize_t 		readChar = -1;
-    char        	buffer[DEF_BUF_SIZE + 1];
-	static size_t	countChars = this->_tmpBody.length();
-
-	// static steady_clock::time_point lastRead = steady_clock::now();
-	// steady_clock::time_point 		currentRead;
-	// duration<double> 				time_span;
-
-	if (this->_gotFullHead == false)
-		throw(RequestException({"head and headers not read yet"}, 500));
-	else if (this->_gotFullBody == true)
-		throw(RequestException({"body already received"}, 500));
-	bzero(buffer, DEF_BUF_SIZE + 1);
-	readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-	if (readChar < 0 )
-		throw(ServerException({"unavailable socket"}));
-	else if (readChar == 0)
-	{
-		;
-		// currentRead = steady_clock::now();
-		// time_span = duration_cast<duration<int>>(currentRead - lastRead);
-		// if (time_span.count() > MAX_TIMEOUT)
-		// 	throw(RequestException({"timeout request"}, 408));
-	}
+	if (this->_isChunked == true)
+		_readChunkedBody();
 	else
-	{
-		// lastRead = steady_clock::now();
-		countChars += readChar;
-		if (countChars > this->_contentLength)
-		{
-			this->_tmpBody += std::string(buffer, buffer + this->_contentLength);
-			this->_gotFullBody = true;
-		}
-		else
-		{
-			this->_tmpBody += std::string(buffer, buffer + readChar);
-			if (countChars == this->_contentLength)
-				this->_gotFullBody = true;
-		}
-	}
+		_readPlainBody();
+
 }
 
-//NB: add timeout error: 408
-void	HTTPrequest::readChunkedBody( void )
-{
-    ssize_t 	readChar = -1;
-    char    	buffer[DEF_BUF_SIZE + 1];
-	std::string body = this->_tmpBody;
-	size_t		delimiter=0, countChars=this->_tmpBody.length(), maxSize=this->_validator.getMaxBodySize();
-
-	do
-	{
-		bzero(buffer, DEF_BUF_SIZE + 1);
-		readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-		if (readChar < 0)
-			throw(ServerException({"unavailable socket"}));
-		else if (readChar == 0)
-			continue;
-		countChars += readChar;
-		if ((maxSize > 0) and (countChars > maxSize))
-			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
-		body += buffer;
-		delimiter = std::string(buffer).find(HTTP_TERM);
-	} while (delimiter != std::string::npos);
-	body = _unchunkBody(body.substr(0, delimiter + HTTP_TERM.size()));
-	HTTPstruct::_setBody(body);
-}
-
-// NB: needs to change
-// void	HTTPrequest::parseBody( void )
-// {
-// 	if (this->_hasBody == false)
-// 		return ;
-// 	else if (this->_isChunked == true)
-// 		_readChunkedBody();
-// 	else
-// 		_readPlainBody();
-// }
-
+// NB: fix after validation is ok
 void		HTTPrequest::validateRequest( ConfigServer const& configServer )
 {
 	this->_servName = configServer.getPrimaryName();
@@ -294,6 +201,99 @@ t_string_map const&	HTTPrequest::getErrorPages( void ) const noexcept
 bool	HTTPrequest::gotFullHead( void ) const noexcept
 {
 	return (this->_gotFullHead);
+}
+
+void	HTTPrequest::_readHead( void )
+{
+	char				buffer[DEF_BUF_SIZE];
+	ssize_t				charsRead = -1;
+	duration<double> 	time_span;
+
+	if (this->_gotFullHead)
+		return;
+	else if (this->_tmpHead.size() == 0)
+		this->_lastActivity = steady_clock::now();
+	bzero(buffer, DEF_BUF_SIZE);
+	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+	if (charsRead < 0)
+		throw(ServerException({"unavailable socket"}));
+	else if (charsRead == 0)
+		throw(EndConnectionException());
+	else if (this->_tmpHead.size() + charsRead > MAX_HEADER_SIZE)
+		throw(RequestException({"headers too large"}, 431));
+	else if (charsRead == 0)
+	{
+		time_span = duration_cast<duration<int>>(steady_clock::now() - this->_lastActivity);
+		if (time_span.count() > MAX_TIMEOUT)
+			throw(RequestException({"timeout request"}, 408));
+		return;
+	}
+	this->_lastActivity = steady_clock::now();
+	this->_tmpHead += std::string(buffer, buffer + charsRead);
+	if (this->_tmpHead.find(HTTP_TERM) != std::string::npos)	// look for terminator in request
+		this->_gotFullHead = true;
+}
+
+void	HTTPrequest::_readPlainBody( void )
+{
+    ssize_t 			charsRead = -1;
+    char        		buffer[DEF_BUF_SIZE];
+	duration<double> 	time_span;
+
+	if (this->_gotFullBody)
+		return;
+	else if (this->_contentLengthRead == 0)
+		this->_lastActivity = steady_clock::now();
+	bzero(buffer, DEF_BUF_SIZE);
+	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+	if (charsRead < 0 )
+		throw(ServerException({"unavailable socket"}));
+	else if (charsRead == 0)
+	{
+		time_span = duration_cast<duration<int>>(steady_clock::now() - this->_lastActivity);
+		if (time_span.count() > MAX_TIMEOUT)
+			throw(RequestException({"timeout request"}, 408));
+		return;
+	}
+	this->_lastActivity = steady_clock::now();
+	if ((this->_contentLengthRead + charsRead) > this->_contentLength)
+	{
+		this->_tmpBody += std::string(buffer, buffer + this->_contentLength - this->_contentLengthRead);
+		this->_gotFullBody = true;
+	}
+	else
+	{
+		this->_contentLengthRead += charsRead;
+		this->_tmpBody += std::string(buffer, buffer + charsRead);
+		if (this->_contentLengthRead == this->_contentLength)
+			this->_gotFullBody = true;
+	}
+}
+
+//NB: add timeout error: 408
+void	HTTPrequest::_readChunkedBody( void )
+{
+    ssize_t 	readChar = -1;
+    char    	buffer[DEF_BUF_SIZE + 1];
+	std::string body = this->_tmpBody;
+	size_t		delimiter=0, countChars=this->_tmpBody.length(), maxSize=this->_validator.getMaxBodySize();
+
+	do
+	{
+		bzero(buffer, DEF_BUF_SIZE + 1);
+		readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+		if (readChar < 0)
+			throw(ServerException({"unavailable socket"}));
+		else if (readChar == 0)
+			continue;
+		countChars += readChar;
+		if ((maxSize > 0) and (countChars > maxSize))
+			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
+		body += buffer;
+		delimiter = std::string(buffer).find(HTTP_TERM);
+	} while (delimiter != std::string::npos);
+	body = _unchunkBody(body.substr(0, delimiter + HTTP_TERM.size()));
+	HTTPstruct::_setBody(body);
 }
 
 void	HTTPrequest::_setHead( std::string const& header )
@@ -472,9 +472,9 @@ void	HTTPrequest::_setVersion( std::string const& strVersion )
 
 void	HTTPrequest::_checkMaxBodySize( size_t maxSize )
 {
-	if ((hasBody() == false) or (maxSize == 0))
+	if ((this->_hasBody == false) or (maxSize == 0))
 		return;
-	if (isChunked() == true)
+	if (this->_isChunked == true)
 	{
 		if (maxSize < this->_tmpBody.size())
 			throw(RequestException({"Content-Length longer than config max body length"}, 413));
@@ -500,7 +500,7 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 		_setHostPort(this->_headers["Host"]);
 	else if (this->_headers["Host"].find(this->_url.host) == std::string::npos)
 		throw(RequestException({"hosts do not match"}, 412));
-	if (this->_headers.count("Connecton") != 0)
+	if (this->_headers.count("Connection") != 0)
 		this->_endConn = this->_headers["Connection"] == "close";
 	if (this->_headers.count("Content-Length") == 0)
 	{
@@ -520,7 +520,10 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 			throw(RequestException({"invalid Content-Length"}, 400));
 		}
 		if (this->_tmpBody.size() > contentLength)
-			throw(RequestException({"body is longer than Content-Length"}, 400));
+		{
+			this->_gotFullBody = true;
+			this->_tmpBody = this->_tmpBody.substr(0, contentLength);
+		}
 		if (this->_headers.count("Content-Type") != 0)
 		{
 			if (this->_headers["Content-Type"].find("multipart/form-data; boundary=-") == 0)
@@ -528,8 +531,6 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 		}
 	}
 	this->_contentLength = contentLength;
-	if (this->_tmpBody.size() == this->_contentLength)
-		this->_gotFullBody = true;
 	this->_hasBody = true;
 }
 
