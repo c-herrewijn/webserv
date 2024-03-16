@@ -345,29 +345,28 @@ int		WebServer::_getSocketFromFd( int fd )
 // NB: fix after validation is ok
 t_path	WebServer::_getHTMLerrorPage( int statusCode, HTTPrequest* request ) const
 {
-	(void) request;
-	// try {
-	// 	return (request->getErrorPages().at(statusCode));
-	// }
-	// catch(const std::out_of_range& e1)
-	// {
-	// 	try {
-	// 		return (_getHandler(request->getHost()).getParams().getErrorPages().at(statusCode));
-	// 	}
-	// 	catch(const std::out_of_range& e2) {
-	// 		try {
-	// 			return (_getDefaultHandler().getParams().getErrorPages().at(statusCode));
-	// 		}
-	// 		catch(const std::out_of_range& e3) {
+	try {
+		return (request->getErrorPages().at(statusCode));
+	}
+	catch(const std::out_of_range& e1)
+	{
+		try {
+			return (_getHandler(request->getHost()).getParams().getErrorPages().at(statusCode));
+		}
+		catch(const std::out_of_range& e2) {
+			try {
+				return (_getDefaultHandler().getParams().getErrorPages().at(statusCode));
+			}
+			catch(const std::out_of_range& e3) {
 				for (auto const& dir_entry : std::filesystem::directory_iterator{HTML_ERROR_FOLDER})
 				{
 					if (dir_entry.path().stem() == std::to_string(statusCode))
 						return (dir_entry.path());
 				}
 				throw(HTTPexception({"absolutely no HTML found for code:", std::to_string(statusCode)}, 500));
-	// 		}
-	// 	}
-	// }
+			}
+		}
+	}
 }
 
 void	WebServer::handleNewConnections( int listenerFd )
@@ -397,9 +396,6 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	this->_requests.insert(std::pair<int, HTTPrequest*>(clientSocket, request));
 	this->_responses.insert(std::pair<int, HTTPresponse*>(clientSocket, response));
 	request->parseMain();
-	// std::cout << request->getRealPath() << "\n";
-	if (!std::filesystem::exists(request->getRealPath()))	// NB: temporary until validation works
-		throw(RequestException({"file not found"}, 404));
 	request->validateRequest(_getHandler(request->getHost()));
 	if (request->isCGI()) {		// GET (CGI), POST and DELETE
 		cgiPtr = new CGI(*request);
