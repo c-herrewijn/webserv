@@ -69,8 +69,6 @@ WebServer::~WebServer ( void ) noexcept
 
 // NB: update for codes 20X
 // NB: use relative root in Config File for multi-platform functionality
-// NB: remove static variable from HTTPresponse.writeContent()
-// NB: in file upload the Pipe upload is not dropped correctly
 // NB: if an error occurs while CGI is running (fileupload) the cgi has to be stopped
 void			WebServer::run( void )
 {
