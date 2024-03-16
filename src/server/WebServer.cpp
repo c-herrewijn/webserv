@@ -408,6 +408,8 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	request->parseHead();
 	if (request->gotFullHead() == false)
 		return ;
+	if (!std::filesystem::exists(request->getRealPath()))	// NB: temporary until validation works
+		throw(RequestException({"file not found"}, 404));
 	request->validateRequest(_getHandler(request->getHost()));
 	if (request->isCGI()) {		// GET (CGI), POST and DELETE
 		_startCGI(clientSocket);
@@ -449,7 +451,7 @@ void	WebServer::_addStaticFileFd( std::string const& fileName, int clientSocket)
 	int 			HTMLfd = open(fileName.c_str(), O_RDONLY);
 
 	if (HTMLfd == -1)
-		throw(HTTPexception({"resource", fileName, "not found", fileName}, 404));
+		throw(HTTPexception({"invalid fd for static file:", fileName}, 500));
 	response->setHTMLfd(HTMLfd);
 	_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
 }

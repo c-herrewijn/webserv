@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/16 16:53:47 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/16 03:55:57 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,7 +69,6 @@ void	HTTPresponse::readContentDirectory( t_path const& pathDir)
 	(void) pathDir;
 }
 
-// NB: set written as a member variable not a static variable, the value is shared among all the instances
 void	HTTPresponse::writeContent( void )
 {
 	static ssize_t 	written;

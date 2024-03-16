@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/16 16:56:52 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/16 03:51:35 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,17 +54,20 @@ void		HTTPrequest::validateRequest( ConfigServer const& configServer )
 	this->_validator.setConfig(configServer);
 	this->_validator.setMethod(this->_method);
 	this->_validator.setPath(this->_url.path);
-	this->_validator.solvePath();
-	if (this->_validator.getStatusCode() >= 400)
-		throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
-	if (this->_validator.isCGI() == true) // NB: fix after validation is ok
+	// this->_validator.solvePath();
+	// if (this->_validator.getStatusCode() >= 400)
+	// 	throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
+	// if (this->_validator.isCGI() == true) // NB: fix after validation is ok
+	if (this->_url.path.extension() == ".cgi")
 		this->_isCGI = true;
-	_checkMaxBodySize(this->_validator.getMaxBodySize());
+	// _checkMaxBodySize(this->_validator.getMaxBodySize());
 }
 
+// NB: fix after validation is ok
 bool	HTTPrequest::isAutoIndex( void ) const noexcept
 {
-	return (this->_validator.isAutoIndex());
+	// return (this->_validator.isAutoIndex());
+	return (false);
 }
 
 bool	HTTPrequest::isChunked( void ) const noexcept
@@ -175,17 +178,19 @@ std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 	return (boundary);
 }
 
-t_path const&	HTTPrequest::getRealPath( void ) const noexcept
+// NB: fix after validation is ok
+// t_path const&	HTTPrequest::getRealPath( void ) const noexcept
+t_path HTTPrequest::getRealPath( void ) const noexcept
 {
-	// t_path cwd = std::filesystem::current_path() / "var/www/";
-	// if (this->_url.path == "/")		// NB: should be done by validation
-	// 	cwd = MAIN_PAGE_PATH;
-	// else if (this->_url.path.extension() == ".ico")	// NB: should be done by validation, update content-type of response
-	// 	cwd = FAVICON_PATH;
-	// else
-	// cwd /= this->_url.path.string().substr(1);
-	// return (cwd);
-	return (this->_validator.getRealPath());
+	t_path cwd = std::filesystem::current_path() / "var/www/";
+	if (this->_url.path == "/")		// NB: should be done by validation
+		cwd = MAIN_PAGE_PATH;
+	else if (this->_url.path.extension() == ".ico")	// NB: should be done by validation, update content-type of response
+		cwd = FAVICON_PATH;
+	else
+	cwd /= this->_url.path.string().substr(1);
+	return (cwd);
+	// return (this->_validator.getRealPath());
 }
 
 t_path const&	HTTPrequest::getRoot( void ) const noexcept

@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/16 16:52:46 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/15 00:22:29 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,7 +67,8 @@ class HTTPrequest : public HTTPstruct
 		std::string	const& 	getBody( void ) const noexcept;
 		std::string	const&	getQueryRaw( void ) const noexcept;
 		std::string			getContentTypeBoundary( void ) const noexcept;
-		t_path const&		getRealPath( void ) const noexcept;
+		t_path				getRealPath( void ) const noexcept;
+		// t_path const&	getRealPath( void ) const noexcept;
 		t_path const&		getRoot( void ) const noexcept;
 		t_string_map const&	getErrorPages( void ) const noexcept;
 		bool				gotFullHead( void ) const noexcept;
