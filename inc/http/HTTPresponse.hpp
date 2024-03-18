@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/18 05:09:38 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/18 05:25:29 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ typedef enum HTTPrespState_f
 	HTTP_RESP_HTML_READING,
 	HTTP_RESP_BUILDING,
 	HTTP_RESP_WRITING,
-	HTTP_RESP_FULLFILLED,
+	HTTP_RESP_DONE,
 }	HTTPrespState;
 
 class HTTPresponse : public HTTPstruct
@@ -37,18 +37,18 @@ class HTTPresponse : public HTTPstruct
 		HTTPresponse( int, HTTPtype );
 		virtual ~HTTPresponse( void ) override {};
 
-		void			parseFromCGI( std::string const& );
-		void			parseFromStatic( void );
-		void			readHTML( int );
-		void			readContentDirectory( t_path const&);
-		void			writeContent( void ) ;
-		void			errorReset( int ) noexcept;
-		HTTPrespState	getState( void ) const noexcept;
-		std::string		toString( void ) const noexcept override;
+		void		parseFromCGI( std::string const& );
+		void		parseFromStatic( void );
+		void		readHTML( int );
+		void		readContentDirectory( t_path const&);
+		void		writeContent( void ) ;
+		void		errorReset( int ) noexcept;
+		std::string	toString( void ) const noexcept override;
 
 		int			getStatusCode( void ) const noexcept;
 		void		setHTMLfd( int HTMLfd );
 		int			getHTMLfd( void ) const noexcept;
+
 		bool		isDoneReadingHTML( void ) const noexcept;
 		bool		isParsingNeeded( void ) const noexcept;
 		bool		isDoneWriting( void ) const noexcept;

@@ -498,9 +498,9 @@ void	WebServer::readCGIResponses( int cgiPipe )
 
 	cgi = this->_cgi.at(socket);
 	ssize_t	readChars = -1;
-	char 	buffer[DEF_BUF_SIZE];
-	bzero(buffer, DEF_BUF_SIZE);
-	readChars = read(cgiPipe, buffer, DEF_BUF_SIZE);
+	char 	buffer[HTTP_BUF_SIZE];
+	bzero(buffer, HTTP_BUF_SIZE);
+	readChars = read(cgiPipe, buffer, HTTP_BUF_SIZE);
 	if (readChars < 0)
 		throw(ServerException({"unavailable socket"}));
 	cgi->appendResponse(std::string(buffer, buffer + readChars));
@@ -556,7 +556,7 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 	t_path			HTMLerrPage;
 
 	if ((this->_pollitems[genericFd]->pollType == STATIC_FILE) or
-		(this->_pollitems[genericFd]->pollType == CGI_REQUEST_PIPE) or		// NB: pipes need to be closed differently see _dropConn()
+		(this->_pollitems[genericFd]->pollType == CGI_REQUEST_PIPE) or
 		(this->_pollitems[genericFd]->pollType == CGI_RESPONSE_PIPE))
 		this->_emptyConns.push_back(genericFd);
 	try {

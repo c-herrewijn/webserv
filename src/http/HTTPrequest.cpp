@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/18 05:11:56 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/18 05:56:17 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,13 +23,13 @@ void	HTTPrequest::parseHead( void )
 	_readHead();
 	if (this->_state == HTTP_REQ_PARSING)
 	{
-		endReq = this->_tmpHead.find(HTTP_TERM);
-		endHead = this->_tmpHead.find(HTTP_NL);		// look for headers
+		endReq = this->_tmpHead.find(HTTP_DEF_TERM);
+		endHead = this->_tmpHead.find(HTTP_DEF_NL);		// look for headers
 		if (endHead >= endReq)
 			throw(RequestException({"bad format request"}, 400));
 		strHead = this->_tmpHead.substr(0, endHead);
-		strHeaders = this->_tmpHead.substr(endHead + HTTP_NL.size(), endReq - endHead - 1) + HTTP_NL;
-		endReq += HTTP_TERM.size();
+		strHeaders = this->_tmpHead.substr(endHead + HTTP_DEF_NL.size(), endReq - endHead - 1) + HTTP_DEF_NL;
+		endReq += HTTP_DEF_TERM.size();
 		if ((endReq + 1) < this->_tmpHead.size())		// if there's the beginning of the body
 			this->_tmpBody = this->_tmpHead.substr(endReq);
 		_setHead(strHead);
@@ -73,13 +73,13 @@ std::string	HTTPrequest::toString( void ) const noexcept
 	std::string	strReq;
 
 	strReq += getMethod();
-	strReq += HTTP_SP;
+	strReq += HTTP_DEF_SP;
 	strReq += this->_url.scheme;
 	strReq += "://";
 	strReq += this->_url.host;
 	strReq += ":";
 	strReq += std::to_string(this->_url.port);
-	strReq += getPath().generic_string();
+	strReq += this->_url.path.generic_string();
 	if (!this->_url.queryRaw.empty())
 	{
 		strReq += "?";
@@ -90,25 +90,25 @@ std::string	HTTPrequest::toString( void ) const noexcept
 		strReq += "#";
 		strReq += this->_url.fragment;
 	}
-	strReq += HTTP_SP;
+	strReq += HTTP_DEF_SP;
 	strReq += this->_version.scheme;
 	strReq += "/";
 	strReq += std::to_string(this->_version.major);
 	strReq += ".";
 	strReq += std::to_string(this->_version.minor);
-	strReq += HTTP_NL;
+	strReq += HTTP_DEF_NL;
 	if (!this->_headers.empty())
 	{
 		for (auto item : this->_headers)
 		{
 			strReq += item.first;
 			strReq += ":";
-			strReq += HTTP_SP;
+			strReq += HTTP_DEF_SP;
 			strReq += item.second;
-			strReq += HTTP_NL;
+			strReq += HTTP_DEF_NL;
 		}
 	}
-	strReq += HTTP_NL;
+	strReq += HTTP_DEF_NL;
 	if (!this->_body.empty())
 		strReq += this->_body;
 	return (strReq);
@@ -129,11 +129,6 @@ std::string 	HTTPrequest::getMethod( void ) const noexcept
 	}
 }
 
-t_path const&	HTTPrequest::getPath( void ) const noexcept
-{
-	return (this->_url.path);
-}
-
 std::string const&	HTTPrequest::getHost( void ) const noexcept
 {
 	return (this->_url.host);
@@ -144,9 +139,9 @@ std::string		HTTPrequest::getPort( void ) const noexcept
 	return (std::to_string(this->_url.port));
 }
 
-std::string	const&	HTTPrequest::getBody( void ) const noexcept
+size_t	HTTPrequest::getContentLength( void ) const noexcept
 {
-	return (this->_body);
+	return (this->_contentLength);
 }
 
 std::string	const&	HTTPrequest::getQueryRaw( void ) const noexcept
@@ -208,13 +203,13 @@ bool	HTTPrequest::isDoneReadingBody( void ) const noexcept
 
 void	HTTPrequest::_readHead( void )
 {
-	char				buffer[DEF_BUF_SIZE];
+	char				buffer[HTTP_BUF_SIZE];
 	ssize_t				charsRead = -1;
 
 	if (this->_tmpHead.size() == 0)
 		_resetTimeout();
-	bzero(buffer, DEF_BUF_SIZE);
-	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+	bzero(buffer, HTTP_BUF_SIZE);
+	charsRead = recv(this->_socket, buffer, HTTP_BUF_SIZE, 0);
 	if (charsRead < 0)
 		throw(ServerException({"unavailable socket"}));
 	else if (charsRead == 0)
@@ -226,7 +221,7 @@ void	HTTPrequest::_readHead( void )
 	else
 	{
 		this->_tmpHead += std::string(buffer, buffer + charsRead);
-		if (this->_tmpHead.find(HTTP_TERM) != std::string::npos)	// look for terminator in request
+		if (this->_tmpHead.find(HTTP_DEF_TERM) != std::string::npos)	// look for terminator in request
 			this->_state = HTTP_REQ_PARSING;
 	}
 }
@@ -234,15 +229,15 @@ void	HTTPrequest::_readHead( void )
 void	HTTPrequest::_readPlainBody( void )
 {
     ssize_t 			charsRead = -1;
-    char        		buffer[DEF_BUF_SIZE];
+    char        		buffer[HTTP_BUF_SIZE];
 
 	if (this->_contentLengthRead == 0)
 	{
 		_resetTimeout();
 		this->_contentLengthRead += this->_tmpBody.size();
 	}
-	bzero(buffer, DEF_BUF_SIZE);
-	charsRead = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
+	bzero(buffer, HTTP_BUF_SIZE);
+	charsRead = recv(this->_socket, buffer, HTTP_BUF_SIZE, 0);
 	if (charsRead < 0 )
 		throw(ServerException({"unavailable socket"}));
 	else if (charsRead == 0)
@@ -259,30 +254,37 @@ void	HTTPrequest::_readPlainBody( void )
 	}
 }
 
-//NB: add timeout error: 408
 void	HTTPrequest::_readChunkedBody( void )
 {
-    ssize_t 	readChar = -1;
-    char    	buffer[DEF_BUF_SIZE + 1];
-	std::string body = this->_tmpBody;
-	size_t		delimiter=0, countChars=this->_tmpBody.length(), maxSize=this->_validator.getMaxBodySize();
+    ssize_t charsRead = -1;
+	size_t	delimiter = 0;
+    char	buffer[HTTP_BUF_SIZE];
 
-	do
+	if (this->_contentLengthRead == 0)
 	{
-		bzero(buffer, DEF_BUF_SIZE + 1);
-		readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-		if (readChar < 0)
-			throw(ServerException({"unavailable socket"}));
-		else if (readChar == 0)
-			continue;
-		countChars += readChar;
-		if ((maxSize > 0) and (countChars > maxSize))
+		_resetTimeout();
+		this->_contentLengthRead += this->_tmpBody.size();
+	}
+	bzero(buffer, HTTP_BUF_SIZE);
+	charsRead = recv(this->_socket, buffer, HTTP_BUF_SIZE, 0);
+	if (charsRead < 0 )
+		throw(ServerException({"unavailable socket"}));
+	else if (charsRead == 0)
+		_checkTimeout();
+	else
+	{
+		delimiter = std::string(buffer).find(HTTP_DEF_TERM);
+		if (delimiter != std::string::npos)
+		{
+			charsRead = delimiter + HTTP_DEF_TERM.size();
+			this->_state = HTTP_REQ_RESP_WAITING;
+		}
+		if ((this->_contentLengthRead + charsRead)> this->_maxBodySize)
 			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
-		body += buffer;
-		delimiter = std::string(buffer).find(HTTP_TERM);
-	} while (delimiter != std::string::npos);
-	body = _unchunkBody(body.substr(0, delimiter + HTTP_TERM.size()));
-	HTTPstruct::_setBody(body);
+		this->_contentLengthRead += charsRead;
+		this->_tmpBody += std::string(buffer, buffer + charsRead);
+		// _unchunkBody() ...
+	}
 }
 
 void	HTTPrequest::_setHead( std::string const& header )
@@ -290,13 +292,13 @@ void	HTTPrequest::_setHead( std::string const& header )
 	std::istringstream	stream(header);
 	std::string 		method, url, version;
 
-	if (! std::getline(stream, method, HTTP_SP))
+	if (! std::getline(stream, method, HTTP_DEF_SP))
 		throw(RequestException({"invalid header:", header}, 400));
 	_setMethod(method);
-	if (! std::getline(stream, url, HTTP_SP))
+	if (! std::getline(stream, url, HTTP_DEF_SP))
 		throw(RequestException({"invalid header:", header}, 400));
 	_setURL(url);
-	if (! std::getline(stream, version, HTTP_SP))
+	if (! std::getline(stream, version, HTTP_DEF_SP))
 		throw(RequestException({"invalid header:", header}, 400));
 	_setVersion(version);
 }
@@ -331,7 +333,7 @@ void	HTTPrequest::_setURL( std::string const& strURL )
 		tmpURL = tmpURL.substr(delimiter + 1);
 	}
 	else
-		_setScheme(HTTP_SCHEME);
+		_setScheme(HTTP_DEF_SCHEME);
 	delimiter = tmpURL.find("//");
 	if (delimiter != std::string::npos)
 	{
@@ -352,7 +354,7 @@ void	HTTPrequest::_setScheme( std::string const& strScheme )
 {
 	std::string	tmpScheme = strScheme;
 	std::transform(tmpScheme.begin(), tmpScheme.end(), tmpScheme.begin(), ::toupper);
-	if (tmpScheme != HTTP_SCHEME)
+	if (tmpScheme != HTTP_DEF_SCHEME)
 		throw(RequestException({"unsupported scheme:", strScheme}, 400));
 	std::transform(tmpScheme.begin(), tmpScheme.end(), tmpScheme.begin(), ::tolower);
 	this->_url.scheme = tmpScheme;
@@ -443,7 +445,7 @@ void	HTTPrequest::_setVersion( std::string const& strVersion )
 		throw(RequestException({"invalid version:", strVersion}, 400));
 	this->_version.scheme = strVersion.substr(0, del1);
 	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::toupper);
-	if (this->_version.scheme != HTTP_SCHEME)
+	if (this->_version.scheme != HTTP_DEF_SCHEME)
 		throw(RequestException({"invalid scheme:", strVersion}, 400));
 	del2 = strVersion.find('.');
 	if (del2 == std::string::npos)
@@ -475,6 +477,7 @@ void	HTTPrequest::_checkMaxBodySize( size_t maxSize )
 		else if (this->_body.size() > this->_contentLength)
 			this->_tmpBody = this->_tmpBody.substr(0, this->_contentLength);
 	}
+	this->_maxBodySize = maxSize;
 }
 
 void	HTTPrequest::_setHeaders( std::string const& strHeaders )
@@ -534,17 +537,17 @@ std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
 	size_t		sizeChunk=0, delimiter=0;
 	std::string	tmpChunkedBody = chunkedBody;
 
-	if (chunkedBody.find(HTTP_TERM) == std::string::npos)
+	if (chunkedBody.find(HTTP_DEF_TERM) == std::string::npos)
 		throw(RequestException({"no body terminator"}, 400));
 	do
 	{
-		delimiter = tmpChunkedBody.find(HTTP_NL);
+		delimiter = tmpChunkedBody.find(HTTP_DEF_NL);
 		if (delimiter == std::string::npos)
 			throw(RequestException({"bad chunking"}, 400));
 		try {
 			sizeChunk = std::stoul(tmpChunkedBody.substr(0, delimiter), nullptr, 16);
-			this->_body += tmpChunkedBody.substr(delimiter + HTTP_NL.size(), sizeChunk);
-			tmpChunkedBody = tmpChunkedBody.substr(delimiter + sizeChunk + HTTP_NL.size() * 2);
+			this->_body += tmpChunkedBody.substr(delimiter + HTTP_DEF_NL.size(), sizeChunk);
+			tmpChunkedBody = tmpChunkedBody.substr(delimiter + sizeChunk + HTTP_DEF_NL.size() * 2);
 		}
 		catch(const std::exception& e){
 			throw(RequestException({"bad chunking"}, 400));
@@ -558,17 +561,17 @@ std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
 // 	size_t		sizeChunk=0, delimiter=0;
 // 	std::string	tmpChunkedBody = chunkedBody;
 
-// 	if (chunkedBody.find(HTTP_TERM) == std::string::npos)
+// 	if (chunkedBody.find(HTTP_DEF_TERM) == std::string::npos)
 // 		throw(RequestException({"no body terminator"}, 400));
 // 	do
 // 	{
-// 		delimiter = tmpChunkedBody.find(HTTP_NL);
+// 		delimiter = tmpChunkedBody.find(HTTP_DEF_NL);
 // 		if (delimiter == std::string::npos)
 // 			throw(RequestException({"bad chunking"}, 400));
 // 		try {
 // 			sizeChunk = std::stoul(tmpChunkedBody.substr(0, delimiter), nullptr, 16);
-// 			this->_body += tmpChunkedBody.substr(delimiter + HTTP_NL.size(), sizeChunk);
-// 			tmpChunkedBody = tmpChunkedBody.substr(delimiter + sizeChunk + HTTP_NL.size() * 2);
+// 			this->_body += tmpChunkedBody.substr(delimiter + HTTP_DEF_NL.size(), sizeChunk);
+// 			tmpChunkedBody = tmpChunkedBody.substr(delimiter + sizeChunk + HTTP_DEF_NL.size() * 2);
 // 		}
 // 		catch(const std::exception& e){
 // 			throw(RequestException({"bad chunking"}, 400));
@@ -585,12 +588,12 @@ std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
 
 // 	while (true)
 // 	{
-// 		delimiter = tmpChunkedBody.find(HTTP_NL);
+// 		delimiter = tmpChunkedBody.find(HTTP_DEF_NL);
 // 		if (delimiter == std::string::npos)
 // 			throw(RequestException({"bad chunking"}, 400));
 // 		try {
 // 			sizeChunk = std::stoul(tmpChunkedBody.substr(0, delimiter), nullptr, 16);
-// 			if ((delimiter + sizeChunk + HTTP_NL.size() * 2) < tmpChunkedBody.size())
+// 			if ((delimiter + sizeChunk + HTTP_DEF_NL.size() * 2) < tmpChunkedBody.size())
 // 			{
 // 				remainder = tmpChunkedBody;
 // 				break;
@@ -601,46 +604,4 @@ std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
 // 		}
 // 	}
 // 	return (unchunkedChunks);
-// }
-
-
-// void	HTTPrequest::readChunkedBody( void )
-// {
-//     ssize_t 	readChar = -1;
-//     char    	buffer[DEF_BUF_SIZE + 1];
-// 	static std::string body = this->_tmpBody;
-// 	size_t		countChars=this->_tmpBody.length();
-
-// 	static steady_clock::time_point 	lastRead = steady_clock::now();
-// 	steady_clock::time_point 			currentRead;
-// 	duration<double> 					time_span;
-
-// 	if (this->_socket == -1)
-// 		throw(RequestException({"invalid socket"}, 500));
-// 	ft_bzero(buffer, DEF_BUF_SIZE + 1);
-// 	readChar = recv(this->_socket, buffer, DEF_BUF_SIZE, 0);
-// 	if (readChar < 0 )
-// 		throw(RequestException({"unavailable socket"}, 500));
-// 	else if (readChar == 0)
-// 	{
-// 		currentRead = steady_clock::now();
-// 		time_span = duration_cast<duration<int>>(currentRead - lastRead);
-// 		if (time_span.count() > MAX_TIMEOUT)
-// 			throw(RequestException({"timeout request"}, 408));
-// 	}
-// 	else
-// 	{
-// 		lastRead = steady_clock::now();
-// 		countChars += readChar;
-// 		if (countChars > this->_contentLength)
-// 			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
-// 		body += buffer;
-// 		if (std::string(buffer).find(HTTP_TERM) != std::string::npos)
-// 		{
-// 			this->_gotFullBody = true;
-// 			body = _unchunkBody(body);
-// 		}
-// 	}
-// 	// write unchunked body to CGI?
-// 	// HTTPstruct::_setBody(body);
 // }

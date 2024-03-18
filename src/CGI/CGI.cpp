@@ -27,7 +27,7 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(const HTTPrequest &req)
 
     std::array<std::string, CGI_ENV_SIZE> CGIEnv {
         "AUTH_TYPE=",
-        "CONTENT_LENGTH=" + std::to_string(this->_req.getBody().length()),
+        "CONTENT_LENGTH=" + std::to_string(this->_req.getContentLength()),
         "CONTENT_TYPE=multipart/form-data; boundary=" + this->_req.getContentTypeBoundary(),
         "GATEWAY_INTERFACE=CGI/1.1", // fixed
         "PATH_INFO=",

@@ -22,13 +22,13 @@
 
 #include "Exceptions.hpp"
 
-#define HTTP_DEF_PORT	80							// default port
-#define HTTP_SCHEME		std::string("HTTP")			// http scheme
-#define HTTP_TERM		std::string("\r\n\r\n")		// http terminator
-#define HTTP_NL			std::string("\r\n")			// http delimiter
-#define HTTP_SP			' '							// shortcut for space
-#define DEF_BUF_SIZE 	1024
-#define MAX_TIMEOUT				5
+#define HTTP_DEF_PORT		80							// default port
+#define HTTP_DEF_SCHEME		std::string("HTTP")			// http scheme
+#define HTTP_DEF_TERM		std::string("\r\n\r\n")		// http terminator
+#define HTTP_DEF_NL			std::string("\r\n")			// http delimiter
+#define HTTP_DEF_SP			' '							// shortcut for space
+#define HTTP_BUF_SIZE 		1024
+#define HTTP_MAX_TIMEOUT	5
 
 using namespace std::chrono;
 

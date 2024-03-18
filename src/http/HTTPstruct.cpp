@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/18 04:50:35 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/18 05:57:04 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 
 HTTPstruct::HTTPstruct( int socket, HTTPtype type ) : _socket(socket) , _type(type)
 {
-	this->_version.scheme = HTTP_SCHEME;
+	this->_version.scheme = HTTP_DEF_SCHEME;
 	this->_version.major = 1;
 	this->_version.minor = 1;
 }
@@ -86,7 +86,7 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 
 	if (tmpHeaders.empty())
 		return ;
-	del1 = tmpHeaders.find(HTTP_NL);
+	del1 = tmpHeaders.find(HTTP_DEF_NL);
 	do
 	{
 		del2 = tmpHeaders.find(": ");
@@ -96,7 +96,7 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 		value = tmpHeaders.substr(del2 + 2, del1 - del2 - 2);
 		_addHeader(key, value);
 		tmpHeaders = tmpHeaders.substr(del1 + 2);
-		del1 = tmpHeaders.find(HTTP_NL);
+		del1 = tmpHeaders.find(HTTP_DEF_NL);
 	} while (del1 != std::string::npos);
 }
 
@@ -115,7 +115,7 @@ void	HTTPstruct::_checkTimeout( void )
 	duration<double> 	time_span;
 
 	time_span = duration_cast<duration<int>>(steady_clock::now() - this->_lastActivity);
-	if (time_span.count() > MAX_TIMEOUT)
+	if (time_span.count() > HTTP_MAX_TIMEOUT)
 		throw(RequestException({"timeout request"}, 408));
 	_resetTimeout();
 }

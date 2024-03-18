@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/18 05:04:55 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/18 05:56:17 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,11 +30,11 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 
 	if ((this->_type < HTTP_FAST_CGI) or (this->_state != HTTP_RESP_BUILDING))
 		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
-	delimiter = CGIresp.find(HTTP_TERM);
+	delimiter = CGIresp.find(HTTP_DEF_TERM);
 	if (delimiter == std::string::npos)
 		throw(ResponseException({"no headers terminator in CGI response"}, 500));
-	delimiter += HTTP_TERM.size();
-	headers = CGIresp.substr(0, delimiter - HTTP_NL.size());
+	delimiter += HTTP_DEF_TERM.size();
+	headers = CGIresp.substr(0, delimiter - HTTP_DEF_NL.size());
 	body = CGIresp.substr(delimiter);
 	_setHeaders(headers);
 	_addHeader("Date", _getDateTime());
@@ -64,18 +64,18 @@ void	HTTPresponse::parseFromStatic( void )
 void	HTTPresponse::readHTML( int HTMLfd )
 {
     ssize_t 	readChar = -1;
-    char        buffer[DEF_BUF_SIZE];
+    char        buffer[HTTP_BUF_SIZE];
 
 	if ((this->_type != HTTP_STATIC) or (this->_state != HTTP_RESP_HTML_READING))
 		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
 	if (this->_HTMLfd == -1)
 		this->_HTMLfd = HTMLfd;
-	bzero(buffer, DEF_BUF_SIZE);
-	readChar = read(this->_HTMLfd, buffer, DEF_BUF_SIZE);
+	bzero(buffer, HTTP_BUF_SIZE);
+	readChar = read(this->_HTMLfd, buffer, HTTP_BUF_SIZE);
 	if (readChar < 0)
 		throw(ServerException({"fd unavailable"}));
 	this->_tmpBody += std::string(buffer, buffer + readChar);
-	if (readChar < DEF_BUF_SIZE)
+	if (readChar < HTTP_BUF_SIZE)
 		this->_state = HTTP_RESP_BUILDING;
 }
 
@@ -95,13 +95,13 @@ void	HTTPresponse::writeContent( void )
 		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
 	else if (this->_contentLengthWrite == 0)
 		_resetTimeout();
-	if ((this->_strSelf.size()) < DEF_BUF_SIZE)
+	if ((this->_strSelf.size()) < HTTP_BUF_SIZE)
 	{
 		charsToWrite = this->_strSelf.size();
-		this->_state = HTTP_RESP_FULLFILLED;
+		this->_state = HTTP_RESP_DONE;
 	}
 	else
-		charsToWrite = DEF_BUF_SIZE;
+		charsToWrite = HTTP_BUF_SIZE;
 	writtenChars = send(this->_socket, this->_strSelf.substr(0, charsToWrite).c_str(), charsToWrite, 0);
 	if (writtenChars < 0)
 		throw(ServerException({"socket not available"}));
@@ -109,11 +109,10 @@ void	HTTPresponse::writeContent( void )
 		_checkTimeout();
 	else
 	{
+		this->_contentLengthWrite += writtenChars;
 		this->_strSelf = this->_strSelf.substr(writtenChars);
 		if (this->_strSelf.empty() == true)
-			this->_state = HTTP_RESP_FULLFILLED;
-		else
-			this->_contentLengthWrite += writtenChars;
+			this->_state = HTTP_RESP_DONE;
 	}
 }
 
@@ -145,27 +144,27 @@ std::string	HTTPresponse::toString( void ) const noexcept
 	strResp += std::to_string(this->_version.major);
 	strResp += ".";
 	strResp += std::to_string(this->_version.minor);
-	strResp += HTTP_SP;
+	strResp += HTTP_DEF_SP;
 	strResp += std::to_string(this->_statusCode);
-	strResp += HTTP_SP;
+	strResp += HTTP_DEF_SP;
 	strResp += this->_mapStatusCode(this->_statusCode);
-	strResp += HTTP_NL;
+	strResp += HTTP_DEF_NL;
 	if (!this->_headers.empty())
 	{
 		for (auto item : this->_headers)
 		{
 			strResp += item.first;
 			strResp += ":";
-			strResp += HTTP_SP;
+			strResp += HTTP_DEF_SP;
 			strResp += item.second;
-			strResp += HTTP_NL;
+			strResp += HTTP_DEF_NL;
 		}
 	}
-	strResp += HTTP_NL;
+	strResp += HTTP_DEF_NL;
 	if (!this->_body.empty())
 	{
 		strResp += this->_body;
-		strResp += HTTP_TERM;
+		strResp += HTTP_DEF_TERM;
 	}
 	return (strResp);
 }
@@ -199,7 +198,7 @@ bool	HTTPresponse::isParsingNeeded( void ) const noexcept
 
 bool	HTTPresponse::isDoneWriting( void ) const noexcept
 {
-	return (this->_state == HTTP_RESP_FULLFILLED);
+	return (this->_state == HTTP_RESP_DONE);
 }
 
 void	HTTPresponse::_setHeaders( std::string const& strHeaders )
@@ -210,7 +209,7 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 
 	try
 	{
-		delimiter = this->_headers.at("Status").find(HTTP_SP);
+		delimiter = this->_headers.at("Status").find(HTTP_DEF_SP);
 		try {
 			this->_statusCode = std::stoi(this->_headers.at("Status").substr(0, delimiter));
 		}
