@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/15 00:22:29 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/18 05:10:06 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,6 @@
 #include <fcntl.h>
 #include <cstring>           // bzero
 #include <fstream>
-#include <chrono>
 
 #include "HTTPstruct.hpp"
 #include "ConfigServer.hpp"
@@ -25,10 +24,18 @@
 
 #define MAIN_PAGE_PATH	 		t_path("var/www/index.html")
 #define FAVICON_PATH			t_path("var/www/favicon.ico")
-#define MAX_TIMEOUT				5
 #define MAX_HEADER_SIZE			8192
 
-using namespace std::chrono;
+
+typedef enum HTTPreqState_f
+{
+	HTTP_REQ_HEAD_READING,
+	HTTP_REQ_PARSING,
+	HTTP_REQ_VALIDATING,
+	HTTP_REQ_BODY_READING,
+	HTTP_REQ_RESP_WAITING,
+	HTTP_REQ_FULLFILLED,
+}	HTTPreqState;
 
 typedef struct HTTPurl_f
 {
@@ -36,7 +43,7 @@ typedef struct HTTPurl_f
 	std::string	host;
 	int			port;
 	t_path		path;
-	dict		query;
+	t_dict		query;
 	std::string queryRaw;
 	std::string fragment;
 
@@ -45,21 +52,19 @@ typedef struct HTTPurl_f
 class HTTPrequest : public HTTPstruct
 {
 	public:
-		HTTPrequest( int socket ) :
-			HTTPstruct(socket) ,
+		HTTPrequest( int socket ) : HTTPstruct(socket, HTTP_STATIC) ,
+			_state(HTTP_REQ_HEAD_READING),
 			_contentLength(0) ,
 			_contentLengthRead(0),
-			_isChunked(false),
-			_endConn(false),
-			_gotFullHead(false),
-			_lastActivity(steady_clock::now()) {};
+			_endConn(false) {};
 		virtual ~HTTPrequest( void ) override {};
 
 		void		parseHead( void );
 		void		parseBody( void );
-		void		validateRequest( ConfigServer const& );
+		void		validate( ConfigServer const& );
 		std::string	toString( void ) const noexcept override;
 
+		HTTPreqState		getState( void ) const noexcept;
 		std::string		 	getMethod( void ) const noexcept;
 		t_path const&		getPath( void ) const noexcept;
 		std::string const&	getHost( void ) const noexcept;
@@ -71,26 +76,25 @@ class HTTPrequest : public HTTPstruct
 		// t_path const&	getRealPath( void ) const noexcept;
 		t_path const&		getRoot( void ) const noexcept;
 		t_string_map const&	getErrorPages( void ) const noexcept;
-		bool				gotFullHead( void ) const noexcept;
-		bool				isAutoIndex( void ) const noexcept;
-		bool				isChunked( void ) const noexcept;
+		bool				isDoneReadingHead( void ) const noexcept;
+		bool				isDoneReadingBody( void ) const noexcept;
 		bool				isEndConn( void ) const noexcept;
 
 	protected:
+		HTTPreqState	_state;
 		HTTPmethod		_method;
 		HTTPurl			_url;
 		RequestValidate	_validator;
 
 		size_t		_contentLength, _contentLengthRead;
-		bool		_isChunked, _endConn, _gotFullHead;
-
-		steady_clock::time_point	_lastActivity;
+		bool		_endConn;
 
 		void	_readHead( void );
 		void	_readPlainBody( void );
 		void	_readChunkedBody( void );
 		void	_setHead( std::string const& );
 		void	_setHeaders(std::string const& ) override;
+		void	_setType( void );
 
 		void	_setMethod( std::string const& );
 		void	_setURL( std::string const& );

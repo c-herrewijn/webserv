@@ -6,27 +6,21 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/16 18:42:23 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/18 05:04:55 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPresponse.hpp"
 
-void	HTTPresponse::parseFromStatic( void )
+HTTPresponse::HTTPresponse( int socket, HTTPtype type ) : HTTPstruct(socket, type) ,
+	_statusCode(200),
+	_HTMLfd(-1),
+	_contentLengthWrite(0)
 {
-	_addHeader("Date", _getDateTime());
-	_addHeader("Server", this->_servName);
-	if (this->_gotFullBody == false)
-		throw(ResponseException({"body not fully parsed"}, 500));
-	_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
-	_addHeader("Content-Type", this->_contentType);
-	HTTPstruct::_setBody(this->_tmpBody);
-	// if ((this->_statusCode >= 300) and (this->_statusCode < 400))
-	// {
-	// 	_addHeader("Location", "something");
-	// 	...
-	// }
-	this->_parsingNeeded = false;
+	if (type == HTTP_STATIC)
+		this->_state = HTTP_RESP_HTML_READING;
+	else
+		this->_state = HTTP_RESP_BUILDING;
 }
 
 void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
@@ -34,38 +28,61 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 	std::string headers, body;
 	size_t		delimiter;
 
+	if ((this->_type < HTTP_FAST_CGI) or (this->_state != HTTP_RESP_BUILDING))
+		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
 	delimiter = CGIresp.find(HTTP_TERM);
 	if (delimiter == std::string::npos)
 		throw(ResponseException({"no headers terminator in CGI response"}, 500));
 	delimiter += HTTP_TERM.size();
 	headers = CGIresp.substr(0, delimiter - HTTP_NL.size());
 	body = CGIresp.substr(delimiter);
-	this->_hasBody = true;
-	this->_gotFullBody = true;
-	HTTPstruct::_setBody(body);
 	_setHeaders(headers);
 	_addHeader("Date", _getDateTime());
-	this->_parsingNeeded = false;
+	HTTPstruct::_setBody(body);
+	this->_state = HTTP_RESP_WRITING;
+	this->_strSelf = toString();
 }
 
-void	HTTPresponse::readHTML( void )
+void	HTTPresponse::parseFromStatic( void )
+{
+	if ((this->_type > HTTP_AUTOINDEX_STATIC) or (this->_state != HTTP_RESP_BUILDING))
+		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
+	_addHeader("Date", _getDateTime());
+	_addHeader("Server", this->_servName);
+	_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
+	_addHeader("Content-Type", STD_CONTENT_TYPE);
+	HTTPstruct::_setBody(this->_tmpBody);
+	// if ((this->_statusCode >= 300) and (this->_statusCode < 400))
+	// {
+	// 	_addHeader("Location", "something");
+	// 	...
+	// }
+	this->_state = HTTP_RESP_WRITING;
+	this->_strSelf = toString();
+}
+
+void	HTTPresponse::readHTML( int HTMLfd )
 {
     ssize_t 	readChar = -1;
     char        buffer[DEF_BUF_SIZE];
 
-	if (this->_gotFullBody == true)
-		throw(ResponseException({"HTML already parsed"}, 500));
+	if ((this->_type != HTTP_STATIC) or (this->_state != HTTP_RESP_HTML_READING))
+		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
+	if (this->_HTMLfd == -1)
+		this->_HTMLfd = HTMLfd;
 	bzero(buffer, DEF_BUF_SIZE);
 	readChar = read(this->_HTMLfd, buffer, DEF_BUF_SIZE);
 	if (readChar < 0)
 		throw(ServerException({"fd unavailable"}));
 	this->_tmpBody += std::string(buffer, buffer + readChar);
 	if (readChar < DEF_BUF_SIZE)
-		this->_gotFullBody = true;
+		this->_state = HTTP_RESP_BUILDING;
 }
 
 void	HTTPresponse::readContentDirectory( t_path const& pathDir)
 {
+	if ((this->_type != HTTP_AUTOINDEX_STATIC) or (this->_state != HTTP_RESP_BUILDING))
+		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
 	(void) pathDir;
 }
 
@@ -74,50 +91,49 @@ void	HTTPresponse::writeContent( void )
     ssize_t writtenChars = -1;
 	size_t	charsToWrite = 0;
 
-	if (this->_gotFullBody == false)
-		throw(ResponseException({"incomplete body"}, 500));
-	else if (this->_parsingNeeded == true)
-		throw(ResponseException({"need to parse the response"}, 500));
-	else if (this->_writingDone == true)
-		throw(ResponseException({"response already sent"}, 500));
-	if ((toString().size() - this->_contentLengthWrite) < DEF_BUF_SIZE)
-		charsToWrite = toString().size() - this->_contentLengthWrite;
+	if (this->_state != HTTP_RESP_WRITING)
+		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
+	else if (this->_contentLengthWrite == 0)
+		_resetTimeout();
+	if ((this->_strSelf.size()) < DEF_BUF_SIZE)
+	{
+		charsToWrite = this->_strSelf.size();
+		this->_state = HTTP_RESP_FULLFILLED;
+	}
 	else
 		charsToWrite = DEF_BUF_SIZE;
-	writtenChars = send(this->_socket, toString().substr(this->_contentLengthWrite, charsToWrite).c_str(), charsToWrite, 0);
+	writtenChars = send(this->_socket, this->_strSelf.substr(0, charsToWrite).c_str(), charsToWrite, 0);
 	if (writtenChars < 0)
 		throw(ServerException({"socket not available"}));
-	this->_contentLengthWrite += writtenChars;
-	if (writtenChars < DEF_BUF_SIZE)
-		this->_writingDone = true;
-}
-
-void	HTTPresponse::updateContentType( std::string newContentType ) noexcept
-{
-	this->_contentType = newContentType;
-}
-
-void	HTTPresponse::updateStatic500( void ) noexcept
-{
-	this->_gotFullBody = true;
-	this->_tmpBody = ERROR_500_CONTENT;
+	else if (writtenChars == 0)
+		_checkTimeout();
+	else
+	{
+		this->_strSelf = this->_strSelf.substr(writtenChars);
+		if (this->_strSelf.empty() == true)
+			this->_state = HTTP_RESP_FULLFILLED;
+		else
+			this->_contentLengthWrite += writtenChars;
+	}
 }
 
 void	HTTPresponse::errorReset( int errorStatus ) noexcept
 {
 	this->_statusCode = errorStatus;
 	this->_HTMLfd = -1;
-	this->_parsingNeeded = true;
-	this->_writingDone = false;
-	this->_contentType = STD_CONTENT_TYPE;
-	this->_contentLengthWrite = 0;
 
+	this->_type = HTTP_STATIC;
 	this->_body.clear();
-	this->_tmpBody.clear();
-	this->_body.clear();
-	this->_gotFullBody = false;
-	this->_isCGI = false;
-	this->_isFileUpload = false;	
+	if (this->_statusCode == 500)
+	{
+		this->_tmpBody = ERROR_500_CONTENT;
+		this->_state = HTTP_RESP_BUILDING;
+	}
+	else
+	{
+		this->_tmpBody.clear();
+		this->_state = HTTP_RESP_HTML_READING;
+	}
 }
 
 std::string	HTTPresponse::toString( void ) const noexcept
@@ -154,11 +170,6 @@ std::string	HTTPresponse::toString( void ) const noexcept
 	return (strResp);
 }
 
-void	HTTPresponse::setStatusCode( int statCode ) noexcept
-{
-	this->_statusCode = statCode;
-}
-
 int		HTTPresponse::getStatusCode( void ) const noexcept
 {
 	return (this->_statusCode);
@@ -178,17 +189,17 @@ int		HTTPresponse::getHTMLfd( void ) const noexcept
 
 bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept
 {
-	return (this->_gotFullBody);
+	return (this->_state > HTTP_RESP_HTML_READING);
 }
 
 bool	HTTPresponse::isParsingNeeded( void ) const noexcept
 {
-	return (this->_parsingNeeded);
+	return (this->_state == HTTP_RESP_BUILDING);
 }
 
 bool	HTTPresponse::isDoneWriting( void ) const noexcept
 {
-	return (this->_writingDone);
+	return (this->_state == HTTP_RESP_FULLFILLED);
 }
 
 void	HTTPresponse::_setHeaders( std::string const& strHeaders )
@@ -209,12 +220,10 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 		this->_headers.at("Server");
 		this->_headers.at("Content-type");
 		this->_headers.at("Content-Length");
-		if (this->_isFileUpload == true)
+		if (this->_type == HTTP_FILE_UPL_CGI)
 		{
 			if (this->_statusCode < 400)
 				this->_headers.at("Location");
-			else
-				this->_isFileUpload = false;
 		}
 	}
 	catch(const std::out_of_range& e) {

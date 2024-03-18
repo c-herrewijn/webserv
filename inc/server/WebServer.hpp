@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/16 03:58:17 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/18 05:09:51 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -115,8 +115,4 @@ class WebServer
 		void			writeToCGI( int item );
 		void			writeToClients( int );
 		void			redirectToErrorPage( int, int ) noexcept;
-
-		void			_startCGI( int );
-		void			_addStaticFileFd( std::string const&, int );
-		void			_parseResponse( int );
 };
