@@ -148,7 +148,7 @@ void	RequestValidate::_initValidLocation(void)
 
 	_separateFolders(targetDir.string(), folders);
 	// std::cout << "Prepares for diving: ";
-	for (auto folder : folders)
+	// for (auto folder : folders)
 		// std::cout << folder << " ";
 	// std::cout << "\n";
 	for (auto& location : _requestConfig->getLocations())
