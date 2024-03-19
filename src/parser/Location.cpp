@@ -16,6 +16,7 @@ Location::Location(void)
 {
 	block_index = 0;
 	URL = DEF_URL;
+	filesystem = std::filesystem::weakly_canonical(URL);
 }
 
 Location::~Location(void)
@@ -53,13 +54,14 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 	std::vector<std::string>::iterator index;
 	uint64_t size = 0;
 	URL = DEF_URL;
-	block_index = param.getBlockIndex();
+	filesystem = std::filesystem::weakly_canonical(URL);
 	params = param;
 	params.setBlockIndex(param.getBlockIndex());
 	block.erase(block.begin());
 	if (block.front()[0] != '/')
 		throw ParserException({"after 'location' expected a /URL"});
 	URL = block.front();
+	filesystem = std::filesystem::weakly_canonical(URL);
 	block.erase(block.begin());
 	if (block.front() != "{")
 		throw ParserException({"after '/URL' expected a '{'"});
@@ -99,13 +101,14 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 			throw ParserException({"'" + block.front() + "' is not a valid parameter in 'location' context"});
 	}
 	block.erase(block.begin());
+	this->filesystem = std::filesystem::weakly_canonical(URL);
+	// std::cout << "Parsed URL: " << URL << " : " << "Parsed filesystem: " << filesystem << "\n";
 	for (std::vector<std::vector<std::string>>::iterator it = locationHolder.begin(); it != locationHolder.end(); it++)
 	{
 		Location local(*it, params);
 		local.setBlockIndex(this->block_index);
 		nested.push_back(local);
 	}
-	this->filesystem = std::filesystem::weakly_canonical(URL);
 }
 
 const std::vector<Location>& Location::getNested(void) const

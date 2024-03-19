@@ -20,7 +20,7 @@
 // filesystem management
 # include "Exceptions.hpp"
 
-# define SERVER_DEF_PAGES "var/www/errors/";
+# define SERVER_DEF_PAGES "/default/errors/";
 
 typedef std::filesystem::perms t_perms;
 

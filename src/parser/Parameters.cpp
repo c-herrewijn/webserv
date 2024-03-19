@@ -17,7 +17,7 @@ Parameters::Parameters(void)
 	this->root = DEF_ROOT;
 	this->cgi_allowed = DEF_CGI_ALLOWED;
 	this->cgi_extension = DEF_CGI_EXTENTION;
-	for (int tmp = 0; tmp < M_SIZE; tmp++)
+	for (unsigned int tmp = 0; tmp < METHOD_AMOUNT; tmp++)
 		allowedMethods[tmp] = 0;
 	max_size = static_cast<std::uintmax_t>(DEF_SIZE) * 1024 * 1024 * 1024;
 	returns = {0, ""};
@@ -96,17 +96,17 @@ void	Parameters::_parseAllowedMethod(std::vector<std::string>& block)
 	{
 		if (block.front() == "GET")
 		{
-			allowedMethods[M_GET] = 1;
+			allowedMethods[HTTP_GET] = 1;
 			block.erase(block.begin());
 		}
 		else if (block.front() == "POST")
 		{
-			allowedMethods[M_POST] = 1;
+			allowedMethods[HTTP_POST] = 1;
 			block.erase(block.begin());
 		}
 		else if (block.front() == "DELETE")
 		{
-			allowedMethods[M_DELETE] = 1;
+			allowedMethods[HTTP_DELETE] = 1;
 			block.erase(block.begin());
 		}
 		else if (block.front() == ";")
@@ -289,7 +289,7 @@ const bool& Parameters::getCgiAllowed(void) const
 	return (cgi_allowed);
 }
 
-const std::bitset<M_SIZE>&	Parameters::getAllowedMethods(void) const
+const std::bitset<METHOD_AMOUNT>&	Parameters::getAllowedMethods(void) const
 {
 	return (allowedMethods);
 }
