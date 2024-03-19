@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/18 05:56:17 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/18 17:37:36 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@ HTTPresponse::HTTPresponse( int socket, HTTPtype type ) : HTTPstruct(socket, typ
 	if (type == HTTP_STATIC)
 		this->_state = HTTP_RESP_HTML_READING;
 	else
-		this->_state = HTTP_RESP_BUILDING;
+		this->_state = HTTP_RESP_PARSING;
 }
 
 void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
@@ -28,7 +28,7 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 	std::string headers, body;
 	size_t		delimiter;
 
-	if ((this->_type < HTTP_FAST_CGI) or (this->_state != HTTP_RESP_BUILDING))
+	if ((this->_type < HTTP_FAST_CGI) or (this->_state != HTTP_RESP_PARSING))
 		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
 	delimiter = CGIresp.find(HTTP_DEF_TERM);
 	if (delimiter == std::string::npos)
@@ -45,7 +45,7 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 
 void	HTTPresponse::parseFromStatic( void )
 {
-	if ((this->_type > HTTP_AUTOINDEX_STATIC) or (this->_state != HTTP_RESP_BUILDING))
+	if ((this->_type > HTTP_AUTOINDEX_STATIC) or (this->_state != HTTP_RESP_PARSING))
 		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
 	_addHeader("Date", _getDateTime());
 	_addHeader("Server", this->_servName);
@@ -76,12 +76,12 @@ void	HTTPresponse::readHTML( int HTMLfd )
 		throw(ServerException({"fd unavailable"}));
 	this->_tmpBody += std::string(buffer, buffer + readChar);
 	if (readChar < HTTP_BUF_SIZE)
-		this->_state = HTTP_RESP_BUILDING;
+		this->_state = HTTP_RESP_PARSING;
 }
 
 void	HTTPresponse::readContentDirectory( t_path const& pathDir)
 {
-	if ((this->_type != HTTP_AUTOINDEX_STATIC) or (this->_state != HTTP_RESP_BUILDING))
+	if ((this->_type != HTTP_AUTOINDEX_STATIC) or (this->_state != HTTP_RESP_PARSING))
 		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
 	(void) pathDir;
 }
@@ -126,7 +126,7 @@ void	HTTPresponse::errorReset( int errorStatus ) noexcept
 	if (this->_statusCode == 500)
 	{
 		this->_tmpBody = ERROR_500_CONTENT;
-		this->_state = HTTP_RESP_BUILDING;
+		this->_state = HTTP_RESP_PARSING;
 	}
 	else
 	{
@@ -193,7 +193,7 @@ bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept
 
 bool	HTTPresponse::isParsingNeeded( void ) const noexcept
 {
-	return (this->_state == HTTP_RESP_BUILDING);
+	return (this->_state == HTTP_RESP_PARSING);
 }
 
 bool	HTTPresponse::isDoneWriting( void ) const noexcept

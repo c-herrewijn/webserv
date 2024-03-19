@@ -444,11 +444,10 @@ void	WebServer::readStaticFiles( int staticFileFd )
 	if (this->_pollitems[staticFileFd]->pollType != STATIC_FILE)
 		return ;
 	response->readHTML(staticFileFd);
-	if (response->isDoneReadingHTML())
-	{
-		this->_emptyConns.push_back(staticFileFd);
-		this->_pollitems[socket]->pollState = WRITE_TO_CLIENT;
-	}
+	if (response->isDoneReadingHTML() == false)
+		return ;
+	this->_emptyConns.push_back(staticFileFd);
+	this->_pollitems[socket]->pollState = WRITE_TO_CLIENT;
 }
 
 void	WebServer::readRequestBody( int clientSocket )
@@ -536,15 +535,14 @@ void	WebServer::writeToClients( int clientSocket )
 		}
 	}
 	response->writeContent();
-	if (response->isDoneWriting())
+	if (response->isDoneWriting() == false)
+		return ;
+	if (request->isEndConn() == true)
+		this->_emptyConns.push_back(clientSocket);
+	else
 	{
-		if (request->isEndConn() == true)
-			this->_emptyConns.push_back(clientSocket);
-		else
-		{
-			_dropStructs(clientSocket);
-			this->_pollitems[clientSocket]->pollState = READ_REQ_HEADER;
-		}
+		_dropStructs(clientSocket);
+		this->_pollitems[clientSocket]->pollState = READ_REQ_HEADER;
 	}
 }
 
@@ -561,10 +559,10 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 		this->_emptyConns.push_back(genericFd);
 	try {
 		clientSocket = _getSocketFromFd(genericFd);
+		request = this->_requests.at(clientSocket);
 		if (this->_responses[clientSocket] == nullptr)
 			this->_responses[clientSocket] = new HTTPresponse(clientSocket, request->getType());
 		response = this->_responses.at(clientSocket);
-		request = this->_requests.at(clientSocket);
 		response->errorReset(statusCode);
 		HTMLerrPage = _getHTMLerrorPage(statusCode, request->getErrorPages());	// NB: change _getHTMLerrorPage() after validation is ok
 		HTMLfd = open(HTMLerrPage.c_str(), O_RDONLY);

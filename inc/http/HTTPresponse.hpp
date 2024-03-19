@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/18 05:25:29 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/18 17:37:36 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,7 @@
 typedef enum HTTPrespState_f
 {
 	HTTP_RESP_HTML_READING,
-	HTTP_RESP_BUILDING,
+	HTTP_RESP_PARSING,
 	HTTP_RESP_WRITING,
 	HTTP_RESP_DONE,
 }	HTTPrespState;
