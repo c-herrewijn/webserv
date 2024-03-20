@@ -505,12 +505,10 @@ void	WebServer::readCGIResponses( int cgiPipe )
 		throw(ServerException({"unavailable socket"}));
 	cgi->appendResponse(std::string(buffer, buffer + readChars));
 
-	// TODO: support partial reads, i.e. in case of very big CGI response
-	// a logic to understand when the whole CGI response is received is necessary
-	// to know when to close the pipe connection
-	if (true) // TODO keep pipe open for consequtive reads if needed
+	if (readChars < HTTP_BUF_SIZE)
 	{
 		this->_emptyConns.push_back(cgiPipe);
+		close(cgiPipe); // close read end of cgi response pipe
 		this->_pollitems[socket]->pollState = WRITE_TO_CLIENT;
 	}
 }
@@ -522,7 +520,7 @@ void	WebServer::writeToClients( int clientSocket )
 
 	if (response->isParsingNeeded() == true)
 	{
-		if ((request->isCGI()) and (response->getStatusCode() < 400)) 
+		if ((request->isCGI()) and (response->getStatusCode() < 400))
 		{
 			CGI *cgi = this->_cgi.at(clientSocket);
 			response->parseFromCGI(cgi->getResponse());

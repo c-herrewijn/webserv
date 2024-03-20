@@ -83,6 +83,9 @@ void CGI::run()
             exit(1); // TODO: exit() is not allowed!
         }
     }
+    else {
+        close(this->_responsePipe[1]); // close write end of cgi response pipe
+    }
 }
 
 int CGI::getRequestSocket() {

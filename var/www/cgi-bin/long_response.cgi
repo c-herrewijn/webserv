@@ -8,7 +8,7 @@ now_str = now.strftime('%H:%M:%S')
 
 longSection =  ""
 for _ in range(1000):
-    longSection += "<p>twenty chars!</p>"
+    longSection += "<p>Twenty chars!</p>"
 
 html_content = f'''<html><body>
                 <a href="/">go home</a>
