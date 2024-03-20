@@ -505,6 +505,7 @@ void	WebServer::readCGIResponses( int cgiPipe )
 		throw(ServerException({"unavailable socket"}));
 	cgi->appendResponse(std::string(buffer, buffer + readChars));
 
+	std::cout << "chars read (from cgi): " << readChars << std::endl; // NB. remove, debug!!
 	if (readChars < HTTP_BUF_SIZE)
 	{
 		this->_emptyConns.push_back(cgiPipe);

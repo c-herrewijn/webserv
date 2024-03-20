@@ -72,6 +72,7 @@ void	HTTPresponse::readHTML( int HTMLfd )
 		this->_HTMLfd = HTMLfd;
 	bzero(buffer, HTTP_BUF_SIZE);
 	readChar = read(this->_HTMLfd, buffer, HTTP_BUF_SIZE);
+	std::cout << "chars read (static file): " << readChar << std::endl; // NB. remove, debug!!
 	if (readChar < 0)
 		throw(ServerException({"fd unavailable"}));
 	this->_tmpBody += std::string(buffer, buffer + readChar);
