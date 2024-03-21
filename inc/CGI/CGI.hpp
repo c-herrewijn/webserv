@@ -17,8 +17,8 @@ public:
     CGI(const HTTPrequest &req);
     ~CGI();
     void run();
-    int *getuploadPipe();  // should not return an int pointer, rather an std::array with a copy!
-    int *getResponsePipe();  // should not return an int pointer, rather an std::array with a copy!
+    const std::array<int, 2> getUploadPipe() const;
+    const std::array<int, 2> getResponsePipe() const;
     int getRequestSocket() const;
     std::string getResponse() const;
     void appendResponse(std::string additionalResponsePart);
