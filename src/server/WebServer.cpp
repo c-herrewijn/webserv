@@ -76,10 +76,19 @@ void	WebServer::run( void )
 {
 	int				nConn = -1;
 	struct pollfd 	pollfdItem;
+	int count = 0;
+	int oldnConn = 0;
 
 	while (true)
 	{
 		nConn = poll(this->_pollfds.data(), this->_pollfds.size(), 0);
+		count++;
+		if (count == 1000000 || oldnConn != nConn) {
+			oldnConn = nConn;
+			std::cout << "polling...  nr poll items = " << nConn << "; "<< std::endl;
+			count = 0;
+		}
+
 		if (nConn < 0)
 		{
 			if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
@@ -96,8 +105,11 @@ void	WebServer::run( void )
 					_readData(pollfdItem.fd);
 				if (pollfdItem.revents & POLLOUT)
 					_writeData(pollfdItem.fd);
-				if (pollfdItem.revents & (POLLHUP | POLLERR | POLLNVAL))	// client-end side was closed / error / socket not valid
+				if (pollfdItem.revents & (POLLHUP | POLLERR | POLLNVAL)) 	// client-end side was closed / error / socket not valid
+				{
+					std::cout << C_RED << "fd: " << pollfdItem.fd << " client-end side was closed / error / socket not valid" << pollfdItem.fd << C_RESET << std::endl;
 					this->_emptyConns.push_back(pollfdItem.fd);
+				}
 			}
 			catch (const ServerException& e) {
 				std::cerr << C_RED << e.what() << C_RESET << '\n';
@@ -191,6 +203,7 @@ void	WebServer::_readData( int readFd )	// POLLIN
 			break;
 
 		default:
+			std::cout << C_RED << "UNEXPECTED POLLIN - " << readFd << C_RESET << std::endl;
 			break;		// NB: or throw exception?
 	}
 }

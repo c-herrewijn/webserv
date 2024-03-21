@@ -88,11 +88,11 @@ void CGI::run()
     }
 }
 
-int CGI::getRequestSocket() {
+int CGI::getRequestSocket() const {
     return this->_req.getSocket();
 }
 
-int *CGI::getuploadPipe(){
+int *CGI::getuploadPipe() {
     return this->_uploadPipe;
 }
 
@@ -100,7 +100,7 @@ int *CGI::getResponsePipe() {
     return this->_responsePipe;
 }
 
-std::string CGI::getResponse() {
+std::string CGI::getResponse() const {
     return this->_response;
 }
 
