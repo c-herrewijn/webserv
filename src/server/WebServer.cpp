@@ -411,7 +411,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	}
 	else if (request->isAutoIndex())	//	GET (index)
 	{
-		response->readContentDirectory(request->getRealPath());
+		response->listContentDirectory(request->getRealPath());
 		nextState = WRITE_TO_CLIENT;
 	}
 	else		// GET (HTML)

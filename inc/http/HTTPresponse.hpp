@@ -16,6 +16,7 @@
 #include <sys/types.h>        	// send, recv
 #include <sys/socket.h>       	// send, recv
 #include <unistd.h>				// read
+#include <set>
 
 
 #include "HTTPstruct.hpp"
@@ -38,7 +39,7 @@ class HTTPresponse : public HTTPstruct
 		void		parseFromStatic( void );
 		void		parseFromCGI( std::string const& );
 		void		readHTML( void );
-		void		readContentDirectory( t_path const&);
+		void		listContentDirectory( t_path const&);
 		void		writeContent( void ) ;
 		std::string	toString( void ) const noexcept override;
 

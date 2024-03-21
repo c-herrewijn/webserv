@@ -69,10 +69,144 @@ void	HTTPresponse::readHTML( void )
 		this->_gotFullHTML = true;
 }
 
+// Function to convert file_time_type to string
+static std::string fileTimeToString(std::filesystem::file_time_type time) {
+    auto timePoint = std::chrono::time_point_cast<std::chrono::system_clock::duration>(time - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
+    std::time_t t = std::chrono::system_clock::to_time_t(timePoint);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&t), "%d/%m/%Y %H:%M:%S");
+    return ss.str();
+}
 
-void	HTTPresponse::readContentDirectory( t_path const& pathDir)
+// Function to calculate total size of files in a directory
+static uintmax_t calculateDirectorySize(const std::filesystem::path& directory) {
+    uintmax_t totalSize = 0;
+    for (const auto& entry : std::filesystem::directory_iterator(directory)) {
+        if (std::filesystem::is_regular_file(entry)) {
+            totalSize += std::filesystem::file_size(entry);
+        }
+    }
+    return totalSize;
+}
+
+void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 {
-	(void) pathDir;
+	// index of ....			[Header]
+	// ------------------------	[break]
+	// parent dir				[Parent directory]
+	// Name Size DateModified	[list]
+	// Folders					[folder/ [DD/MM/YYYY, HH:MM::SS]]
+	// Files [file 3DigitSize	[DD/MM/YYYY, HH:MM::SS]]
+	std::set<std::filesystem::directory_entry> folders;
+    std::set<std::filesystem::directory_entry> files;
+
+    // Populating folders and files sets
+    for (const auto& entry : std::filesystem::directory_iterator(pathDir))
+    {
+        if (std::filesystem::is_directory(entry))
+            folders.insert(entry);
+        else
+            files.insert(entry);
+    }
+
+    // Header part of the html:
+	_tmpBody += R"(
+		<!DOCTYPE html>
+		<html lang="en">
+		<head>
+			<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<title>Directory Listing</title>
+			<style>
+				body {
+					font-family: Arial, sans-serif;
+					margin: 0;
+					padding: 0;
+					background-color: #1a1a1a;
+					color: #fff;
+				}
+
+				.container {
+					max-width: 800px;
+					margin: 0 auto;
+					padding: 20px;
+					background-color: #333;
+					border-radius: 8px;
+				}
+
+				table {
+					width: 100%;
+					border-collapse: collapse;
+					margin-top: 20px;
+					background-color: #444;
+				}
+
+				table, th, td {
+					border: 1px solid #222;
+				}
+
+				th, td {
+					padding: 8px;
+					text-align: left;
+				}
+
+				th {
+					background-color: #2c2c2c;
+				}
+
+				tr:nth-child(even) {
+					background-color: #333; 
+				}
+
+				tr:hover {
+					background-color: #555;
+				}
+
+				a {
+					color: #4bb7ff;
+					text-decoration: none;
+				}
+
+				a:hover {
+					text-decoration: underline;
+				}
+			</style>
+		</head>
+		<body>
+		<div class="container">
+		<h1>Index of )" + pathDir.string() + "/" + R"(</h1>
+		<hr>
+		<table>
+		<thead>
+		<tr>
+			<th>Name</th>
+			<th>Size</th>
+			<th>Date Modified</th>
+		</tr>
+		</thead>
+		<tbody>)";
+
+	// Inserting folders into HTML
+	for (const auto& folder : folders) {
+		std::string folderName = folder.path().filename().string();
+		std::string folderPath = std::filesystem::weakly_canonical(folder).string(); // Get absolute path of folder
+		uintmax_t folderSize = calculateDirectorySize(folder.path());
+		_tmpBody += R"(<tr><td><a href=")" + folderPath + "/" + R"(">)" + folderName + "/" + R"(</a></td><td>)" + std::to_string(folderSize) + R"( bytes</td><td>)" + fileTimeToString(std::filesystem::last_write_time(folder)) + R"(</td></tr>)";
+	}
+
+	// Inserting files into HTML
+	for (const auto& file : files) {
+		std::string fileName = file.path().filename().string();
+		std::string filePath = std::filesystem::weakly_canonical(file).string(); // Get absolute path of file
+		_tmpBody += R"(<tr><td><a href=")" + filePath + R"(">)" + fileName + R"(</a></td><td>)" + std::to_string(std::filesystem::file_size(file)) + R"( bytes</td><td>)" + fileTimeToString(std::filesystem::last_write_time(file)) + R"(</td></tr>)";
+	}
+
+	_tmpBody += R"(
+		</tbody>
+		</table>
+		</div>
+		</body>
+		</html>)";
 }
 
 void		HTTPresponse::writeContent( void )
