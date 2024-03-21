@@ -71,24 +71,43 @@ void	HTTPresponse::readHTML( void )
 
 // Function to convert file_time_type to string
 static std::string fileTimeToString(std::filesystem::file_time_type time) {
-    auto timePoint = std::chrono::time_point_cast<std::chrono::system_clock::duration>(time - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
-    std::time_t t = std::chrono::system_clock::to_time_t(timePoint);
-    std::stringstream ss;
-    ss << std::put_time(std::localtime(&t), "%d/%m/%Y %H:%M:%S");
-    return ss.str();
+	auto timePoint = std::chrono::time_point_cast<std::chrono::system_clock::duration>(time - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
+	std::time_t t = std::chrono::system_clock::to_time_t(timePoint);
+	std::stringstream ss;
+	ss << std::put_time(std::localtime(&t), "%d/%m/%Y %H:%M:%S");
+	return ss.str();
 }
 
 // Function to calculate total size of files in a directory
 static uintmax_t calculateDirectorySize(const std::filesystem::path& directory) {
-    uintmax_t totalSize = 0;
-    for (const auto& entry : std::filesystem::directory_iterator(directory)) {
-        if (std::filesystem::is_regular_file(entry)) {
-            totalSize += std::filesystem::file_size(entry);
-        }
-    }
-    return totalSize;
+	uintmax_t totalSize = 0;
+	for (const auto& entry : std::filesystem::directory_iterator(directory)) {
+	if (std::filesystem::is_regular_file(entry)) {
+	totalSize += std::filesystem::file_size(entry);
+	}
+	}
+	return totalSize;
 }
 
+static std::string formatSize(uintmax_t size) {
+	const char* suffixes[] = {"b", "kB", "MB", "GB"};
+	int suffixIndex = 0;
+	double size_d = static_cast<double>(size);
+
+	while (size_d >= 1024 && suffixIndex < 3) {
+	size_d /= 1024;
+	suffixIndex++;
+	}
+
+	char buffer[50];
+	if (size_d - std::floor(size_d) < 0.01) {
+	snprintf(buffer, sizeof(buffer), "%.0f %s", size_d, suffixes[suffixIndex]);
+	} else {
+	snprintf(buffer, sizeof(buffer), "%.2f %s", size_d, suffixes[suffixIndex]);
+	}
+
+	return std::string(buffer);
+}
 void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 {
 	// index of ....			[Header]
@@ -98,18 +117,18 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 	// Folders					[folder/ [DD/MM/YYYY, HH:MM::SS]]
 	// Files [file 3DigitSize	[DD/MM/YYYY, HH:MM::SS]]
 	std::set<std::filesystem::directory_entry> folders;
-    std::set<std::filesystem::directory_entry> files;
+	std::set<std::filesystem::directory_entry> files;
 
-    // Populating folders and files sets
-    for (const auto& entry : std::filesystem::directory_iterator(pathDir))
-    {
-        if (std::filesystem::is_directory(entry))
-            folders.insert(entry);
-        else
-            files.insert(entry);
-    }
+	// Populating folders and files sets
+	for (const auto& entry : std::filesystem::directory_iterator(pathDir))
+	{
+		if (std::filesystem::is_directory(entry))
+			folders.insert(entry);
+		else
+			files.insert(entry);
+	}
 
-    // Header part of the html:
+	// Header part of the html:
 	_tmpBody += R"(
 		<!DOCTYPE html>
 		<html lang="en">
@@ -191,14 +210,14 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 		std::string folderName = folder.path().filename().string();
 		std::string folderPath = std::filesystem::weakly_canonical(folder).string(); // Get absolute path of folder
 		uintmax_t folderSize = calculateDirectorySize(folder.path());
-		_tmpBody += R"(<tr><td><a href=")" + folderPath + "/" + R"(">)" + folderName + "/" + R"(</a></td><td>)" + std::to_string(folderSize) + R"( bytes</td><td>)" + fileTimeToString(std::filesystem::last_write_time(folder)) + R"(</td></tr>)";
+		_tmpBody += R"(<tr><td><a href=")" + folderPath + "/" + R"(">)" + folderName + "/" + R"(</a></td><td>)" + formatSize(folderSize) + R"( bytes</td><td>)" + fileTimeToString(std::filesystem::last_write_time(folder)) + R"(</td></tr>)";
 	}
 
 	// Inserting files into HTML
 	for (const auto& file : files) {
 		std::string fileName = file.path().filename().string();
 		std::string filePath = std::filesystem::weakly_canonical(file).string(); // Get absolute path of file
-		_tmpBody += R"(<tr><td><a href=")" + filePath + R"(">)" + fileName + R"(</a></td><td>)" + std::to_string(std::filesystem::file_size(file)) + R"( bytes</td><td>)" + fileTimeToString(std::filesystem::last_write_time(file)) + R"(</td></tr>)";
+		_tmpBody += R"(<tr><td><a href=")" + filePath + R"(">)" + fileName + R"(</a></td><td>)" + formatSize(std::filesystem::file_size(file)) + R"( bytes</td><td>)" + fileTimeToString(std::filesystem::last_write_time(file)) + R"(</td></tr>)";
 	}
 
 	_tmpBody += R"(

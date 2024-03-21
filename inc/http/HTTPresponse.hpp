@@ -17,7 +17,7 @@
 #include <sys/socket.h>       	// send, recv
 #include <unistd.h>				// read
 #include <set>
-
+#include <cmath>
 
 #include "HTTPstruct.hpp"
 #define STD_CONTENT_TYPE "text/html; charset=utf-8"
