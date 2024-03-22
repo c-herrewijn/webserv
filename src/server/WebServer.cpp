@@ -107,8 +107,23 @@ void	WebServer::run( void )
 					_writeData(pollfdItem.fd);
 				if (pollfdItem.revents & (POLLHUP | POLLERR | POLLNVAL)) 	// client-end side was closed / error / socket not valid
 				{
-					std::cout << C_RED << "fd: " << pollfdItem.fd << " client-end side was closed / error / socket not valid" << pollfdItem.fd << C_RESET << std::endl;
-					this->_emptyConns.push_back(pollfdItem.fd);
+					if ((pollfdItem.revents & POLLHUP)
+						&& (this->_pollitems[pollfdItem.fd]->pollType == CGI_RESPONSE_PIPE_READ_END))
+					{
+						std::cout << C_GREEN  << "CGI Process finished - " << pollfdItem.fd << C_RESET << std::endl;
+						_readData(pollfdItem.fd);
+					}
+					else {
+						std::string errStr;
+						if (pollfdItem.revents & POLLERR)
+							errStr = "POLLERR";
+						if (pollfdItem.revents & POLLNVAL)
+							errStr = "POLLNVAL";
+						if (pollfdItem.revents & POLLHUP)
+							errStr = "POLLHUP";
+						std::cout << C_RED << "fd: " << pollfdItem.fd << " client-end side was closed: " << errStr << C_RESET << std::endl;
+						this->_emptyConns.push_back(pollfdItem.fd);
+					}
 				}
 			}
 			catch (const ServerException& e) {
