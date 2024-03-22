@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/11 23:50:11 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/22 19:54:21 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -312,6 +312,16 @@ void	HTTPresponse::setHTMLfd( int HTMLfd ) noexcept
 int		HTTPresponse::getHTMLfd( void ) const noexcept
 {
 	return (this->_HTMLfd);
+}
+
+void		HTTPresponse::setRoot( t_path root) noexcept
+{
+	this->_root = root;
+}
+
+t_path		HTTPresponse::getRoot( void ) const noexcept
+{
+	return (this->_root);
 }
 
 bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept

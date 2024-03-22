@@ -397,6 +397,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	this->_responses.insert(std::pair<int, HTTPresponse*>(clientSocket, response));
 	request->parseMain();
 	request->validateRequest(_getHandler(request->getHost()));
+	response->setRoot(request->getRoot());
 	if (request->isCGI()) {		// GET (CGI), POST and DELETE
 		cgiPtr = new CGI(*request);
 		this->_cgi.insert(std::pair<int, CGI*>(clientSocket, cgiPtr));

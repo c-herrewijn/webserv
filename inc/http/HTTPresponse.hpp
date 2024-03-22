@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/12 01:11:48 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/22 19:54:41 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,8 @@ class HTTPresponse : public HTTPstruct
 		void		updateContentType( std::string ) noexcept;
 		void		setHTMLfd( int HTMLfd ) noexcept;
 		int			getHTMLfd( void ) const noexcept;
+		void		setRoot( t_path ) noexcept;
+		t_path		getRoot( void ) const noexcept;
 		bool		isDoneReadingHTML( void ) const noexcept;
 		bool		isDoneWriting( void ) const noexcept;
 
@@ -55,6 +57,7 @@ class HTTPresponse : public HTTPstruct
 		int			_statusCode, _HTMLfd;
 		bool		_gotFullHTML, _responseDone;
 		std::string	_contentType;
+		t_path		_root;
 
 		void		_setHeaders( std::string const& ) override;
 		std::string	_mapStatusCode( int ) const ;
