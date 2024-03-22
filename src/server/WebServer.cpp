@@ -426,6 +426,10 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	if (request->isCGI())
 	{
 		cgiPtr = new CGI(*request);
+		if (request->getType() == HTTP_FAST_CGI) {
+			close(cgiPtr->getUploadPipe()[0]);
+			close(cgiPtr->getUploadPipe()[1]);
+		}
 		this->_cgi[clientSocket] = cgiPtr;
 		this->_addConn(cgiPtr->getResponsePipe()[0], CGI_RESPONSE_PIPE_READ_END, READ_CGI_RESPONSE);
 		cgiPtr->run();
