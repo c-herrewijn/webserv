@@ -101,16 +101,20 @@ void	WebServer::run( void )
 		{
 			pollfdItem = this->_pollfds[i];
 			try {
-				if (pollfdItem.revents & POLLIN)
+				if ((pollfdItem.revents & POLLIN) && (this->_pollitems[pollfdItem.fd]->pollType != CGI_RESPONSE_PIPE_READ_END))
 					_readData(pollfdItem.fd);
-				if (pollfdItem.revents & POLLOUT)
+				// POLLERR is expected when upload pipe is closed by CGI script
+				if ((pollfdItem.revents & POLLOUT) && !(pollfdItem.revents & POLLERR))
 					_writeData(pollfdItem.fd);
 				if (pollfdItem.revents & (POLLHUP | POLLERR | POLLNVAL)) 	// client-end side was closed / error / socket not valid
 				{
 					if ((pollfdItem.revents & POLLHUP)
 						&& (this->_pollitems[pollfdItem.fd]->pollType == CGI_RESPONSE_PIPE_READ_END))
 					{
-						std::cout << C_GREEN  << "CGI Process finished - " << pollfdItem.fd << C_RESET << std::endl;
+						if (this->_pollitems[pollfdItem.fd]->pollState == WAIT_FOR_CGI) {
+							std::cout << C_GREEN  << "CGI Process finished - " << pollfdItem.fd << C_RESET << std::endl;
+							this->_pollitems[pollfdItem.fd]->pollState = READ_CGI_RESPONSE;
+						}
 						_readData(pollfdItem.fd);
 					}
 					else {
@@ -205,6 +209,10 @@ void	WebServer::_readData( int readFd )	// POLLIN
 		case READ_REQ_BODY:
 			std::cout << C_GREEN << "READ_REQ_BODY - " << readFd << C_RESET << std::endl;
 			readRequestBody(readFd);
+			break;
+
+		case WAIT_FOR_CGI:
+			// don't read yet, first wait for CGI to be done
 			break;
 
 		case READ_CGI_RESPONSE:
@@ -446,7 +454,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 			close(cgiPtr->getUploadPipe()[1]);
 		}
 		this->_cgi[clientSocket] = cgiPtr;
-		this->_addConn(cgiPtr->getResponsePipe()[0], CGI_RESPONSE_PIPE_READ_END, READ_CGI_RESPONSE);
+		this->_addConn(cgiPtr->getResponsePipe()[0], CGI_RESPONSE_PIPE_READ_END, WAIT_FOR_CGI);
 		cgiPtr->run();
 		if (request->isFileUpload())
 			this->_addConn(cgiPtr->getUploadPipe()[1], CGI_REQUEST_PIPE_WRITE_END, WRITE_TO_CGI);
@@ -460,7 +468,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	if (request->isAutoIndex())
 		nextStatus = WRITE_TO_CLIENT;
 	else if (request->isFastCGI())
-		nextStatus = READ_CGI_RESPONSE;
+		nextStatus = WAIT_FOR_CGI;
 	else if (request->hasBody())
 		nextStatus = READ_REQ_BODY;
 	else
@@ -514,7 +522,7 @@ void	WebServer::writeToCGI( int cgiPipe )
 			if (request->isDoneReadingBody()) {
 				close(cgiPipe); // close write end of cgi upload pipe
 				this->_emptyConns.push_back(cgiPipe);
-				this->_pollitems[request->getSocket()]->pollState = READ_CGI_RESPONSE;
+				this->_pollitems[request->getSocket()]->pollState = WAIT_FOR_CGI;
 			}
 		}
 	}
@@ -541,7 +549,6 @@ void	WebServer::readCGIResponses( int cgiPipe )
 	if (readChars < HTTP_BUF_SIZE)
 	{
 		this->_emptyConns.push_back(cgiPipe);
-		close(cgiPipe); // close read end of cgi response pipe
 		this->_pollitems[socket]->pollState = WRITE_TO_CLIENT;
 	}
 }
