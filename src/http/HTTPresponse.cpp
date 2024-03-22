@@ -210,14 +210,14 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 		std::string folderName = folder.path().filename().string();
 		std::string folderPath = std::filesystem::weakly_canonical(folder).string(); // Get absolute path of folder
 		uintmax_t folderSize = calculateDirectorySize(folder.path());
-		_tmpBody += R"(<tr><td><a href=")" + folderPath + "/" + R"(">)" + folderName + "/" + R"(</a></td><td>)" + formatSize(folderSize) + R"( bytes</td><td>)" + fileTimeToString(std::filesystem::last_write_time(folder)) + R"(</td></tr>)";
+		_tmpBody += R"(<tr><td><a href=")" + folderPath + "/" + R"(">)" + folderName + "/" + R"(</a></td><td>)" + formatSize(folderSize) + R"(</td><td>)" + fileTimeToString(std::filesystem::last_write_time(folder)) + R"(</td></tr>)";
 	}
 
 	// Inserting files into HTML
 	for (const auto& file : files) {
 		std::string fileName = file.path().filename().string();
 		std::string filePath = std::filesystem::weakly_canonical(file).string(); // Get absolute path of file
-		_tmpBody += R"(<tr><td><a href=")" + filePath + R"(">)" + fileName + R"(</a></td><td>)" + formatSize(std::filesystem::file_size(file)) + R"( bytes</td><td>)" + fileTimeToString(std::filesystem::last_write_time(file)) + R"(</td></tr>)";
+		_tmpBody += R"(<tr><td><a href=")" + filePath + R"(">)" + fileName + R"(</a></td><td>)" + formatSize(std::filesystem::file_size(file)) + R"(</td><td>)" + fileTimeToString(std::filesystem::last_write_time(file)) + R"(</td></tr>)";
 	}
 
 	_tmpBody += R"(
