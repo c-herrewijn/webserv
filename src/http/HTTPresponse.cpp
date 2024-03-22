@@ -209,8 +209,7 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 	for (const auto& folder : folders) {
 		std::string folderName = folder.path().filename().string();
 		std::string folderPath = std::filesystem::weakly_canonical(folder).string(); // Get absolute path of folder
-		uintmax_t folderSize = calculateDirectorySize(folder.path());
-		_tmpBody += R"(<tr><td><a href=")" + folderPath + "/" + R"(">)" + folderName + "/" + R"(</a></td><td>)" + formatSize(folderSize) + R"(</td><td>)" + fileTimeToString(std::filesystem::last_write_time(folder)) + R"(</td></tr>)";
+		_tmpBody += R"(<tr><td><a href=")" + folderPath + "/" + R"(">)" + folderName + "/" + R"(</a></td><td>)" + formatSize(calculateDirectorySize(folder.path())) + R"(</td><td>)" + fileTimeToString(std::filesystem::last_write_time(folder)) + R"(</td></tr>)";
 	}
 
 	// Inserting files into HTML
