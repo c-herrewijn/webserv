@@ -89,25 +89,27 @@ static uintmax_t calculateDirectorySize(const std::filesystem::path& directory) 
 	return totalSize;
 }
 
-static std::string formatSize(uintmax_t size) {
-	const char* suffixes[] = {"b", "kB", "MB", "GB"};
-	int suffixIndex = 0;
-	double size_d = static_cast<double>(size);
+std::string formatSize(uintmax_t size) {
+    const char* suffixes[] = {"b", "kB", "MB", "GB"};
+    int suffixIndex = 0;
+    double size_d = static_cast<double>(size);
 
-	while (size_d >= 1024 && suffixIndex < 3) {
-	size_d /= 1024;
-	suffixIndex++;
-	}
+    while (size_d >= 1024 && suffixIndex < 3) {
+        size_d /= 1024;
+        suffixIndex++;
+    }
 
-	char buffer[50];
-	if (size_d - std::floor(size_d) < 0.01) {
-	snprintf(buffer, sizeof(buffer), "%.0f %s", size_d, suffixes[suffixIndex]);
-	} else {
-	snprintf(buffer, sizeof(buffer), "%.2f %s", size_d, suffixes[suffixIndex]);
-	}
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(2);
 
-	return std::string(buffer);
+    if (size_d - std::floor(size_d) < 0.01) {
+        oss << std::setprecision(0);
+    }
+
+    oss << size_d << " " << suffixes[suffixIndex];
+    return oss.str();
 }
+
 void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 {
 	// index of ....			[Header]
@@ -127,7 +129,6 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 		else
 			files.insert(entry);
 	}
-
 	// Header part of the html:
 	_tmpBody += R"(
 		<!DOCTYPE html>
@@ -193,7 +194,7 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 		</head>
 		<body>
 		<div class="container">
-		<h1>Index of )" + pathDir.string() + "/" + R"(</h1>
+		<h1>Index of )" + pathDir.string().substr(_root.string().length()) + "/" + R"(</h1>
 		<hr>
 		<table>
 		<thead>
@@ -208,14 +209,14 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 	// Inserting folders into HTML
 	for (const auto& folder : folders) {
 		std::string folderName = folder.path().filename().string();
-		std::string folderPath = std::filesystem::weakly_canonical(folder).string(); // Get absolute path of folder
+		std::string folderPath = std::filesystem::weakly_canonical(folder).string().substr(_root.string().length()); // Get absolute path of folder
 		_tmpBody += R"(<tr><td><a href=")" + folderPath + "/" + R"(">)" + folderName + "/" + R"(</a></td><td>)" + formatSize(calculateDirectorySize(folder.path())) + R"(</td><td>)" + fileTimeToString(std::filesystem::last_write_time(folder)) + R"(</td></tr>)";
 	}
 
 	// Inserting files into HTML
 	for (const auto& file : files) {
 		std::string fileName = file.path().filename().string();
-		std::string filePath = std::filesystem::weakly_canonical(file).string(); // Get absolute path of file
+		std::string filePath = std::filesystem::weakly_canonical(file).string().substr(_root.string().length()); // Get absolute path of file
 		_tmpBody += R"(<tr><td><a href=")" + filePath + R"(">)" + fileName + R"(</a></td><td>)" + formatSize(std::filesystem::file_size(file)) + R"(</td><td>)" + fileTimeToString(std::filesystem::last_write_time(file)) + R"(</td></tr>)";
 	}
 
