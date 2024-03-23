@@ -90,7 +90,7 @@ static uintmax_t calculateDirectorySize(const std::filesystem::path& directory) 
 }
 
 std::string formatSize(uintmax_t size) {
-    const char* suffixes[] = {"b", "kB", "MB", "GB"};
+    const char* suffixes[] = {"bytes", "kB", "MB", "GB"};
     int suffixIndex = 0;
     double size_d = static_cast<double>(size);
 
@@ -195,7 +195,18 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 		<body>
 		<div class="container">
 		<h1>Index of )" + pathDir.string().substr(_root.string().length()) + "/" + R"(</h1>
-		<hr>
+		<hr>)";
+
+		std::string parentDir = pathDir.parent_path().string() + "/";
+		std::string tmpRoot = _root.string();
+		size_t i = 0;
+		while (i < tmpRoot.length() && parentDir[i] == tmpRoot[i])
+			i++;
+		if (!parentDir.empty()) {
+			_tmpBody += R"(<tr><td><a href=")" + parentDir.substr(i) + R"(">[Parent directory]</a></td><td></td><td></td></tr>)";
+		}
+
+		_tmpBody += R"(
 		<table>
 		<thead>
 		<tr>
