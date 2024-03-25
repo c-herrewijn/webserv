@@ -203,14 +203,14 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 	{
 		name = folder.path().filename().string();
 		path = std::filesystem::weakly_canonical(folder).string().substr(_root.string().length());
-		_tmpBody += "<tr><td><a href=" + folderPath + "/" + "\">" + folderName + "/" + "</a></td><td>" + "</td><td>" + fileTimeToString(std::filesystem::last_write_time(folder)) + "</td></tr>";
+		_tmpBody += "<tr><td><a href=" + path + "/" + "\">" + name + "/" + "</a></td><td>" + "</td><td>" + fileTimeToString(std::filesystem::last_write_time(folder)) + "</td></tr>";
 	}
 	// Inserting files into HTML
 	for (const auto& file : files)
 	{
 		name = file.path().filename().string();
 		path = std::filesystem::weakly_canonical(file).string().substr(_root.string().length());
-		_tmpBody += "<tr><td><a href=" + filePath + "\">" + fileName + "</a></td><td>" + formatSize(std::filesystem::file_size(file)) +  "</td><td>" + fileTimeToString(std::filesystem::last_write_time(file)) + "</td></tr>";
+		_tmpBody += "<tr><td><a href=" + path + "\">" + name + "</a></td><td>" + formatSize(std::filesystem::file_size(file)) +  "</td><td>" + fileTimeToString(std::filesystem::last_write_time(file)) + "</td></tr>";
 	}
 	_tmpBody += "</tbody></table></div></body></html>";
 }
