@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 20:50:27 by fra           #+#    #+#                 */
-/*   Updated: 2024/02/17 00:02:58 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/25 19:59:05 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,10 +18,10 @@ void runClient( const char *host, const char *port )
 {
 	try
 	{
-		std::cout << "running client on process: " << getpid() << "\n" << STD_REQUEST << '\n'; 
+		std::cout << "running client on process: " << getpid() << "\n" << STD_REQUEST_CHK << '\n'; 
 		Client webClient;
 		webClient.connectTo(host, port);
-		webClient.sendRequest(STD_NOBODY);
+		webClient.sendRequest(STD_REQUEST_CHK);
 	}
 	catch(ClientException const& e)
 	{

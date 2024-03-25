@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/25 16:35:05 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/25 20:23:42 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,12 @@
 #define MAIN_PAGE_PATH	 		t_path("var/www/index.html")
 #define FAVICON_PATH			t_path("var/www/favicon.ico")
 #define MAX_HEADER_SIZE			8192
+
+#define	HEADER_CONT_LEN			"Content-Length"
+#define	HEADER_CONT_TYPE		"Content-Type"
+#define	HEADER_HOST				"Host"
+#define	HEADER_CONN				"Connection"
+#define	HEADER_TRANS_ENCODING	"Transfer-Encoding"
 
 typedef enum HTTPreqState_f
 {

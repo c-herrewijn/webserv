@@ -103,7 +103,7 @@ void	WebServer::run( void )
 				this->_emptyConns.push_back(pollfdItem.fd);
 			}
 			catch (const EndConnectionException& e) {
-				std::cerr << C_GREEN << "CLOSED CONNECTION - " << pollfdItem.fd << C_RESET << std::endl;
+				std::cout << C_GREEN << "CLOSED CONNECTION - " << pollfdItem.fd << C_RESET << std::endl;
 				this->_emptyConns.push_back(pollfdItem.fd);
 			}
 			catch (const std::out_of_range& e) {
@@ -111,7 +111,7 @@ void	WebServer::run( void )
 				this->_emptyConns.push_back(pollfdItem.fd);
 			}
 			catch (const HTTPexception& e) {
-				std::cerr << C_RED << e.what()  << C_RESET << '\n';
+				std::cout << C_RED << e.what()  << C_RESET << '\n';
 				redirectToErrorPage(pollfdItem.fd, e.getStatus());
 			}
 			_clearEmptyConns();
@@ -452,9 +452,8 @@ void	WebServer::readStaticFiles( int staticFileFd )
 void	WebServer::readRequestBody( int clientSocket )
 {
 	HTTPrequest *request = this->_requests.at(clientSocket);
-	if (request->getTmpBody() == "") {
+	if (request->getTmpBody() == "")
 		request->parseBody();
-	}
 }
 
 void	WebServer::writeToCGI( int cgiPipe )
@@ -570,7 +569,7 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 		this->_pollitems[clientSocket]->pollState = READ_STATIC_FILE;
 	}
 	catch(const HTTPexception& e1) {
-		std::cerr << C_RED << e1.what() << '\n' << C_RESET;
+		std::cout << C_RED << e1.what() << '\n' << C_RESET;
 		response->errorReset(500);
 		this->_pollitems[clientSocket]->pollState = WRITE_TO_CLIENT;
 	}
