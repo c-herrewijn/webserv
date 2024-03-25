@@ -49,8 +49,8 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 
 void	HTTPresponse::readHTML( void )
 {
-    ssize_t 	readChar = -1;
-    char        buffer[DEF_BUF_SIZE];
+	ssize_t 	readChar = -1;
+	char		buffer[DEF_BUF_SIZE];
 
 	if (this->_gotFullHTML)
 	{
@@ -82,23 +82,23 @@ static std::string fileTimeToString(std::filesystem::file_time_type time)
 static std::string formatSize(uintmax_t size)
 {
 	const char* suffixes[] = {"bytes", "kB", "MB", "GB"};
-    int suffixIndex = 0;
-    double size_d = static_cast<double>(size);
+	int suffixIndex = 0;
+	double size_d = static_cast<double>(size);
 
-    while (size_d >= 1024 && suffixIndex < 3) {
-        size_d /= 1024;
-        suffixIndex++;
-    }
+	while (size_d >= 1024 && suffixIndex < 3) {
+		size_d /= 1024;
+		suffixIndex++;
+	}
 
-    std::ostringstream oss;
-    oss << std::fixed << std::setprecision(2);
+	std::ostringstream oss;
+	oss << std::fixed << std::setprecision(2);
 
-    if (size_d - std::floor(size_d) < 0.01) {
-        oss << std::setprecision(0);
-    }
+	if (size_d - std::floor(size_d) < 0.01) {
+		oss << std::setprecision(0);
+	}
 
-    oss << size_d << " " << suffixes[suffixIndex];
-    return oss.str();
+	oss << size_d << " " << suffixes[suffixIndex];
+	return oss.str();
 }
 
 void	HTTPresponse::listContentDirectory( t_path const& pathDir)
@@ -218,7 +218,7 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 void		HTTPresponse::writeContent( void )
 {
 	static ssize_t 	written;
-    ssize_t 		readChar = -1;
+	ssize_t 		readChar = -1;
 	size_t			charsToWrite = 0;
 
 	if (this->_responseDone == true)
@@ -427,12 +427,12 @@ std::string	HTTPresponse::_mapStatusCode( int status) const
 std::string	HTTPresponse::_getDateTime( void ) const noexcept
 {
 	std::time_t rawtime;
-    std::tm* timeinfo;
-    char buffer[80];
+	std::tm* timeinfo;
+	char buffer[80];
 
-    std::time(&rawtime);
-    timeinfo = std::gmtime(&rawtime);
-    std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
+	std::time(&rawtime);
+	timeinfo = std::gmtime(&rawtime);
+	std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
 	return (std::string(buffer));
 }
 
