@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/18 05:49:01 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/25 16:35:05 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,8 +88,7 @@ class HTTPrequest : public HTTPstruct
 		bool		_endConn;
 
 		void	_readHead( void );
-		void	_readPlainBody( void );
-		void	_readChunkedBody( void );
+		void	_readBody( void );
 		void	_setHead( std::string const& );
 		void	_setHeaders(std::string const& ) override;
 		void	_setType( void );
@@ -103,6 +102,6 @@ class HTTPrequest : public HTTPstruct
 		void	_setFragment( std::string const& );
 		void	_setVersion( std::string const& );
 
-		void		_checkMaxBodySize( size_t );
-		std::string	_unchunkBody( std::string const& );
+		void	_checkMaxBodySize( size_t );
+		void	_unchunkBody( void );
 };

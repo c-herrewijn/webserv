@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/18 14:04:44 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/12 01:34:19 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/25 19:24:17 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,36 +14,36 @@
 #include <string>
 #include <initializer_list>
 
-class WebServerException : public std::exception
+class WebservException : public std::exception
 {
 	public:
-		WebServerException( void ) noexcept : std::exception() {};
+		WebservException( void ) noexcept : std::exception() {};
 		virtual const char* what() const noexcept override {return (this->_msg.c_str());}
-		virtual ~WebServerException( void ) noexcept {};
+		virtual ~WebservException( void ) noexcept {};
 
 	protected:
 		std::string 	_msg;
 };
 
-class ParserException : public WebServerException
+class ParserException : public WebservException
 {
 	public:
 		ParserException( std::initializer_list<std::string> const& ) noexcept;
 };
 
-class ServerException : public WebServerException
+class ServerException : public WebservException
 {
 	public:
 		ServerException( std::initializer_list<std::string> const& ) noexcept;
 };
 
-class EndConnectionException : public WebServerException
+class EndConnectionException : public WebservException
 {
 	public:
 		EndConnectionException( void ) noexcept {};
 };
 
-class HTTPexception : public WebServerException
+class HTTPexception : public WebservException
 {
 	public:
 		HTTPexception( std::initializer_list<std::string> const&, int ) noexcept;

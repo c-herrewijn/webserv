@@ -74,11 +74,12 @@ class HTTPstruct
 		std::string const&	getTmpBody( void );
 		virtual void		setTmpBody( std::string const& );
 
-		bool				isCGI( void ) const noexcept;
+		bool				isStatic( void ) const noexcept;
+		bool				isAutoIndex( void ) const noexcept;
+		bool				isChunked( void ) const noexcept;
 		bool				isFastCGI( void ) const noexcept;
 		bool				isFileUpload( void ) const noexcept;
-		bool				isChunked( void ) const noexcept;
-		bool				isAutoIndex( void ) const noexcept;
+		bool				isCGI( void ) const noexcept;
 
 	protected:
 		int			_socket;

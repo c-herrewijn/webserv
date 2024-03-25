@@ -76,7 +76,7 @@ int main(int ac, char **av)
 		WebServer	webserv(servers);
 		webserv.run();
 	}
-	catch(const WebServerException& e) {
+	catch(const WebservException& e) {
 		std::cerr << e.what() << '\n';
 		return (EXIT_FAILURE);
 	}

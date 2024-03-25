@@ -6,14 +6,14 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/01/18 14:04:58 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/12 01:33:59 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/25 19:23:13 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Exceptions.hpp"
 
 ParserException::ParserException( std::initializer_list<std::string> const& prompts) noexcept
-	: WebServerException()
+	: WebservException()
 {
 	this->_msg = "config file parsing error -";
 	for (std::string prompt : prompts)
@@ -21,7 +21,7 @@ ParserException::ParserException( std::initializer_list<std::string> const& prom
 }
 
 ServerException::ServerException( std::initializer_list<std::string> const& prompts) noexcept
-	: WebServerException()
+	: WebservException()
 {
 	this->_msg = "server error -";
 	for (std::string prompt : prompts)
@@ -29,7 +29,7 @@ ServerException::ServerException( std::initializer_list<std::string> const& prom
 }
 
 HTTPexception::HTTPexception( std::initializer_list<std::string> const& prompts, int status) noexcept
-	: WebServerException()
+	: WebservException()
 {
 	this->_msg = "HTTP parsing error -";
 	for (std::string prompt : prompts)

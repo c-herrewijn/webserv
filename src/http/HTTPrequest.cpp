@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/18 05:56:17 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/25 19:28:42 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@ void	HTTPrequest::parseHead( void )
 
 	if (this->_state != HTTP_REQ_HEAD_READING)
 		throw(RequestException({"instance in wrong state to perfom action"}, 500));
+
 	_readHead();
 	if (this->_state == HTTP_REQ_PARSING)
 	{
@@ -42,10 +43,13 @@ void	HTTPrequest::parseBody( void )
 {
 	if (this->_state != HTTP_REQ_BODY_READING)
 		throw(RequestException({"instance in (wrong) state:", std::to_string(this->_state), "unable to perfom read body"}, 500));
-	if (this->_type == HTTP_CHUNKED)
-		_readChunkedBody();
-	else if (this->_type == HTTP_FILE_UPL_CGI)
-		_readPlainBody();
+	
+	_readBody();
+	if ((this->_type == HTTP_CHUNKED) and (this->_state = HTTP_REQ_RESP_WAITING))
+	{
+		_unchunkBody();
+		std::cout << this->_tmpBody << "\n";
+	}
 }
 
 // NB: fix after validation is ok
@@ -213,7 +217,7 @@ void	HTTPrequest::_readHead( void )
 	if (charsRead < 0)
 		throw(ServerException({"unavailable socket"}));
 	else if (charsRead == 0)
-		throw(EndConnectionException());
+		throw(EndConnectionException({}));
 	else if (this->_tmpHead.size() + charsRead > MAX_HEADER_SIZE)
 		throw(RequestException({"headers too large"}, 431));
 	else if (charsRead == 0)
@@ -226,7 +230,7 @@ void	HTTPrequest::_readHead( void )
 	}
 }
 
-void	HTTPrequest::_readPlainBody( void )
+void	HTTPrequest::_readBody( void )
 {
     ssize_t 			charsRead = -1;
     char        		buffer[HTTP_BUF_SIZE];
@@ -251,39 +255,6 @@ void	HTTPrequest::_readPlainBody( void )
 		}
 		this->_contentLengthRead += charsRead;
 		this->_tmpBody += std::string(buffer, buffer + charsRead);
-	}
-}
-
-void	HTTPrequest::_readChunkedBody( void )
-{
-    ssize_t charsRead = -1;
-	size_t	delimiter = 0;
-    char	buffer[HTTP_BUF_SIZE];
-
-	if (this->_contentLengthRead == 0)
-	{
-		_resetTimeout();
-		this->_contentLengthRead += this->_tmpBody.size();
-	}
-	bzero(buffer, HTTP_BUF_SIZE);
-	charsRead = recv(this->_socket, buffer, HTTP_BUF_SIZE, 0);
-	if (charsRead < 0 )
-		throw(ServerException({"unavailable socket"}));
-	else if (charsRead == 0)
-		_checkTimeout();
-	else
-	{
-		delimiter = std::string(buffer).find(HTTP_DEF_TERM);
-		if (delimiter != std::string::npos)
-		{
-			charsRead = delimiter + HTTP_DEF_TERM.size();
-			this->_state = HTTP_REQ_RESP_WAITING;
-		}
-		if ((this->_contentLengthRead + charsRead)> this->_maxBodySize)
-			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
-		this->_contentLengthRead += charsRead;
-		this->_tmpBody += std::string(buffer, buffer + charsRead);
-		// _unchunkBody() ...
 	}
 }
 
@@ -482,17 +453,20 @@ void	HTTPrequest::_checkMaxBodySize( size_t maxSize )
 
 void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 {
-	HTTPstruct::_setHeaders(strHeaders);
+	try {
+		HTTPstruct::_setHeaders(strHeaders);
+	}
+	catch (const HTTPexception& e) {
+		throw(RequestException({"invalid header"}, e.getStatus()));
+	}
 
 	if (this->_headers["Host"] == "")		// missing Host header
-	{
-		this->_endConn = true;
 		throw(RequestException({"no Host header"}, 444));	// NGINX custom error Code
-	}
 	else if (this->_url.host == "")
 		_setHostPort(this->_headers.at("Host"));
 	else if (this->_headers.at("Host").find(this->_url.host) == std::string::npos)
 		throw(RequestException({"hosts do not match"}, 412));
+
 	if (this->_headers.count("Connection") != 0)
 		this->_endConn = this->_headers["Connection"] == "close";
 	if (this->_headers.count("Content-Length") == 0)
@@ -532,13 +506,15 @@ void	HTTPrequest::_setType( void )
 
 }
 
-std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
+void	HTTPrequest::_unchunkBody( void )
 {
 	size_t		sizeChunk=0, delimiter=0;
-	std::string	tmpChunkedBody = chunkedBody;
+	std::string	tmpChunkedBody;
 
-	if (chunkedBody.find(HTTP_DEF_TERM) == std::string::npos)
+	if (this->_tmpBody.find(HTTP_DEF_TERM) == std::string::npos)
 		throw(RequestException({"no body terminator"}, 400));
+	tmpChunkedBody = this->_tmpBody;
+	this->_tmpBody.clear();
 	do
 	{
 		delimiter = tmpChunkedBody.find(HTTP_DEF_NL);
@@ -546,39 +522,14 @@ std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
 			throw(RequestException({"bad chunking"}, 400));
 		try {
 			sizeChunk = std::stoul(tmpChunkedBody.substr(0, delimiter), nullptr, 16);
-			this->_body += tmpChunkedBody.substr(delimiter + HTTP_DEF_NL.size(), sizeChunk);
+			this->_tmpBody += tmpChunkedBody.substr(delimiter + HTTP_DEF_NL.size(), sizeChunk);
 			tmpChunkedBody = tmpChunkedBody.substr(delimiter + sizeChunk + HTTP_DEF_NL.size() * 2);
 		}
 		catch(const std::exception& e){
 			throw(RequestException({"bad chunking"}, 400));
 		}
 	} while (sizeChunk != 0);
-	return (tmpChunkedBody);
 }
-
-// std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody)
-// {
-// 	size_t		sizeChunk=0, delimiter=0;
-// 	std::string	tmpChunkedBody = chunkedBody;
-
-// 	if (chunkedBody.find(HTTP_DEF_TERM) == std::string::npos)
-// 		throw(RequestException({"no body terminator"}, 400));
-// 	do
-// 	{
-// 		delimiter = tmpChunkedBody.find(HTTP_DEF_NL);
-// 		if (delimiter == std::string::npos)
-// 			throw(RequestException({"bad chunking"}, 400));
-// 		try {
-// 			sizeChunk = std::stoul(tmpChunkedBody.substr(0, delimiter), nullptr, 16);
-// 			this->_body += tmpChunkedBody.substr(delimiter + HTTP_DEF_NL.size(), sizeChunk);
-// 			tmpChunkedBody = tmpChunkedBody.substr(delimiter + sizeChunk + HTTP_DEF_NL.size() * 2);
-// 		}
-// 		catch(const std::exception& e){
-// 			throw(RequestException({"bad chunking"}, 400));
-// 		}
-// 	} while (sizeChunk != 0);
-// 	return (tmpChunkedBody);
-// }
 
 // std::string	HTTPrequest::_unchunkChunk( std::string const& chunkedChunk, std::string& remainder)
 // {

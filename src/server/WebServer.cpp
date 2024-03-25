@@ -70,8 +70,7 @@ WebServer::~WebServer ( void ) noexcept
 // NB: update for codes 20X
 // NB: use relative root in Config File for multi-platform functionality
 // NB: if an error occurs while CGI is running (fileupload) the cgi has to be stopped
-// NB: put request, response, cgi inside pollitem
-// NB: specific exception for error states/type
+// NB: put request, response, cgi inside pollitem (maybe not)
 void	WebServer::run( void )
 {
 	int				nConn = -1;
@@ -104,7 +103,7 @@ void	WebServer::run( void )
 				this->_emptyConns.push_back(pollfdItem.fd);
 			}
 			catch (const EndConnectionException& e) {
-				std::cout << C_GREEN << "CLOSED CONNECTION - " << pollfdItem.fd << C_RESET << std::endl;
+				std::cerr << C_GREEN << "CLOSED CONNECTION - " << pollfdItem.fd << C_RESET << std::endl;
 				this->_emptyConns.push_back(pollfdItem.fd);
 			}
 			catch (const std::out_of_range& e) {
@@ -415,11 +414,11 @@ void	WebServer::readRequestHeaders( int clientSocket )
 		cgiPtr = new CGI(*request);
 		this->_cgi[clientSocket] = cgiPtr;
 		this->_addConn(cgiPtr->getResponsePipe()[0], CGI_RESPONSE_PIPE, READ_CGI_RESPONSE);
-		cgiPtr->run();
 		if (request->isFileUpload())
 			this->_addConn(cgiPtr->getuploadPipe()[1], CGI_REQUEST_PIPE, WRITE_TO_CGI);
+		cgiPtr->run();
 	}
-	else
+	else if (request->isStatic())
 	{
 		HTMLfd = open(request->getRealPath().c_str(), O_RDONLY);
 		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
@@ -431,7 +430,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 		nextStatus = READ_CGI_RESPONSE;
 	else if (request->hasBody())
 		nextStatus = READ_REQ_BODY;
-	else
+	else if (request->isStatic())
 		nextStatus = READ_STATIC_FILE;
 	this->_pollitems[clientSocket]->pollState = nextStatus;
 }
@@ -537,7 +536,7 @@ void	WebServer::writeToClients( int clientSocket )
 	response->writeContent();
 	if (response->isDoneWriting() == false)
 		return ;
-	if (request->isEndConn() == true)
+	if ((request->isEndConn() == true) or (response->getStatusCode() == 444))
 		this->_emptyConns.push_back(clientSocket);
 	else
 	{

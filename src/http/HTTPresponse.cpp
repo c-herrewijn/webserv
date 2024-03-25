@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/18 17:37:36 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/25 19:28:51 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -203,12 +203,11 @@ bool	HTTPresponse::isDoneWriting( void ) const noexcept
 
 void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 {
-	HTTPstruct::_setHeaders(strHeaders);
-
 	size_t	delimiter = 0;
 
 	try
 	{
+		HTTPstruct::_setHeaders(strHeaders);
 		delimiter = this->_headers.at("Status").find(HTTP_DEF_SP);
 		try {
 			this->_statusCode = std::stoi(this->_headers.at("Status").substr(0, delimiter));
@@ -225,8 +224,11 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 				this->_headers.at("Location");
 		}
 	}
-	catch(const std::out_of_range& e) {
+	catch(const std::out_of_range& e1) {
 		throw(ResponseException({"missing mandatory header(s) in CGI response"}, 500));
+	}
+	catch (const HTTPexception& e2) {
+		throw(ResponseException({"invalid header"}, e2.getStatus()));
 	}
 }
 

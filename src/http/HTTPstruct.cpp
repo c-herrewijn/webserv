@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/18 05:57:04 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/25 17:00:11 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,17 +19,17 @@ HTTPstruct::HTTPstruct( int socket, HTTPtype type ) : _socket(socket) , _type(ty
 	this->_version.minor = 1;
 }
 
-bool	HTTPstruct::hasBody( void ) const noexcept
+bool				HTTPstruct::hasBody( void ) const noexcept
 {
 	return((this->_type == HTTP_CHUNKED) or (this->_type == HTTP_FILE_UPL_CGI));
 }
 
-HTTPtype	HTTPstruct::getType( void ) const noexcept
+HTTPtype			HTTPstruct::getType( void ) const noexcept
 {
 	return(this->_type);
 }
 
-int		HTTPstruct::getSocket( void ) const noexcept
+int					HTTPstruct::getSocket( void ) const noexcept
 {
 	return (this->_socket);
 }
@@ -39,7 +39,7 @@ std::string const&	HTTPstruct::getServName( void ) const noexcept
 	return(this->_servName);
 }
 
-void	HTTPstruct::setServName( std::string nameServ) noexcept
+void				HTTPstruct::setServName( std::string nameServ) noexcept
 {
 	this->_servName = nameServ;
 }
@@ -49,14 +49,24 @@ std::string const&	HTTPstruct::getTmpBody( void )
 	return (this->_tmpBody);
 }
 
-void	HTTPstruct::setTmpBody( std::string const& tmpBody )
+void				HTTPstruct::setTmpBody( std::string const& tmpBody )
 {
     this->_tmpBody = tmpBody;
 }
 
-bool	HTTPstruct::isCGI( void ) const noexcept
+bool	HTTPstruct::isStatic( void ) const noexcept
 {
-	return (this->_type > HTTP_CHUNKED);		// NB: is chunked CGI?
+	return (this->_type == HTTP_STATIC);
+}
+
+bool	HTTPstruct::isAutoIndex( void ) const noexcept
+{
+	return (this->_type == HTTP_AUTOINDEX_STATIC);
+}
+
+bool	HTTPstruct::isChunked( void ) const noexcept
+{
+	return (this->_type == HTTP_CHUNKED);
 }
 
 bool	HTTPstruct::isFastCGI( void ) const noexcept
@@ -69,14 +79,9 @@ bool	HTTPstruct::isFileUpload( void ) const noexcept
 	return (this->_type == HTTP_FILE_UPL_CGI);
 }
 
-bool	HTTPstruct::isChunked( void ) const noexcept
+bool	HTTPstruct::isCGI( void ) const noexcept
 {
-	return (this->_type == HTTP_CHUNKED);
-}
-
-bool	HTTPstruct::isAutoIndex( void ) const noexcept
-{
-	return (this->_type == HTTP_AUTOINDEX_STATIC);
+	return (this->_type > HTTP_CHUNKED);
 }
 
 void	HTTPstruct::_setHeaders( std::string const& headers )
