@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/26 01:24:49 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/26 02:12:09 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,27 +39,12 @@ void	HTTPrequest::parseHead( void )
 	}
 }
 
-void	HTTPrequest::parseBody( void )
-{
-	if (this->_state != HTTP_REQ_BODY_READING)
-		throw(RequestException({"instance in (wrong) state:", std::to_string(this->_state), "unable to perfom read body"}, 500));
-	
-	if (this->_type == HTTP_CHUNKED)
-	{
-		_readChunkedBody();
-		if (this->_state == HTTP_REQ_RESP_WAITING)
-			_unchunkBody();
-	}
-	else
-		_readPlainBody();
-}
-
 // NB: fix after validation is ok
 void		HTTPrequest::validate( ConfigServer const& configServer )
 {
 	if (this->_state != HTTP_REQ_VALIDATING)
 		throw(RequestException({"instance in wrong state to perfom action"}, 500));
-	this->_servName = configServer.getPrimaryName();
+ 	this->_servName = configServer.getPrimaryName();
 	this->_validator.setConfig(configServer);
 	this->_validator.setMethod(this->_method);
 	this->_validator.setPath(this->_url.path);
@@ -68,18 +53,34 @@ void		HTTPrequest::validate( ConfigServer const& configServer )
 	// 	throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
 	// _checkMaxBodySize(this->_validator.getMaxBodySize());
 	_setType();
-	if ((this->_type == HTTP_FILE_UPL_CGI) and (this->_body.size() < this->_contentLength))
-		this->_state = HTTP_REQ_BODY_READING;
-	else if ((this->_type == HTTP_CHUNKED) and (this->_tmpBody.find(HTTP_DEF_TERM) == std::string::npos))
-		this->_state = HTTP_REQ_BODY_READING;
+	if (((this->_type == HTTP_FILE_UPL_CGI) and (this->_body.size() < this->_contentLength))
+		or ((this->_type == HTTP_CHUNKED) and (this->_tmpBody.find(HTTP_DEF_TERM) == std::string::npos)))
+			this->_state = HTTP_REQ_BODY_READING;
 	else
 	{
+		this->_state = HTTP_REQ_RESP_WAITING;
 		if (this->_type == HTTP_CHUNKED)
 			_unchunkBody();
-		this->_state = HTTP_REQ_RESP_WAITING;
+		HTTPstruct::_setBody(this->_tmpBody);
 	}
 }
 
+void	HTTPrequest::parseBody( void )
+{
+	if (this->_state != HTTP_REQ_BODY_READING)
+		throw(RequestException({"instance in (wrong) state:", std::to_string(this->_state), "unable to perfom read body"}, 500));
+	
+	if (this->_type == HTTP_CHUNKED)
+		_readChunkedBody();
+	else
+		_readPlainBody();
+	if (this->_state == HTTP_REQ_RESP_WAITING)
+	{
+		if (this->_type == HTTP_CHUNKED)
+			_unchunkBody();
+		HTTPstruct::_setBody(this->_tmpBody);
+	}
+}
 std::string	HTTPrequest::toString( void ) const noexcept
 {
 	std::string	strReq;
@@ -203,6 +204,11 @@ bool	HTTPrequest::isEndConn( void ) const noexcept
 	return (this->_endConn);
 }
 
+bool	HTTPrequest::theresBodyToRead( void ) const noexcept
+{
+	return (this->_state == HTTP_REQ_BODY_READING);
+}
+
 bool	HTTPrequest::isDoneReadingHead( void ) const noexcept
 {
 	return (this->_state > HTTP_REQ_PARSING);
@@ -264,7 +270,6 @@ void	HTTPrequest::_readPlainBody( void )
 		this->_contentLengthRead += charsRead;
 		this->_tmpBody += std::string(buffer, buffer + charsRead);
 	}
-	std::cout << "|" << this->_tmpBody << "|\n";
 }
 
 void	HTTPrequest::_readChunkedBody( void )
@@ -296,7 +301,7 @@ void	HTTPrequest::_readChunkedBody( void )
 			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
 		this->_contentLengthRead += charsRead;
 		this->_tmpBody += std::string(buffer, buffer + charsRead);
-		// _unchunkBody() ...
+		// _unchunkChunk() ...
 	}
 }
 
@@ -533,9 +538,9 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 
 void	HTTPrequest::_setType( void )
 {
-	if (this->_headers.at(HEADER_TRANS_ENCODING) == "chunked")
+	if (this->_headers[HEADER_TRANS_ENCODING] == "chunked")
 		this->_type = HTTP_CHUNKED;
-	else if (this->_headers.at(HEADER_CONT_TYPE).find("multipart/form-data; boundary=-") == 0)
+	else if (this->_headers[HEADER_CONT_TYPE].find("multipart/form-data; boundary=-") == 0)
 		this->_type = HTTP_FILE_UPL_CGI;
 	// else if (this->_validator.isAutoIndex() == true) // NB: fix after validation is ok
 	else if (false)

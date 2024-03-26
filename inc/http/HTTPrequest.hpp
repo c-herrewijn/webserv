@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/26 01:17:49 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/26 02:12:13 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,12 +61,12 @@ class HTTPrequest : public HTTPstruct
 			_contentLength(0) ,
 			_contentLengthRead(0),
 			_maxBodySize(-1),
-			_endConn(false) {};
+			_endConn(false){};
 		virtual ~HTTPrequest( void ) override {};
 
 		void		parseHead( void );
-		void		parseBody( void );
 		void		validate( ConfigServer const& );
+		void		parseBody( void );
 		std::string	toString( void ) const noexcept override;
 
 		std::string		 	getMethod( void ) const noexcept;
@@ -83,6 +83,7 @@ class HTTPrequest : public HTTPstruct
 		bool				isDoneReadingHead( void ) const noexcept;
 		bool				isDoneReadingBody( void ) const noexcept;
 		bool				isEndConn( void ) const noexcept;
+		bool				theresBodyToRead( void ) const noexcept;
 
 	protected:
 		HTTPreqState	_state;

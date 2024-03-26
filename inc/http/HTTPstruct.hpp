@@ -65,7 +65,6 @@ class HTTPstruct
 		virtual	~HTTPstruct( void ) {};
 
 		virtual std::string	toString( void ) const noexcept =0;
-		bool				hasBody( void ) const noexcept;
 
 		HTTPtype			getType( void ) const noexcept;
 		int					getSocket( void ) const noexcept;

@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/26 00:44:53 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/26 01:49:29 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,11 +17,6 @@ HTTPstruct::HTTPstruct( int socket, HTTPtype type ) : _socket(socket) , _type(ty
 	this->_version.scheme = HTTP_DEF_SCHEME;
 	this->_version.major = 1;
 	this->_version.minor = 1;
-}
-
-bool				HTTPstruct::hasBody( void ) const noexcept
-{
-	return((this->_type == HTTP_CHUNKED) or (this->_type == HTTP_FILE_UPL_CGI));
 }
 
 HTTPtype			HTTPstruct::getType( void ) const noexcept

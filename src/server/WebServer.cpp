@@ -426,12 +426,12 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	}
 	if (request->isAutoIndex())
 		nextStatus = WRITE_TO_CLIENT;
-	else if (request->isFastCGI())
-		nextStatus = READ_CGI_RESPONSE;
-	else if (request->hasBody())
+	else if (request->theresBodyToRead())
 		nextStatus = READ_REQ_BODY;
 	else if (request->isStatic())
-		nextStatus = READ_STATIC_FILE;
+		nextStatus = READ_STATIC_FILE;		
+	else
+		nextStatus = READ_CGI_RESPONSE;
 	this->_pollitems[clientSocket]->pollState = nextStatus;
 }
 
