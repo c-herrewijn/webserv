@@ -6,7 +6,7 @@
 #    By: itopchu <itopchu@student.42.fr>              +#+                      #
 #                                                    +#+                       #
 #    Created: 2023/11/25 18:04:49 by fra           #+#    #+#                  #
-#    Updated: 2024/03/05 23:09:38 by fra           ########   odam.nl          #
+#    Updated: 2024/03/25 22:31:33 by fra           ########   odam.nl          #
 #                                                                              #
 # **************************************************************************** #
 
@@ -24,6 +24,7 @@ DEPS := $(patsubst $(SRC_DIR)%,$(DEP_DIR)%,$(SOURCES:.cpp=.d))
 CLI_DIR := _client
 CLIENT := $(CLI_DIR)/webclient
 CLIENT_SRCS := $(shell find $(CLI_DIR) -type f -name '*.cpp')
+CLIENT_INCS := $(shell find $(CLI_DIR) -type f -name '*.hpp')
 
 CC := c++
 INC_FLAGS := -I$(INC_DIR) -I$(INC_DIR)/http -I$(INC_DIR)/parser -I$(INC_DIR)/server -I$(INC_DIR)/CGI
@@ -60,7 +61,7 @@ client: $(CLIENT)
 	@clear
 	@./$(CLIENT) "localhost" "8080"
 
-$(CLIENT): $(CLIENT_SRCS)
+$(CLIENT): $(CLIENT_SRCS) $(CLIENT_INCS)
 	@$(CC) $(CPP_FLAGS) $^ -o $@
 	@printf "(WebServ) $(GREEN)Created program $@$(RESET)\n"
 

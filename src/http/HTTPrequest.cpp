@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/25 20:38:50 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/26 01:24:49 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,9 +27,9 @@ void	HTTPrequest::parseHead( void )
 		endReq = this->_tmpHead.find(HTTP_DEF_TERM);
 		endHead = this->_tmpHead.find(HTTP_DEF_NL);		// look for headers
 		if (endHead >= endReq)
-			throw(RequestException({"bad format request"}, 400));
+			throw(RequestException({"no headers"}, 400));
 		strHead = this->_tmpHead.substr(0, endHead);
-		strHeaders = this->_tmpHead.substr(endHead + HTTP_DEF_NL.size(), endReq - endHead - 1) + HTTP_DEF_NL;
+		strHeaders = this->_tmpHead.substr(endHead + HTTP_DEF_NL.size(), endReq + HTTP_DEF_NL.size() - endHead - 1);
 		endReq += HTTP_DEF_TERM.size();
 		if ((endReq + 1) < this->_tmpHead.size())		// if there's the beginning of the body
 			this->_tmpBody = this->_tmpHead.substr(endReq);
@@ -44,12 +44,14 @@ void	HTTPrequest::parseBody( void )
 	if (this->_state != HTTP_REQ_BODY_READING)
 		throw(RequestException({"instance in (wrong) state:", std::to_string(this->_state), "unable to perfom read body"}, 500));
 	
-	_readBody();
-	if ((this->_type == HTTP_CHUNKED) and (this->_state = HTTP_REQ_RESP_WAITING))
+	if (this->_type == HTTP_CHUNKED)
 	{
-		_unchunkBody();
-		std::cout << this->_tmpBody << "\n";
+		_readChunkedBody();
+		if (this->_state == HTTP_REQ_RESP_WAITING)
+			_unchunkBody();
 	}
+	else
+		_readPlainBody();
 }
 
 // NB: fix after validation is ok
@@ -66,10 +68,16 @@ void		HTTPrequest::validate( ConfigServer const& configServer )
 	// 	throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
 	// _checkMaxBodySize(this->_validator.getMaxBodySize());
 	_setType();
-	if ((this->hasBody() == true) and (this->_body.size() < this->_contentLength))
+	if ((this->_type == HTTP_FILE_UPL_CGI) and (this->_body.size() < this->_contentLength))
 		this->_state = HTTP_REQ_BODY_READING;
-	else 
+	else if ((this->_type == HTTP_CHUNKED) and (this->_tmpBody.find(HTTP_DEF_TERM) == std::string::npos))
+		this->_state = HTTP_REQ_BODY_READING;
+	else
+	{
+		if (this->_type == HTTP_CHUNKED)
+			_unchunkBody();
 		this->_state = HTTP_REQ_RESP_WAITING;
+	}
 }
 
 std::string	HTTPrequest::toString( void ) const noexcept
@@ -230,7 +238,7 @@ void	HTTPrequest::_readHead( void )
 	}
 }
 
-void	HTTPrequest::_readBody( void )
+void	HTTPrequest::_readPlainBody( void )
 {
     ssize_t 			charsRead = -1;
     char        		buffer[HTTP_BUF_SIZE];
@@ -255,6 +263,40 @@ void	HTTPrequest::_readBody( void )
 		}
 		this->_contentLengthRead += charsRead;
 		this->_tmpBody += std::string(buffer, buffer + charsRead);
+	}
+	std::cout << "|" << this->_tmpBody << "|\n";
+}
+
+void	HTTPrequest::_readChunkedBody( void )
+{
+    ssize_t charsRead = -1;
+	size_t	delimiter = 0;
+    char	buffer[HTTP_BUF_SIZE];
+
+	if (this->_contentLengthRead == 0)
+	{
+		_resetTimeout();
+		this->_contentLengthRead += this->_tmpBody.size();
+	}
+	bzero(buffer, HTTP_BUF_SIZE);
+	charsRead = recv(this->_socket, buffer, HTTP_BUF_SIZE, 0);
+	if (charsRead < 0 )
+		throw(ServerException({"unavailable socket"}));
+	else if (charsRead == 0)
+		_checkTimeout();
+	else
+	{
+		delimiter = std::string(buffer).find(HTTP_DEF_TERM);
+		if (delimiter != std::string::npos)
+		{
+			charsRead = delimiter + HTTP_DEF_TERM.size();
+			this->_state = HTTP_REQ_RESP_WAITING;
+		}
+		if ((this->_contentLengthRead + charsRead)> this->_maxBodySize)
+			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
+		this->_contentLengthRead += charsRead;
+		this->_tmpBody += std::string(buffer, buffer + charsRead);
+		// _unchunkBody() ...
 	}
 }
 
@@ -474,11 +516,7 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 		if (this->_headers.count(HEADER_TRANS_ENCODING) == 0)		// no body
 			return ;
 		else if (this->_headers.at(HEADER_TRANS_ENCODING) != "chunked")
-		// {
-		// 	std::cout << this->_headers.at(HEADER_TRANS_ENCODING) << '|' <<'\n';
-		// 	std::cout << "chunked" << "|\n";
-			throw(RequestException({"Content-Length required"}, 411));
-		// }
+			throw(RequestException({HEADER_TRANS_ENCODING, "required"}, 411));
 	}
 	else
 	{

@@ -452,7 +452,7 @@ void	WebServer::readStaticFiles( int staticFileFd )
 void	WebServer::readRequestBody( int clientSocket )
 {
 	HTTPrequest *request = this->_requests.at(clientSocket);
-	if (request->getTmpBody() == "")
+	if (request->getTmpBody() == "")	// NB: this check is problematic in case of chunked requests
 		request->parseBody();
 }
 

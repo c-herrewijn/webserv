@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/25 17:00:11 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/26 00:44:53 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -86,23 +86,23 @@ bool	HTTPstruct::isCGI( void ) const noexcept
 
 void	HTTPstruct::_setHeaders( std::string const& headers )
 {
-	size_t 		del1, del2;
+	size_t 		nextHeader, delimHeader;
 	std::string key, value, tmpHeaders=headers;
 
 	if (tmpHeaders.empty())
 		return ;
-	del1 = tmpHeaders.find(HTTP_DEF_NL);
-	do
+	nextHeader = tmpHeaders.find(HTTP_DEF_NL);
+	while (nextHeader != std::string::npos)
 	{
-		del2 = tmpHeaders.find(": ");
-		if (del2 == std::string::npos)
-			throw(HTTPexception({"invalid header format:", tmpHeaders.substr(0, del1)}, 400));
-		key = tmpHeaders.substr(0, del2);
-		value = tmpHeaders.substr(del2 + 2, del1 - del2 - 2);
+		delimHeader = tmpHeaders.find(": ");
+		if (delimHeader == std::string::npos)
+			throw(HTTPexception({"invalid header format:", tmpHeaders.substr(0, nextHeader)}, 400));
+		key = tmpHeaders.substr(0, delimHeader);
+		value = tmpHeaders.substr(delimHeader + 2, nextHeader - delimHeader - 2);
+		tmpHeaders = tmpHeaders.substr(nextHeader + HTTP_DEF_NL.size());
 		_addHeader(key, value);
-		tmpHeaders = tmpHeaders.substr(del1 + 2);
-		del1 = tmpHeaders.find(HTTP_DEF_NL);
-	} while (del1 != std::string::npos);
+		nextHeader = tmpHeaders.find(HTTP_DEF_NL);
+	}
 }
 
 void	HTTPstruct::_setBody( std::string const& strBody )

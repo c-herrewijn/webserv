@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/25 20:23:42 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/26 01:17:49 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -94,7 +94,8 @@ class HTTPrequest : public HTTPstruct
 		bool		_endConn;
 
 		void	_readHead( void );
-		void	_readBody( void );
+		void	_readPlainBody( void );
+		void	_readChunkedBody( void );
 		void	_setHead( std::string const& );
 		void	_setHeaders(std::string const& ) override;
 		void	_setType( void );

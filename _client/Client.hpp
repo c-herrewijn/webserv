@@ -6,11 +6,11 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/26 20:16:40 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/25 20:00:05 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/26 00:46:23 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
-#pragma once
+// #pragma once
 #include <unistd.h>           // execve, dup, dup2, pipe, fork, access
 #include <cstring>           // strerror
 #include <netdb.h>            // gai_strerror, getaddrinfo, freeaddrinfo
@@ -37,6 +37,7 @@
 #define STD_NOBODY "GET http://Pino:21/home/faru/Documents/Codam/webserv/test.txt HTTP/1.1\r\nkey1: value1\r\nkey2: value2\r\nHost: Pino\r\n\r\n"
 #define STD_REQUEST "GET http://Pino:21/home/faru/Documents/Codam/webserv/test.txt HTTP/1.1\r\nHost: example1.com\r\tTransfer-Encoding: chunked\r\n\r\n7\r\nMozilla\r\n11\r\nDeveloper Network\r\n0\r\n\r\n"
 #define STD_REQUEST_CHK "GET / HTTP/1.1\r\nHost: example1.com\r\nTransfer-Encoding: chunked\r\n\r\n7\r\nMozilla\r\n11\r\nDeveloper Network\r\n0\r\n\r\n"
+#define STD_REQUEST_BODY "GET / HTTP/1.1\r\nHost: example1.com\r\nContent-Length: 5\r\n\r\naaaaa"
 #define STD_FULL "GET http://test:21/halo/find/me/here?bcd=123&gasd=255#sectione HTTP/1.1\r\nkey1: value1\r\nkey2: value2\r\n\r\nmuch body very http\r\n\r\n"
 #define STD_NOHEADS "GET http://test:21/halo/find/me/here HTTP/1.1\r\n\r\nmuch body very http\r\n\r\n"
 #define STD_QUERY "GET http://test:21/halo/find/me/here?amd=123&def=566 HTTP/1.1\r\nkey1: value1\r\nkey2: value2\r\n\r\nmuch body very http\r\n\r\n"
