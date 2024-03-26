@@ -28,12 +28,13 @@
         <li><a href="/game/tetris.html">Play tetris!</a></li>
         <li><a href="/cgi-bin/long_response.cgi">Test a long CGI response</a></li>
         <li><a href="/long_static_page.html">Test a long static page</a></li>
+        <li><a href="/non_existing.html">Test a non existing page (should return 404)</a><span style="color:red; font-weight: bold;"> -> bugged!</span></li>
         <li><a href="/">Stay home</a></li>
     </ul>
     <h2>Edge cases</h2>
     <ul>
-        <li><a href="1024.html">HTML 1024 edge case</a><span style="color:green; font-weight: bold;"> -> works!</span></li>
-        <li><a href="/cgi-bin/cgi_1024.cgi">CGI 1024 edge case</a><span style="color:red; font-weight: bold;"> -> bugged!</span></li>
+        <li><a href="1024.html">HTML 1024 edge case</a></li>
+        <li><a href="/cgi-bin/cgi_1024.cgi">CGI 1024 edge case</a></li>
     </ul>
 </body>
 </html>
