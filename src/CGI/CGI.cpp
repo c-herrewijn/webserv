@@ -83,21 +83,24 @@ void CGI::run()
             exit(1); // TODO: exit() is not allowed!
         }
     }
+    else {
+        close(this->_responsePipe[1]); // close write end of cgi response pipe
+    }
 }
 
-int CGI::getRequestSocket() {
+int CGI::getRequestSocket() const {
     return this->_req.getSocket();
 }
 
-int *CGI::getuploadPipe(){
-    return this->_uploadPipe;
+const std::array<int, 2> CGI::getUploadPipe() const {
+    return std::array<int, 2> {this->_uploadPipe[0], this->_uploadPipe[1]};
 }
 
-int *CGI::getResponsePipe() {
-    return this->_responsePipe;
+const std::array<int, 2> CGI::getResponsePipe() const {
+    return std::array<int, 2> {this->_responsePipe[0], this->_responsePipe[1]};
 }
 
-std::string CGI::getResponse() {
+std::string CGI::getResponse() const {
     return this->_response;
 }
 

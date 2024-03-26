@@ -17,10 +17,10 @@ public:
     CGI(const HTTPrequest &req);
     ~CGI();
     void run();
-    int *getuploadPipe();
-    int *getResponsePipe();
-    int getRequestSocket();
-    std::string getResponse();
+    const std::array<int, 2> getUploadPipe() const;
+    const std::array<int, 2> getResponsePipe() const;
+    int getRequestSocket() const;
+    std::string getResponse() const;
     void appendResponse(std::string additionalResponsePart);
 
 private:
