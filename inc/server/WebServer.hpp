@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/18 05:09:51 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/26 12:39:46 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -105,7 +105,7 @@ class WebServer
 		ConfigServer const&	_getHandler( std::string const& ) const noexcept;
 		ConfigServer const&	_getDefaultHandler( void ) const noexcept;
 		int					_getSocketFromFd( int );
-		t_path				_getHTMLerrorPage( int, t_string_map const& ) const;
+		t_path				_getHTMLerrorPage( int, HTTPrequest* ) const;
 
 		void			handleNewConnections( int ); // keep - DONE
 		void			readRequestHeaders( int ); // keep / rework

@@ -350,31 +350,32 @@ int		WebServer::_getSocketFromFd( int fd )
 
 // NB: building absolut path?
 // NB: fix after validation is ok
-t_path	WebServer::_getHTMLerrorPage( int statusCode, t_string_map const& localErrPages ) const
+t_path	WebServer::_getHTMLerrorPage( int statusCode, HTTPrequest *request ) const
 {
-	(void) localErrPages;
-	// try {
-	// 	return (localErrPages.at(statusCode));
-	// }
-	// catch(const std::out_of_range& e1)
-	// {
-	// 	try {
-	// 		return (_getHandler(request->getHost()).getParams().getErrorPages().at(statusCode));
-	// 	}
-	// 	catch(const std::out_of_range& e2) {
-	// 		try {
-	// 			return (_getDefaultHandler().getParams().getErrorPages().at(statusCode));
-	// 		}
-	// 		catch(const std::out_of_range& e3) {
+	try {
+		if (request->isDoneReadingHead() == false)	// fail occured even before validation, so no error pages, skipping directly to server ones
+			throw(std::out_of_range(""));
+		return (request->getErrorPages().at(statusCode));
+	}
+	catch(const std::out_of_range& e1)
+	{
+		try {
+			return (_getHandler(request->getHost()).getParams().getErrorPages().at(statusCode));
+		}
+		catch(const std::out_of_range& e2) {
+			try {
+				return (_getDefaultHandler().getParams().getErrorPages().at(statusCode));
+			}
+			catch(const std::out_of_range& e3) {
 				for (auto const& dir_entry : std::filesystem::directory_iterator{HTML_ERROR_FOLDER})
 				{
 					if (dir_entry.path().stem() == std::to_string(statusCode))
 						return (dir_entry.path());
 				}
-				throw(HTTPexception({"absolutely no HTML found for code", std::to_string(statusCode)}, 500));
-	// 		}
-	// 	}
-	// }
+				throw(HTTPexception({"absolutely no HTML found for code:", std::to_string(statusCode)}, 500));
+			}
+		}
+	}
 }
 
 void	WebServer::handleNewConnections( int listenerFd )
@@ -519,15 +520,15 @@ void	WebServer::writeToClients( int clientSocket )
 
 	if (response->isParsingNeeded() == true)
 	{
-		if ((request->isCGI()) and (response->getStatusCode() < 400)) 
+		if ((request->isCGI()) and (response->getStatusCode() < 400)) 	// NB: check the second condition
 		{
 			CGI *cgi = this->_cgi.at(clientSocket);
 			response->parseFromCGI(cgi->getResponse());
 		}
 		else
 		{
-			if ((request->isAutoIndex()) and (response->getStatusCode() < 400))
-				response->readContentDirectory(request->getRealPath());
+			if ((request->isAutoIndex()) and (response->getStatusCode() < 400))	// NB: check the second condition
+				response->listContentDirectory(request->getRealPath());
 			response->setServName(_getHandler(request->getHost()).getPrimaryName());
 			response->parseFromStatic();
 		}
@@ -562,7 +563,7 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 			this->_responses[clientSocket] = new HTTPresponse(clientSocket, request->getType());
 		response = this->_responses.at(clientSocket);
 		response->errorReset(statusCode);
-		HTMLerrPage = _getHTMLerrorPage(statusCode, request->getErrorPages());	// NB: change _getHTMLerrorPage() after validation is ok
+		HTMLerrPage = _getHTMLerrorPage(statusCode, request);	// NB: change _getHTMLerrorPage() after validation is ok
 		HTMLfd = open(HTMLerrPage.c_str(), O_RDONLY);
 		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
 		response->setHTMLfd(HTMLfd);

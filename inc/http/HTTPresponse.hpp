@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/18 17:37:36 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/26 12:34:06 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,8 @@
 #include <sys/types.h>        	// send, recv
 #include <sys/socket.h>       	// send, recv
 #include <unistd.h>				// read
+#include <set>
+#include <cmath>
 
 #include "HTTPstruct.hpp"
 
@@ -40,7 +42,7 @@ class HTTPresponse : public HTTPstruct
 		void		parseFromCGI( std::string const& );
 		void		parseFromStatic( void );
 		void		readHTML( int );
-		void		readContentDirectory( t_path const&);
+		void		listContentDirectory( t_path const&);
 		void		writeContent( void ) ;
 		void		errorReset( int ) noexcept;
 		std::string	toString( void ) const noexcept override;
@@ -48,7 +50,8 @@ class HTTPresponse : public HTTPstruct
 		int			getStatusCode( void ) const noexcept;
 		void		setHTMLfd( int HTMLfd );
 		int			getHTMLfd( void ) const noexcept;
-
+		void		setRoot( t_path ) noexcept;
+		t_path		getRoot( void ) const noexcept;
 		bool		isDoneReadingHTML( void ) const noexcept;
 		bool		isParsingNeeded( void ) const noexcept;
 		bool		isDoneWriting( void ) const noexcept;
@@ -58,6 +61,9 @@ class HTTPresponse : public HTTPstruct
 		int				_statusCode, _HTMLfd;
 		std::string		_strSelf;
 		size_t			_contentLengthWrite;
+
+		std::string	_contentType;
+		t_path		_root;
 
 		void		_setHeaders( std::string const& ) override;
 		std::string	_mapStatusCode( int ) const ;

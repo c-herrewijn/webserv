@@ -58,7 +58,7 @@ int main(int ac, char **av)
 	{
 		std::cout << "Using custom configuration in " C_GREEN << av[1] << C_RESET "\n";
 		servers = parseServers(av[1]);
-		if (servers.empty() == false)
+		if (servers.empty())
 		{
 			std::cout << C_RED "No valid server configuration in " << av[1] << C_RESET "\nSwitching to default configuration in " C_GREEN << DEF_CONF << C_RESET "\n";
 			servers = parseServers(DEF_CONF);

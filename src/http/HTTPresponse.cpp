@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/25 19:28:51 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/26 15:24:07 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,7 +52,7 @@ void	HTTPresponse::parseFromStatic( void )
 	_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
 	_addHeader("Content-Type", STD_CONTENT_TYPE);
 	HTTPstruct::_setBody(this->_tmpBody);
-	// if ((this->_statusCode >= 300) and (this->_statusCode < 400))
+	// if ((this->_statusCode >= 300) and (this->_statusCode < 400))	// NB: do it!
 	// {
 	// 	_addHeader("Location", "something");
 	// 	...
@@ -79,11 +79,150 @@ void	HTTPresponse::readHTML( int HTMLfd )
 		this->_state = HTTP_RESP_PARSING;
 }
 
-void	HTTPresponse::readContentDirectory( t_path const& pathDir)
+// Function to convert file_time_type to string
+static std::string fileTimeToString(std::filesystem::file_time_type time)
 {
-	if ((this->_type != HTTP_AUTOINDEX_STATIC) or (this->_state != HTTP_RESP_PARSING))
-		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
-	(void) pathDir;
+	auto timePoint = std::chrono::time_point_cast<std::chrono::system_clock::duration>(time - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
+	std::time_t t = std::chrono::system_clock::to_time_t(timePoint);
+	std::stringstream ss;
+	ss << std::put_time(std::localtime(&t), "%d/%m/%Y %H:%M:%S");
+	return ss.str();
+}
+
+static std::string formatSize(uintmax_t size)
+{
+	const char* suffixes[] = {"bytes", "kB", "MB", "GB"};
+	int suffixIndex = 0;
+	double size_d = static_cast<double>(size);
+
+	while (size_d >= 1024 && suffixIndex < 3) {
+		size_d /= 1024;
+		suffixIndex++;
+	}
+
+	std::ostringstream oss;
+	oss << std::fixed << std::setprecision(2);
+
+	if (size_d - std::floor(size_d) < 0.01) {
+		oss << std::setprecision(0);
+	}
+
+	oss << size_d << " " << suffixes[suffixIndex];
+	return oss.str();
+}
+
+void	HTTPresponse::listContentDirectory( t_path const& pathDir)
+{
+	// index of ....			[Header]
+	// ------------------------	[break]
+	// parent dir				[Parent directory]
+	// Name Size DateModified	[list]
+	// Folders					[folder/ [DD/MM/YYYY, HH:MM::SS]]
+	// Files [file 3DigitSize	[DD/MM/YYYY, HH:MM::SS]]
+	std::set<std::filesystem::directory_entry> folders;
+	std::set<std::filesystem::directory_entry> files;
+
+	// Populating folders and files sets
+	for (const auto& entry : std::filesystem::directory_iterator(pathDir))
+	{
+		if (std::filesystem::is_directory(entry))
+			folders.insert(entry);
+		else
+			files.insert(entry);
+	}
+	// Header part of the html:
+	_tmpBody += R"(
+		<!DOCTYPE html>
+		<html lang="en">
+		<head>
+			<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<title>Directory Listing</title>
+			<style>
+				body {
+					font-family: Arial, sans-serif;
+					margin: 0;
+					padding: 0;
+					background-color: #1a1a1a;
+					color: #fff;
+				}
+
+				.container {
+					max-width: 800px;
+					margin: 0 auto;
+					padding: 20px;
+					background-color: #333;
+					border-radius: 8px;
+				}
+
+				table {
+					width: 100%;
+					border-collapse: collapse;
+					margin-top: 20px;
+					background-color: #444;
+				}
+
+				table, th, td {
+					border: 1px solid #222;
+				}
+
+				th, td {
+					padding: 8px;
+					text-align: left;
+				}
+
+				th {
+					background-color: #2c2c2c;
+				}
+
+				tr:nth-child(even) {
+					background-color: #333; 
+				}
+
+				tr:hover {
+					background-color: #555;
+				}
+
+				a {
+					color: #4bb7ff;
+					text-decoration: none;
+				}
+
+				a:hover {
+					text-decoration: underline;
+				}
+			</style>
+		</head>
+		<body>
+		<div class="container">
+		<h1>Index of )" + pathDir.string().substr(_root.string().length()) + "/" + R"(</h1>
+		<hr>)";
+
+	std::string parentDir = pathDir.parent_path().string() + "/";
+	std::string tmpRoot = _root.string();
+	size_t i = 0;
+	while (i < tmpRoot.length() && parentDir[i] == tmpRoot[i])
+		i++;
+	if (!parentDir.empty())
+		_tmpBody += R"(<tr><td><a href=")" + parentDir.substr(i) + R"(">[Parent directory]</a></td><td></td><td></td></tr>)";
+	_tmpBody += "<table><thead><tr><th>Name</th><th>Size</th><th>Date Modified</th></tr></thead><tbody>";
+	// Inserting folders into HTML
+	std::string name;
+	std::string path;
+	for (const auto& folder : folders)
+	{
+		name = folder.path().filename().string();
+		path = std::filesystem::weakly_canonical(folder).string().substr(_root.string().length());
+		_tmpBody += "<tr><td><a href=" + path + "/" + "\">" + name + "/" + "</a></td><td>" + "</td><td>" + fileTimeToString(std::filesystem::last_write_time(folder)) + "</td></tr>";
+	}
+	// Inserting files into HTML
+	for (const auto& file : files)
+	{
+		name = file.path().filename().string();
+		path = std::filesystem::weakly_canonical(file).string().substr(_root.string().length());
+		_tmpBody += "<tr><td><a href=" + path + "\">" + name + "</a></td><td>" + formatSize(std::filesystem::file_size(file)) +  "</td><td>" + fileTimeToString(std::filesystem::last_write_time(file)) + "</td></tr>";
+	}
+	_tmpBody += "</tbody></table></div></body></html>";
 }
 
 void	HTTPresponse::writeContent( void )
@@ -184,6 +323,16 @@ void	HTTPresponse::setHTMLfd( int HTMLfd )
 int		HTTPresponse::getHTMLfd( void ) const noexcept
 {
 	return (this->_HTMLfd);
+}
+
+void		HTTPresponse::setRoot( t_path root) noexcept
+{
+	this->_root = root;
+}
+
+t_path		HTTPresponse::getRoot( void ) const noexcept
+{
+	return (this->_root);
 }
 
 bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept
@@ -318,11 +467,11 @@ std::string	HTTPresponse::_mapStatusCode( int status) const
 std::string	HTTPresponse::_getDateTime( void ) const noexcept
 {
 	std::time_t rawtime;
-    std::tm* timeinfo;
-    char buffer[80];
+	std::tm* timeinfo;
+	char buffer[80];
 
-    std::time(&rawtime);
-    timeinfo = std::gmtime(&rawtime);
-    std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
+	std::time(&rawtime);
+	timeinfo = std::gmtime(&rawtime);
+	std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
 	return (std::string(buffer));
 }

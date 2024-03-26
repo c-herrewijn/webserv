@@ -15,7 +15,7 @@
 # include <vector>
 # include <string>
 # include <unordered_set>
-# include <unordered_map>
+# include <map>
 # include <climits>
 # include <cstdint>
 # include <stdexcept>
@@ -24,18 +24,16 @@
 # include <filesystem>
 
 # include "Exceptions.hpp"
+# include "HTTPstruct.hpp"
 
-# define M_GET 0
-# define M_POST 1
-# define M_DELETE 2
-# define M_SIZE 3 // amount of methodes used in our program
+# define METHOD_AMOUNT 3u // amount of methodes used in our program
 # define DEF_SIZE 10
 # define DEF_ROOT t_path("/var/www")
 # define MAX_SIZE 20
 # define DEF_CGI_ALLOWED false
 # define DEF_CGI_EXTENTION ".cgi"
 
-typedef std::unordered_map<size_t, std::string> t_string_map;
+typedef std::map<size_t, std::string> t_string_map;
 typedef	std::filesystem::path	t_path;
 
 class Parameters
@@ -59,7 +57,7 @@ class Parameters
 		const t_string_map& 		getErrorPages(void) const;
 		const bool& 				getAutoindex(void) const;
 		const t_path& 				getRoot(void) const;
-		const std::bitset<M_SIZE>&	getAllowedMethods(void) const;
+		const std::bitset<METHOD_AMOUNT>&	getAllowedMethods(void) const;
 		const std::string& 			getCgiExtension(void) const;
 		const bool& 				getCgiAllowed(void) const;
 
@@ -71,7 +69,7 @@ class Parameters
 		t_path				root;		// Last found will be used.
 		t_string_map		error_pages;	// Same status codes will be overwriten
 		std::pair<size_t, std::string>	returns;	// Overwritten by the last
-		std::bitset<M_SIZE> allowedMethods;	// Allowed methods
+		std::bitset<METHOD_AMOUNT> allowedMethods;	// Allowed methods
 		std::string			cgi_extension;	// extention .py .sh
 		bool				cgi_allowed;	// Check for permissions
 

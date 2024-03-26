@@ -122,6 +122,11 @@ void	ConfigServer::_fillServer(std::vector<std::string>& block)
 				throw ParserException({"Error on location parsing with brackets"});
 			std::vector<std::string> subVector(it, index);
 			block.erase(it, index);
+			// for (auto element : subVector)
+			// {
+			// 	std::cout << element << " ";
+			// }
+			// std::cout << "\n";
 			locationHolder.push_back(subVector);
 		}
 		else

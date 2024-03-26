@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/26 02:12:09 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/26 15:41:17 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,10 +48,10 @@ void		HTTPrequest::validate( ConfigServer const& configServer )
 	this->_validator.setConfig(configServer);
 	this->_validator.setMethod(this->_method);
 	this->_validator.setPath(this->_url.path);
-	// this->_validator.solvePath();
-	// if (this->_validator.getStatusCode() >= 400)
-	// 	throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
-	// _checkMaxBodySize(this->_validator.getMaxBodySize());
+	this->_validator.solvePath();
+	if (this->_validator.getStatusCode() >= 400)
+		throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
+	_checkMaxBodySize(this->_validator.getMaxBodySize());
 	_setType();
 	if (((this->_type == HTTP_FILE_UPL_CGI) and (this->_body.size() < this->_contentLength))
 		or ((this->_type == HTTP_CHUNKED) and (this->_tmpBody.find(HTTP_DEF_TERM) == std::string::npos)))
@@ -81,6 +81,7 @@ void	HTTPrequest::parseBody( void )
 		HTTPstruct::_setBody(this->_tmpBody);
 	}
 }
+
 std::string	HTTPrequest::toString( void ) const noexcept
 {
 	std::string	strReq;
@@ -175,18 +176,18 @@ std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 }
 
 // NB: fix after validation is ok
-// t_path const&	HTTPrequest::getRealPath( void ) const noexcept
-t_path HTTPrequest::getRealPath( void ) const noexcept
+// t_path HTTPrequest::getRealPath( void ) const noexcept
+t_path const&	HTTPrequest::getRealPath( void ) const noexcept
 {
-	t_path cwd = std::filesystem::current_path() / "var/www/";
-	if (this->_url.path == "/")		// NB: should be done by validation
-		cwd = MAIN_PAGE_PATH;
-	else if (this->_url.path.extension() == ".ico")	// NB: should be done by validation, update content-type of response
-		cwd = FAVICON_PATH;
-	else
-		cwd /= this->_url.path.string().substr(1);
-	return (cwd);
-	// return (this->_validator.getRealPath());
+	// t_path cwd = std::filesystem::current_path() / "var/www/";
+	// if (this->_url.path == "/")		// NB: should be done by validation
+	// 	cwd = MAIN_PAGE_PATH;
+	// else if (this->_url.path.extension() == ".ico")	// NB: should be done by validation, update content-type of response
+	// 	cwd = FAVICON_PATH;
+	// else
+	// cwd /= this->_url.path.string().substr(1);
+	// return (cwd);
+	return (this->_validator.getRealPath());
 }
 
 t_path const&	HTTPrequest::getRoot( void ) const noexcept
@@ -542,15 +543,10 @@ void	HTTPrequest::_setType( void )
 		this->_type = HTTP_CHUNKED;
 	else if (this->_headers[HEADER_CONT_TYPE].find("multipart/form-data; boundary=-") == 0)
 		this->_type = HTTP_FILE_UPL_CGI;
-	// else if (this->_validator.isAutoIndex() == true) // NB: fix after validation is ok
-	else if (false)
+	else if (this->_validator.isAutoIndex() == true)
 		this->_type = HTTP_AUTOINDEX_STATIC;
-	// else if (this->_validator.isCGI() == true) // NB: fix after validation is ok
-	else if (this->_url.path.extension() == ".cgi")
+	else if (this->_validator.isCGI() == true)
 		this->_type = HTTP_FAST_CGI;
-	else
-		this->_type = HTTP_STATIC;
-
 }
 
 void	HTTPrequest::_unchunkBody( void )
