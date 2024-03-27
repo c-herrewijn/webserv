@@ -75,12 +75,11 @@ let tetris_table;
 let drop_speed = 1000; // drop speed at level 0
 let game_paused = true;
 let game_over = false;
-let score, level, total_lines, interval_id;
+let high_score, score, level, total_lines, interval_id;
 
 function tetris_run() {
     tetris_table = document.getElementById("tetris");
     // retrieve high score from memory
-    let high_score;
     try {
         high_score = localStorage.getItem("high_score");
         if (high_score == null) {
