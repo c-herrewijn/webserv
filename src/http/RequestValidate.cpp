@@ -33,11 +33,6 @@ RequestValidate::~RequestValidate( void ) {}
 // ╔════════════════════════════════╗
 // ║			GETTER PART			║
 // ╚════════════════════════════════╝
-// Parameters*	RequestValidate::getValidParams( void ) const
-// {
-// 	return (_validParams);
-// }
-
 t_path const&	RequestValidate::getRealPath( void ) const
 {
 	return (_realPath);
@@ -293,55 +288,8 @@ bool	RequestValidate::_handleReturns(void)
 			_isRedirection = true;
 			return (true);
 		}
-		return (_handleStatus(), false);
 	}
 	return (false);
-}
-
-bool	RequestValidate::_handleErrorCode(void)
-{
-	std::map<size_t, std::string>::const_iterator it;
-	it = _validParams->getErrorPages().find(_statusCode);
-	if (it == _validParams->getErrorPages().end())
-		return (false);
-	targetFile = std::filesystem::weakly_canonical((*it).second);
-	return (_handleFile());
-}
-
-bool	RequestValidate::_handleServerPages(void)
-{
-	// This is a temp solution. NEEDS TO BE REPLACED WITH A MACRO
-	t_path lastChance = std::filesystem::current_path();
-	lastChance += SERVER_DEF_PAGES;
-	lastChance += (std::to_string(_statusCode) + ".html");
-	// std::cout << "lastChance: " << lastChance << "\n";
-	if (!std::filesystem::is_regular_file(lastChance))
-		return (false);
-	if (!_checkPerm(lastChance, PERM_READ))
-		return (false);
-	_realPath = std::filesystem::weakly_canonical(lastChance);
-	return (true);
-}
-
-void	RequestValidate::_handleStatus(void)
-{
-	if (_statusCode < 400)
-		return ;
-	// handle error_pages
-	if (_handleErrorCode())
-		return ;
-	// use server scope error pages
-	_validParams = &(_requestConfig->getParams());
-	if (_handleErrorCode())
-		return ;
-	// use servers error page
-	if (_handleServerPages())
-		return ;
-	// final solution the case: internal server error 500
-	_realPath = "/";
-	targetDir.clear();
-	targetFile.clear();
-	_setStatusCode(500);
 }
 
 // ╭───────────────────────────╮
@@ -349,53 +297,29 @@ void	RequestValidate::_handleStatus(void)
 // ╰───────────────────────────╯
 void	RequestValidate::solvePath(void)
 {
-	// std::cout << "Enters solving\n";
-	// given NULL is not valid
-	if (!_requestConfig)
+	if (!_requestConfig)	// given NULL is not valid
 		throw(RequestException({"No config given. Request validation can not continue."}, 500));
 	if (_requestPath.empty())
 		throw(RequestException({"No Path given. Request validation can not continue."}, 500));
-	// std::cout << "Requested params are set\n";
 	_setStatusCode(200);
-	// default params
-	_validParams = &(_requestConfig->getParams());
-	// Clean up the _requestPath, Set targetDir and targetFile based on _requestPath
-	_initTargetElements();
-	// std::cout << "Target params are set\n";
-	// std::cout << targetDir << " - " << targetFile << "\n";
-	// if directory is not root check for location
-	// std::cout << "location check entrence\n";
-	if (!targetDir.empty() || targetDir == "/")
+	_validParams = &(_requestConfig->getParams());	// default params
+	_initTargetElements();		// Clean up the _requestPath, Set targetDir and targetFile based on _requestPath
+	if (!targetDir.empty() || targetDir == "/")	// if directory is not root check for location
 	{
-		// std::cout << "Dives into locations\n";
 		_initValidLocation();
 		if (_validLocation == nullptr)
-		{
-			// std::cout << "No location found: exit\n";
-			return (_setStatusCode(404), _handleStatus());// 404 error, not found
-		}
-		// std::cout << "URL: " << _validLocation->getURL() << "\n";
-		// std::cout << "found location filesystem: " << _validLocation->getFilesystem().c_str() << "\n";
+			return (_setStatusCode(404));
 		_validParams = &(_validLocation->getParams());
 	}
-	// std::cout << "Check allowed methods: " << _validParams->getAllowedMethods() << "\n";
 	if (!_validParams->getAllowedMethods()[_requestMethod])
-		return (_setStatusCode(405), _handleStatus());// 405 error, method not allowed
-	// std::cout << "Check return param\n";
-	// handle return
-	if (_handleReturns())
+		return (_setStatusCode(405));	// 405 error, method not allowed
+	if (_handleReturns())	// handle return
 		return ;
-	// std::cout << "Update target file : " << targetFile << "\n";
-	// set indexfile if necessarry
-	if (targetFile.empty() || targetFile == "/")
+	if (targetFile.empty() || targetFile == "/")	// set indexfile if necessarry
 		targetFile = _validParams->getIndex();
-	// Normalization for the case user gives sth random
-	targetFile = std::filesystem::weakly_canonical(targetFile);
-	// std::cout << "New target file : " << targetFile << "\n";
+	targetFile = std::filesystem::weakly_canonical(targetFile);	// Normalization for the case user gives sth random
 	if (targetFile.empty() || targetFile.string() == "/")
 		_handleFolder();
 	else
 		_handleFile();
-	_handleStatus();
-	// std::cout << "Realpath: " << _realPath << " : " << _statusCode << "\n";
 }

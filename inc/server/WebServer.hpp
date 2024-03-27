@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/27 17:28:35 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/27 17:58:23 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,11 +32,11 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <set>
-#include <stack>
+// #include <set>
+// #include <stack>
 #include <unordered_map>
 #include <algorithm>
-#include <filesystem>
+// #include <filesystem>
 
 #include "HTTPrequest.hpp"
 #include "HTTPresponse.hpp"
@@ -45,7 +45,7 @@
 #include "CGI.hpp"
 
 #define BACKLOG 			10		// max pending connection queued up
-#define HTML_ERROR_FOLDER	std::filesystem::path("var/www/errors")
+#define SERVER_DEF_PAGES	std::filesystem::path("var/www/errors")
 
 using namespace std::chrono;
 

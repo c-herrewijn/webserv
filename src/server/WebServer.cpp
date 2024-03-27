@@ -385,7 +385,7 @@ t_path	WebServer::_getHTMLerrorPage( int statusCode, HTTPrequest *request ) cons
 				return (_getDefaultHandler().getParams().getErrorPages().at(statusCode));
 			}
 			catch(const std::out_of_range& e3) {
-				for (auto const& dir_entry : std::filesystem::directory_iterator{HTML_ERROR_FOLDER})
+				for (auto const& dir_entry : std::filesystem::directory_iterator{SERVER_DEF_PAGES})
 				{
 					if (dir_entry.path().stem() == std::to_string(statusCode))
 						return (dir_entry.path());
