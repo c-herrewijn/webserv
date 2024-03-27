@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/26 01:49:29 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/27 19:57:43 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,12 +19,12 @@ HTTPstruct::HTTPstruct( int socket, HTTPtype type ) : _socket(socket) , _type(ty
 	this->_version.minor = 1;
 }
 
-HTTPtype			HTTPstruct::getType( void ) const noexcept
+HTTPtype	HTTPstruct::getType( void ) const noexcept
 {
 	return(this->_type);
 }
 
-int					HTTPstruct::getSocket( void ) const noexcept
+int		HTTPstruct::getSocket( void ) const noexcept
 {
 	return (this->_socket);
 }
@@ -34,7 +34,7 @@ std::string const&	HTTPstruct::getServName( void ) const noexcept
 	return(this->_servName);
 }
 
-void				HTTPstruct::setServName( std::string nameServ) noexcept
+void	HTTPstruct::setServName( std::string const& nameServ) noexcept
 {
 	this->_servName = nameServ;
 }
@@ -44,7 +44,7 @@ std::string const&	HTTPstruct::getTmpBody( void )
 	return (this->_tmpBody);
 }
 
-void				HTTPstruct::setTmpBody( std::string const& tmpBody )
+void	HTTPstruct::setTmpBody( std::string const& tmpBody )
 {
     this->_tmpBody = tmpBody;
 }

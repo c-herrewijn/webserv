@@ -13,6 +13,8 @@
 #include "parser/Config.hpp"
 #include "server/WebServer.hpp"
 
+# define DEF_CONF std::string("default/def.conf")
+
 std::vector<ConfigServer>	parseServers(std::string const& fileName)
 {
 	Config *config;

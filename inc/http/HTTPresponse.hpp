@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/27 17:24:34 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/27 21:04:47 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,7 @@ typedef enum HTTPrespState_f
 class HTTPresponse : public HTTPstruct
 {
 	public:
-		HTTPresponse( int, HTTPtype, int );
+		HTTPresponse( int, int, HTTPtype );
 		virtual ~HTTPresponse( void ) override {};
 
 		void		parseFromCGI( std::string const& );
@@ -47,23 +47,20 @@ class HTTPresponse : public HTTPstruct
 		void		errorReset( int ) noexcept;
 		std::string	toString( void ) const noexcept override;
 
-		void		setHTMLfd( int );
-		int			getHTMLfd( void ) const noexcept;
-		int			getStatusCode( void ) const noexcept;
-		t_path		getRoot( void ) const noexcept;
-		void		setRedirectFile( t_path const& );
-		bool		isDoneReadingHTML( void ) const noexcept;
-		bool		isParsingNeeded( void ) const noexcept;
-		bool		isDoneWriting( void ) const noexcept;
+		void				setHTMLfd( int );
+		int					getHTMLfd( void ) const noexcept;
+		t_path				getRoot( void ) const noexcept;
+		void				setRedirectFile( t_path const& );
+		bool				isDoneReadingHTML( void ) const noexcept;
+		bool				isParsingNeeded( void ) const noexcept;
+		bool				isDoneWriting( void ) const noexcept;
 
 	protected:
 		HTTPrespState	_state;
+		t_path			_root, _redirectFile;
 		int				_statusCode, _HTMLfd;
-		std::string		_strSelf;
 		size_t			_contentLengthWrite;
-
-		std::string	_contentType;
-		t_path		_root, _redirectFile;
+		std::string		_contentType, _servName, _strSelf;
 
 		void		_setHeaders( std::string const& ) override;
 		std::string	_mapStatusCode( int ) const ;

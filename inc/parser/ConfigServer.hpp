@@ -23,24 +23,21 @@
 # include "Listen.hpp"
 # include "Exceptions.hpp"
 
-# define DEF_CONF std::string("default/def.conf")
-# define DEF_NAME std::string("localhost")
-
 class ConfigServer
 {
 	public:
 		// Form
-		ConfigServer(void) {};
+		ConfigServer( void ) {};
 		ConfigServer(const ConfigServer& copy);
 		ConfigServer&	operator=(const ConfigServer& assign);
-		virtual ~ConfigServer(void);
-		
+		virtual ~ConfigServer( void );
+
 		void							parseBlock(std::vector<std::string>& block);
-		const std::vector<Listen>& 		getListens(void) const;
-		const std::vector<std::string>&	getNames(void) const;
-		const std::string&				getPrimaryName(void) const;
-		const Parameters&				getParams(void) const;
-		const std::vector<Location>&	getLocations(void) const;
+		const std::vector<Listen>& 		getListens( void ) const;
+		const std::vector<std::string>&	getNames( void ) const;
+		const std::string&				getPrimaryName( void ) const;
+		const Parameters&				getParams( void ) const;
+		const std::vector<Location>&	getLocations( void ) const;
 
 	private:
 		std::vector<Listen> 		listens; // Listens

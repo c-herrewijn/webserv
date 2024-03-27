@@ -6,11 +6,30 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/27 16:54:45 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/27 20:59:41 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPrequest.hpp"
+
+HTTPrequest::HTTPrequest( int socket, std::vector<ConfigServer> const& servers ) :
+	HTTPstruct(socket, HTTP_STATIC),
+	_state(HTTP_REQ_HEAD_READING),
+	_servers(servers),
+	_contentLength(0) ,
+	_contentLengthRead(0),
+	_maxBodySize(-1),
+	_endConn(false)
+{
+	for (auto const& server : this->_servers)
+	{
+		for (auto const& address : server.getListens())
+		{
+			if (address.getDef() == true)
+				this->_defaultServer = server;
+		}
+	}
+}
 
 void	HTTPrequest::parseHead( void )
 {
@@ -38,12 +57,12 @@ void	HTTPrequest::parseHead( void )
 	}
 }
 
-void		HTTPrequest::validate( ConfigServer const& configServer )
+void		HTTPrequest::validate( void )
 {
 	if (this->_state != HTTP_REQ_VALIDATING)
 		throw(RequestException({"instance in wrong state to perfom action"}, 500));
- 	this->_servName = configServer.getPrimaryName();
-	this->_validator.setConfig(configServer);
+	_setHandlerServer();
+	this->_validator.setConfig(this->_handlerServer);
 	this->_validator.setMethod(this->_method);
 	this->_validator.setPath(this->_url.path);
 	this->_validator.solvePath();
@@ -183,9 +202,32 @@ t_path const&	HTTPrequest::getRoot( void ) const noexcept
 	return (this->_validator.getRoot());
 }
 
-t_string_map const&	HTTPrequest::getErrorPages( void ) const noexcept
+t_path	HTTPrequest::getErrorPageFromCode( int statusCode, t_path const& defaultErrorPages )
 {
-	return (this->_validator.getErrorPages());
+	try {
+		if (isDoneReadingHead() == false)	// fail occured even before validation, so no error pages, skipping directly to server ones
+			throw(std::out_of_range(""));
+		return (this->_validator.getErrorPages().at(statusCode));
+	}
+	catch(const std::out_of_range& e1) {
+		try {
+			return (this->_handlerServer.getParams().getErrorPages().at(statusCode));
+		}
+		catch(const std::out_of_range& e2) {
+			try {
+				this->_servName = this->_defaultServer.getPrimaryName();
+				return (this->_defaultServer.getParams().getErrorPages().at(statusCode));
+			}
+			catch(const std::out_of_range& e3) {
+				for (auto const& dir_entry : std::filesystem::directory_iterator{defaultErrorPages})
+				{
+					if (dir_entry.path().stem() == std::to_string(statusCode))
+						return (dir_entry.path());
+				}
+				throw(RequestException({"absolutely no HTML found for code:", std::to_string(statusCode)}, 500));
+			}
+		}
+	}
 }
 
 int	HTTPrequest::getStatusFromValidation( void ) const noexcept
@@ -359,7 +401,7 @@ void	HTTPrequest::_setURL( std::string const& strURL )
 		tmpURL = tmpURL.substr(2);
 		delimiter = tmpURL.find("/");
 		if (delimiter == 0)
-			_setHostPort(DEF_NAME);
+			_setHostPort(LOCALHOST);
 		else
 			_setHostPort(tmpURL.substr(0, delimiter));
 		tmpURL = tmpURL.substr(delimiter);
@@ -570,6 +612,32 @@ void	HTTPrequest::_unchunkBody( void )
 			throw(RequestException({"bad chunking"}, 400));
 		}
 	} while (sizeChunk != 0);
+}
+
+// NB: default server is not set properly
+void	HTTPrequest::_setHandlerServer( void ) noexcept
+{
+	bool	handlerFound = false;
+	std::string hostName, tmpServName;
+
+	for (auto const& server : this->_servers)
+	{
+		for (auto const& servName : server.getNames())
+		{
+			tmpServName = servName;
+			hostName = getHost();
+			std::transform(tmpServName.begin(), tmpServName.end(), tmpServName.begin(), ::tolower);
+			std::transform(hostName.begin(), hostName.end(), hostName.begin(), ::tolower);
+			if (tmpServName == hostName)
+			{
+				handlerFound = true;
+				this->_handlerServer = server;
+			}
+		}
+	}
+	if (handlerFound == false)
+		this->_handlerServer = this->_defaultServer;
+	this->_servName = this->_handlerServer.getPrimaryName();
 }
 
 // std::string	HTTPrequest::_unchunkChunk( std::string const& chunkedChunk, std::string& remainder)

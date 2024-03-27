@@ -69,7 +69,7 @@ class HTTPstruct
 		HTTPtype			getType( void ) const noexcept;
 		int					getSocket( void ) const noexcept;
 		std::string const&	getServName( void ) const noexcept;
-		void				setServName(std::string) noexcept;
+		void				setServName( std::string const& ) noexcept;
 		std::string const&	getTmpBody( void );
 		virtual void		setTmpBody( std::string const& );
 

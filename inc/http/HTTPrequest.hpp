@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/27 02:25:13 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/27 20:58:39 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@
 #include "ConfigServer.hpp"
 #include "RequestValidate.hpp"
 
+#define LOCALHOST 				std::string("localhost") 
 #define MAIN_PAGE_PATH	 		t_path("var/www/index.html")
 #define FAVICON_PATH			t_path("var/www/favicon.ico")
 #define MAX_HEADER_SIZE			8192
@@ -56,18 +57,13 @@ typedef struct HTTPurl_f
 class HTTPrequest : public HTTPstruct
 {
 	public:
-		HTTPrequest( int socket ) : HTTPstruct(socket, HTTP_STATIC) ,
-			_state(HTTP_REQ_HEAD_READING),
-			_contentLength(0) ,
-			_contentLengthRead(0),
-			_maxBodySize(-1),
-			_endConn(false){};
+		HTTPrequest( int socket, std::vector<ConfigServer> const& );
 		virtual ~HTTPrequest( void ) override {};
 
-		void		parseHead( void );
-		void		validate( ConfigServer const& );
-		void		parseBody( void );
-		std::string	toString( void ) const noexcept override;
+		void			parseHead( void );
+		void			validate(  void );
+		void			parseBody( void );
+		std::string		toString( void ) const noexcept override;
 
 		std::string		 	getMethod( void ) const noexcept;
 		std::string const&	getHost( void ) const noexcept;
@@ -78,7 +74,7 @@ class HTTPrequest : public HTTPstruct
 		int					getStatusFromValidation( void ) const noexcept;
 		t_path const&		getRealPath( void ) const noexcept;
 		t_path const&		getRoot( void ) const noexcept;
-		t_string_map const&	getErrorPages( void ) const noexcept;
+		t_path				getErrorPageFromCode( int, t_path const& );
 
 		bool				isDoneReadingHead( void ) const noexcept;
 		bool				isDoneReadingBody( void ) const noexcept;
@@ -87,13 +83,16 @@ class HTTPrequest : public HTTPstruct
 		bool				theresBodyToRead( void ) const noexcept;
 
 	protected:
-		HTTPreqState	_state;
-		HTTPmethod		_method;
-		HTTPurl			_url;
-		RequestValidate	_validator;
-
+		HTTPreqState				_state;
+		HTTPmethod					_method;
+		HTTPurl						_url;
+		RequestValidate				_validator;
+		std::vector<ConfigServer>	_servers;
+		ConfigServer				_defaultServer, _handlerServer;
+		// std::string _servName;
 		size_t		_contentLength, _contentLengthRead, _maxBodySize;
 		bool		_endConn;
+
 
 		void	_readHead( void );
 		void	_readPlainBody( void );
@@ -113,4 +112,5 @@ class HTTPrequest : public HTTPstruct
 
 		void	_checkMaxBodySize( size_t );
 		void	_unchunkBody( void );
+		void	_setHandlerServer( void ) noexcept;
 };

@@ -6,13 +6,14 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/27 17:08:16 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/27 20:36:11 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPresponse.hpp"
 
-HTTPresponse::HTTPresponse( int socket, HTTPtype type, int statusCode ) : HTTPstruct(socket, type) ,
+HTTPresponse::HTTPresponse( int socket, int statusCode, HTTPtype type ) :
+	HTTPstruct(socket, type) ,
 	_HTMLfd(-1),
 	_contentLengthWrite(0)
 {
@@ -315,11 +316,6 @@ std::string	HTTPresponse::toString( void ) const noexcept
 	return (strResp);
 }
 
-int		HTTPresponse::getStatusCode( void ) const noexcept
-{
-	return (this->_statusCode);
-}
-
 void	HTTPresponse::setHTMLfd( int HTMLfd )
 {
 	if (HTMLfd == -1)
@@ -368,7 +364,7 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 		try {
 			this->_statusCode = std::stoi(this->_headers.at("Status").substr(0, delimiter));
 		}
-		catch(const std::exception& e) {
+		catch (const std::exception& e) {
 			throw(ResponseException({"invalid status code"}, 500));
 		}
 		if (this->_statusCode >= 400)
@@ -383,7 +379,7 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 			this->_redirectFile = this->_headers.at("Location");
 		}
 	}
-	catch(const std::out_of_range& e1) {
+	catch (const std::out_of_range& e1) {
 		throw(ResponseException({"missing mandatory header(s) in CGI response"}, 500));
 	}
 }
