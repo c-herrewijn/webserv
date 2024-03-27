@@ -23,6 +23,7 @@ RequestValidate::RequestValidate(void)
 
 	_autoIndex = false;
 	_isCGI = false;
+	_isRedirection = false;
 	_realPath = "/IAMEMPTY";
 	_requestMethod = HTTP_GET;
 }
@@ -65,6 +66,11 @@ bool	RequestValidate::isFile( void ) const
 bool	RequestValidate::isCGI( void ) const
 {
 	return (_isCGI);
+}
+
+bool	RequestValidate::isRedirection( void ) const
+{
+	return (_isRedirection);
 }
 
 t_path	const& RequestValidate::getRoot( void ) const
@@ -283,8 +289,11 @@ bool	RequestValidate::_handleReturns(void)
 		_statusCode = _validParams->getReturns().first;
 		targetFile = std::filesystem::weakly_canonical(_validParams->getReturns().second);
 		if (_handleFile())
+		{
+			_isRedirection = true;
 			return (true);
-		return (_handleStatus(), true);
+		}
+		return (_handleStatus(), false);
 	}
 	return (false);
 }

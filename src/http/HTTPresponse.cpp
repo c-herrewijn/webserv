@@ -6,21 +6,28 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/26 15:57:40 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/27 02:09:49 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPresponse.hpp"
 
-HTTPresponse::HTTPresponse( int socket, HTTPtype type ) : HTTPstruct(socket, type) ,
-	_statusCode(200),
+HTTPresponse::HTTPresponse( int socket, HTTPtype type, int statusCode ) : HTTPstruct(socket, type) ,
 	_HTMLfd(-1),
 	_contentLengthWrite(0)
 {
-	if (type == HTTP_STATIC)
+	if (statusCode >= 400)
+		errorReset(statusCode);
+	else if (type == HTTP_STATIC)
+	{
 		this->_state = HTTP_RESP_HTML_READING;
+		this->_statusCode = statusCode;
+	}
 	else
+	{
 		this->_state = HTTP_RESP_PARSING;
+		this->_statusCode = 200;
+	}
 }
 
 void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
@@ -29,7 +36,7 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 	size_t		delimiter;
 
 	if ((this->_type < HTTP_FAST_CGI) or (this->_state != HTTP_RESP_PARSING))
-		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
+		throw(ResponseException({"instance in wrong state or type to perfom action"}, 500));
 	delimiter = CGIresp.find(HTTP_DEF_TERM);
 	if (delimiter == std::string::npos)
 		throw(ResponseException({"no headers terminator in CGI response"}, 500));
@@ -46,34 +53,33 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 void	HTTPresponse::parseFromStatic( void )
 {
 	if ((this->_type > HTTP_AUTOINDEX_STATIC) or (this->_state != HTTP_RESP_PARSING))
-		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
+		throw(ResponseException({"instance in wrong state or type to perfom action1"}, 500));
 	_addHeader("Date", _getDateTime());
 	_addHeader("Server", this->_servName);
 	_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
 	_addHeader("Content-Type", STD_CONTENT_TYPE);
 	HTTPstruct::_setBody(this->_tmpBody);
-	// if ((this->_statusCode >= 300) and (this->_statusCode < 400))	// NB: do it!
-	// {
-	// 	_addHeader("Location", "something");
-	// 	...
-	// }
+	if ((this->_statusCode >= 300) and (this->_statusCode < 400))
+	{
+		if (this->_redirectFile.empty() == true)
+			throw(ResponseException({"redirect file target not set"}, 500));
+		_addHeader("Location", this->_redirectFile.c_str());
+	}
 	this->_state = HTTP_RESP_WRITING;
 	this->_strSelf = toString();
 }
 
-void	HTTPresponse::readHTML( int HTMLfd )
+void	HTTPresponse::readHTML( void )
 {
     ssize_t 	readChar = -1;
     char        buffer[HTTP_BUF_SIZE];
 
 	if ((this->_type != HTTP_STATIC) or (this->_state != HTTP_RESP_HTML_READING))
-		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
-	if (this->_HTMLfd == -1)
-		this->_HTMLfd = HTMLfd;
+		throw(ResponseException({"instance in wrong state or type to perfom action2"}, 500));
 	bzero(buffer, HTTP_BUF_SIZE);
 	readChar = read(this->_HTMLfd, buffer, HTTP_BUF_SIZE);
 	if (readChar < 0)
-		throw(ServerException({"fd unavailable"}));
+		throw(ServerException({"fd unavailable or not set"}));
 	this->_tmpBody += std::string(buffer, buffer + readChar);
 	if (readChar < HTTP_BUF_SIZE)
 		this->_state = HTTP_RESP_PARSING;
@@ -231,7 +237,7 @@ void	HTTPresponse::writeContent( void )
 	size_t	charsToWrite = 0;
 
 	if (this->_state != HTTP_RESP_WRITING)
-		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
+		throw(ResponseException({"instance in wrong state or type to perfom action"}, 500));
 	else if (this->_contentLengthWrite == 0)
 		_resetTimeout();
 	if ((this->_strSelf.size()) < HTTP_BUF_SIZE)
@@ -259,9 +265,9 @@ void	HTTPresponse::errorReset( int errorStatus ) noexcept
 {
 	this->_statusCode = errorStatus;
 	this->_HTMLfd = -1;
+	this->_contentLengthWrite = 0;
+	this->_redirectFile.clear();
 
-	this->_type = HTTP_STATIC;
-	this->_body.clear();
 	if (this->_statusCode == 500)
 	{
 		this->_tmpBody = ERROR_500_CONTENT;
@@ -272,6 +278,7 @@ void	HTTPresponse::errorReset( int errorStatus ) noexcept
 		this->_tmpBody.clear();
 		this->_state = HTTP_RESP_HTML_READING;
 	}
+	this->_type = HTTP_STATIC;
 }
 
 std::string	HTTPresponse::toString( void ) const noexcept
@@ -316,7 +323,7 @@ int		HTTPresponse::getStatusCode( void ) const noexcept
 void	HTTPresponse::setHTMLfd( int HTMLfd )
 {
 	if (HTMLfd == -1)
-		throw(ResponseException({"Invalid file descriptor"}, 500));
+		throw(ResponseException({"invalid file descriptor"}, 500));
 	this->_HTMLfd = HTMLfd;
 }
 
@@ -325,7 +332,7 @@ int		HTTPresponse::getHTMLfd( void ) const noexcept
 	return (this->_HTMLfd);
 }
 
-void		HTTPresponse::setRoot( t_path root) noexcept
+void		HTTPresponse::setRoot( t_path root) noexcept	// NB: do I need it?
 {
 	this->_root = root;
 }
@@ -333,6 +340,11 @@ void		HTTPresponse::setRoot( t_path root) noexcept
 t_path		HTTPresponse::getRoot( void ) const noexcept
 {
 	return (this->_root);
+}
+
+void		HTTPresponse::setRedirectFile( t_path const& redirectFile )
+{
+	this->_redirectFile = redirectFile;
 }
 
 bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept
@@ -364,20 +376,20 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 		catch(const std::exception& e) {
 			throw(ResponseException({"invalid status code"}, 500));
 		}
+		if (this->_statusCode >= 400)
+			throw(ResponseException({"error while running CGI"}, this->_statusCode));
 		this->_headers.at("Server");
 		this->_headers.at("Content-type");
 		this->_headers.at("Content-Length");
 		if (this->_type == HTTP_FILE_UPL_CGI)
 		{
-			if (this->_statusCode < 400)
-				this->_headers.at("Location");
+			if (this->_statusCode != 201)
+				throw(ResponseException({"file upload needs status code 201, given:", std::to_string(this->_statusCode)}, 500));
+			this->_headers.at("Location");
 		}
 	}
 	catch(const std::out_of_range& e1) {
 		throw(ResponseException({"missing mandatory header(s) in CGI response"}, 500));
-	}
-	catch (const HTTPexception& e2) {
-		throw(ResponseException({"invalid header"}, e2.getStatus()));
 	}
 }
 

@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/26 15:41:17 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/27 02:13:11 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,6 @@ void	HTTPrequest::parseHead( void )
 	}
 }
 
-// NB: fix after validation is ok
 void		HTTPrequest::validate( ConfigServer const& configServer )
 {
 	if (this->_state != HTTP_REQ_VALIDATING)
@@ -49,7 +48,7 @@ void		HTTPrequest::validate( ConfigServer const& configServer )
 	this->_validator.setMethod(this->_method);
 	this->_validator.setPath(this->_url.path);
 	this->_validator.solvePath();
-	if (this->_validator.getStatusCode() >= 400)
+	if ((this->_validator.isRedirection() == false) and (this->_validator.getStatusCode() >= 400))
 		throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
 	_checkMaxBodySize(this->_validator.getMaxBodySize());
 	_setType();
@@ -175,18 +174,8 @@ std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 	return (boundary);
 }
 
-// NB: fix after validation is ok
-// t_path HTTPrequest::getRealPath( void ) const noexcept
 t_path const&	HTTPrequest::getRealPath( void ) const noexcept
 {
-	// t_path cwd = std::filesystem::current_path() / "var/www/";
-	// if (this->_url.path == "/")		// NB: should be done by validation
-	// 	cwd = MAIN_PAGE_PATH;
-	// else if (this->_url.path.extension() == ".ico")	// NB: should be done by validation, update content-type of response
-	// 	cwd = FAVICON_PATH;
-	// else
-	// cwd /= this->_url.path.string().substr(1);
-	// return (cwd);
 	return (this->_validator.getRealPath());
 }
 
@@ -198,6 +187,16 @@ t_path const&	HTTPrequest::getRoot( void ) const noexcept
 t_string_map const&	HTTPrequest::getErrorPages( void ) const noexcept
 {
 	return (this->_validator.getErrorPages());
+}
+
+int	HTTPrequest::getStatusFromValidation( void ) const noexcept
+{
+	return (this->_validator.getStatusCode());
+}
+
+bool	HTTPrequest::isRedirection( void ) const noexcept
+{
+	return (this->_validator.isRedirection());
 }
 
 bool	HTTPrequest::isEndConn( void ) const noexcept
@@ -579,7 +578,7 @@ void	HTTPrequest::_unchunkBody( void )
 // 	size_t		sizeChunk=0, delimiter=0;
 // 	std::string	tmpChunkedBody = chunkedChunk;
 // 	std::string	unchunkedChunks;
-
+//
 // 	while (true)
 // 	{
 // 		delimiter = tmpChunkedBody.find(HTTP_DEF_NL);

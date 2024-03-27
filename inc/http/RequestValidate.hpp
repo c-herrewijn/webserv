@@ -42,11 +42,11 @@ class RequestValidate
 		t_path				_realPath;
 		bool				_autoIndex;
 		bool				_isCGI;
+		bool				_isRedirection;
 
 		Location const*		_validLocation;
 		Parameters const*	_validParams;
 
-		// t_path				targetRoot;
 		t_path				targetDir;
 		t_path				targetFile;
 
@@ -85,6 +85,7 @@ class RequestValidate
 		bool				isAutoIndex( void ) const;
 		bool				isFile( void ) const;
 		bool				isCGI( void ) const;
+		bool				isRedirection( void ) const;
 };
 
 #endif

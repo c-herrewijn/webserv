@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/26 12:30:37 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/27 02:25:13 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,13 +75,14 @@ class HTTPrequest : public HTTPstruct
 		size_t			 	getContentLength( void ) const noexcept;
 		std::string	const&	getQueryRaw( void ) const noexcept;
 		std::string			getContentTypeBoundary( void ) const noexcept;
-		// t_path				getRealPath( void ) const noexcept;
-		t_path const&	getRealPath( void ) const noexcept;
+		int					getStatusFromValidation( void ) const noexcept;
+		t_path const&		getRealPath( void ) const noexcept;
 		t_path const&		getRoot( void ) const noexcept;
 		t_string_map const&	getErrorPages( void ) const noexcept;
 
 		bool				isDoneReadingHead( void ) const noexcept;
 		bool				isDoneReadingBody( void ) const noexcept;
+		bool				isRedirection( void ) const noexcept;
 		bool				isEndConn( void ) const noexcept;
 		bool				theresBodyToRead( void ) const noexcept;
 

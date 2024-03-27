@@ -11,7 +11,6 @@
 /* ************************************************************************** */
 
 #include "WebServer.hpp"
-#include "CGI.hpp"
 
 WebServer::WebServer( std::vector<ConfigServer> const& servers ) : _servers(servers)
 {
@@ -67,26 +66,23 @@ WebServer::~WebServer ( void ) noexcept
 	}
 }
 
-// NB: update for codes 20X
-// NB: use relative root in Config File for multi-platform functionality
 // NB: if an error occurs while CGI is running (fileupload) the cgi has to be stopped
-// NB: put request, response, cgi inside pollitem (maybe not)
 void	WebServer::run( void )
 {
 	int				nConn = -1;
 	struct pollfd 	pollfdItem;
-	int count = 0;
-	int oldnConn = 0;
+	// int count = 0;
+	// int oldnConn = 0;
 
 	while (true)
 	{
 		nConn = poll(this->_pollfds.data(), this->_pollfds.size(), 0);
-		count++;
-		if (count == 1000000 || oldnConn != nConn) {
-			oldnConn = nConn;
-			std::cout << "polling...  nr poll items = " << nConn << "; "<< std::endl;
-			count = 0;
-		}
+		// count++;
+		// if (count == 1000000 || oldnConn != nConn) {
+		// 	oldnConn = nConn;
+		// 	std::cout << "polling...  nr poll items = " << nConn << "; "<< std::endl;
+		// 	count = 0;
+		// }
 
 		if (nConn < 0)
 		{
@@ -225,7 +221,7 @@ void	WebServer::_readData( int readFd )	// POLLIN
 			break;
 
 		default:
-			std::cout << C_RED << "UNEXPECTED POLLIN - " << readFd << C_RESET << std::endl;
+			std::cout << C_RED << "UNEXPECTED POLLIN - " << readFd << " - state of pollitem: " << this->_pollitems[readFd]->pollState << C_RESET << std::endl;
 			break;		// NB: or throw exception?
 	}
 }
@@ -384,8 +380,7 @@ int		WebServer::_getSocketFromFd( int fd )
 	throw(std::out_of_range("invalid file descriptor or not found:"));	// entity not found, this should not happen
 }
 
-// NB: building absolut path?
-// NB: fix after validation is ok
+// NB: building absolute path?
 t_path	WebServer::_getHTMLerrorPage( int statusCode, HTTPrequest *request ) const
 {
 	try {
@@ -408,7 +403,7 @@ t_path	WebServer::_getHTMLerrorPage( int statusCode, HTTPrequest *request ) cons
 					if (dir_entry.path().stem() == std::to_string(statusCode))
 						return (dir_entry.path());
 				}
-				throw(HTTPexception({"absolutely no HTML found for code:", std::to_string(statusCode)}, 500));
+				throw(ServerException({"absolutely no HTML found for code:", std::to_string(statusCode)}));
 			}
 		}
 	}
@@ -434,6 +429,7 @@ void	WebServer::handleNewConnections( int listenerFd )
 void	WebServer::readRequestHeaders( int clientSocket )
 {
 	HTTPrequest 	*request = nullptr;
+	HTTPresponse 	*response = nullptr;
 	CGI				*cgiPtr = nullptr;
 	int				HTMLfd = -1;
 	fdState			nextStatus = READ_REQ_HEADER;
@@ -445,7 +441,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	if (request->isDoneReadingHead() == false)
 		return ;
 	request->validate(_getHandler(request->getHost()));
-	this->_responses[clientSocket] = new HTTPresponse(clientSocket, request->getType());
+	this->_responses[clientSocket] = new HTTPresponse(clientSocket, request->getType(), request->getStatusFromValidation());
 	if (request->isCGI())
 	{
 		cgiPtr = new CGI(*request);
@@ -461,9 +457,12 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	}
 	else if (request->isStatic())
 	{
+		response = this->_responses[clientSocket];
 		HTMLfd = open(request->getRealPath().c_str(), O_RDONLY);
 		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
-		this->_responses[clientSocket]->setHTMLfd(HTMLfd);
+		response->setHTMLfd(HTMLfd);
+		if (request->isRedirection())
+			response->setRedirectFile(request->getRealPath());
 	}
 	if (request->isAutoIndex())
 		nextStatus = WRITE_TO_CLIENT;
@@ -485,7 +484,7 @@ void	WebServer::readStaticFiles( int staticFileFd )
 
 	if (this->_pollitems[staticFileFd]->pollType != STATIC_FILE)
 		return ;
-	response->readHTML(staticFileFd);
+	response->readHTML();
 	if (response->isDoneReadingHTML() == false)
 		return ;
 	this->_emptyConns.push_back(staticFileFd);
@@ -534,7 +533,6 @@ void	WebServer::readCGIResponses( int cgiPipe )
 {
 	int 			socket = _getSocketFromFd(cgiPipe);
 	CGI				*cgi = nullptr;
-	// HTTPresponse	*response = nullptr;
 
 	cgi = this->_cgi.at(socket);
 	ssize_t	readChars = -1;
@@ -545,7 +543,6 @@ void	WebServer::readCGIResponses( int cgiPipe )
 		throw(ServerException({"unavailable socket"}));
 	cgi->appendResponse(std::string(buffer, buffer + readChars));
 
-	std::cout << "chars read (from cgi): " << readChars << std::endl; // NB. remove, debug!!
 	if (readChars < HTTP_BUF_SIZE)
 	{
 		this->_emptyConns.push_back(cgiPipe);
@@ -599,22 +596,36 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 	try {
 		clientSocket = _getSocketFromFd(genericFd);
 		request = this->_requests.at(clientSocket);
-		if (this->_responses[clientSocket] == nullptr)
-			this->_responses[clientSocket] = new HTTPresponse(clientSocket, request->getType());
-		response = this->_responses.at(clientSocket);
-		response->errorReset(statusCode);
-		HTMLerrPage = _getHTMLerrorPage(statusCode, request);	// NB: change _getHTMLerrorPage() after validation is ok
-		HTMLfd = open(HTMLerrPage.c_str(), O_RDONLY);
-		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
-		response->setHTMLfd(HTMLfd);
-		this->_pollitems[clientSocket]->pollState = READ_STATIC_FILE;
+		response = this->_responses[clientSocket];
+		if (this->_responses[clientSocket] != nullptr)
+			response->errorReset(statusCode);
+		else
+		{
+			response = new HTTPresponse(clientSocket, HTTP_STATIC, statusCode);
+			this->_responses[clientSocket] = response;
+		}
+		if (response->getStatusCode() == 500)
+			this->_pollitems[clientSocket]->pollState = WRITE_TO_CLIENT;
+		else
+		{
+			HTMLerrPage = _getHTMLerrorPage(statusCode, request);
+			HTMLfd = open(HTMLerrPage.c_str(), O_RDONLY);
+			response->setHTMLfd(HTMLfd);
+			_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
+			this->_pollitems[clientSocket]->pollState = READ_STATIC_FILE;
+		}
 	}
 	catch(const HTTPexception& e1) {
-		std::cout << C_RED << e1.what() << '\n' << C_RESET;
+		std::cerr << C_RED << e1.what() << '\n' << C_RESET;
 		response->errorReset(500);
 		this->_pollitems[clientSocket]->pollState = WRITE_TO_CLIENT;
 	}
-	catch(const std::out_of_range& e2) {
+	catch(const ServerException& e2) {
+		std::cerr << C_RED << e2.what() << '\n' << C_RESET;
+		response->errorReset(500);
+		this->_pollitems[clientSocket]->pollState = WRITE_TO_CLIENT;
+	}
+	catch(const std::out_of_range& e3) {
 		std::cerr << C_RED << "invalid fd or request/response not found\n" << C_RESET;
 		this->_emptyConns.push_back(genericFd);
 		if (clientSocket != -1)

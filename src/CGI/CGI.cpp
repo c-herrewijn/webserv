@@ -39,7 +39,7 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(const HTTPrequest &req)
         "REMOTE_USER=",
         "REQUEST_METHOD=" + req.getMethod(),
         "SCRIPT_NAME=" + req.getRealPath().filename().string(), // script name, e.g. myScript.cgi
-        "SCRIPT_FILENAME=" + req.getRealPath().string(), // script path relative to document root, e.g. /cgi-bin/myScript.cgi - NB: temporary until validation works
+        "SCRIPT_FILENAME=" + req.getRealPath().string(),
         "SERVER_NAME=" + req.getServName(),
         "SERVER_PORT=" + req.getPort(),
         "SERVER_PROTOCOL=HTTP/1.1", // fixed
@@ -66,7 +66,7 @@ void CGI::run()
 {
     pid_t childPid = fork();
     if (childPid == 0) {
-        std::string CGIfilePath = _req.getRealPath().string();   // NB: temporary until validation works
+        std::string CGIfilePath = _req.getRealPath().string();
         std::string CGIfileName = _req.getRealPath().filename().string(); // fully stripped, only used for execve
         close(this->_responsePipe[0]);
         dup2(this->_responsePipe[1], STDOUT_FILENO); // write to pipe

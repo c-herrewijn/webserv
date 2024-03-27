@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/26 12:34:06 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/27 01:03:49 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,22 +36,24 @@ typedef enum HTTPrespState_f
 class HTTPresponse : public HTTPstruct
 {
 	public:
-		HTTPresponse( int, HTTPtype );
+		HTTPresponse( int, HTTPtype, int );
 		virtual ~HTTPresponse( void ) override {};
 
 		void		parseFromCGI( std::string const& );
 		void		parseFromStatic( void );
-		void		readHTML( int );
+		void		readHTML( void );
 		void		listContentDirectory( t_path const&);
 		void		writeContent( void ) ;
 		void		errorReset( int ) noexcept;
 		std::string	toString( void ) const noexcept override;
 
 		int			getStatusCode( void ) const noexcept;
-		void		setHTMLfd( int HTMLfd );
+		void		setHTMLfd( int );
 		int			getHTMLfd( void ) const noexcept;
 		void		setRoot( t_path ) noexcept;
 		t_path		getRoot( void ) const noexcept;
+		void		setRedirectFile( t_path const& );
+		// t_path const&	getRedirectFile( void ) const noexcept;
 		bool		isDoneReadingHTML( void ) const noexcept;
 		bool		isParsingNeeded( void ) const noexcept;
 		bool		isDoneWriting( void ) const noexcept;
@@ -62,8 +64,8 @@ class HTTPresponse : public HTTPstruct
 		std::string		_strSelf;
 		size_t			_contentLengthWrite;
 
-		std::string	_contentType;
-		t_path		_root;
+		std::string	_contentType;		// NB: what to do with that? (update errorReset())
+		t_path		_root, _redirectFile;
 
 		void		_setHeaders( std::string const& ) override;
 		std::string	_mapStatusCode( int ) const ;
