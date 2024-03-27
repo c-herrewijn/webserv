@@ -279,7 +279,7 @@ void	WebServer::_clearEmptyConns( void ) noexcept
 	}
 }
 
-std::string		WebServer::_getAddress( const struct sockaddr_storage *addr ) const noexcept
+std::string	WebServer::_getAddress( const struct sockaddr_storage *addr ) const noexcept
 {
 	std::string ipAddress;
 	if (addr->ss_family == AF_INET)
@@ -361,6 +361,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	if (request->isDoneReadingHead() == false)
 		return ;
 	request->validate();
+	this->_responses[clientSocket] = new HTTPresponse(clientSocket, request->getStatusFromValidation(), request->getType());
 	_addSecondaryConnections(clientSocket);
 	if (request->isAutoIndex())
 		nextStatus = WRITE_TO_CLIENT;
@@ -377,12 +378,11 @@ void	WebServer::readRequestHeaders( int clientSocket )
 
 void	WebServer::_addSecondaryConnections( int clientSocket )
 {
-	HTTPrequest 	*request = this->_requests.at(clientSocket);
-	HTTPresponse	*response = new HTTPresponse(clientSocket, request->getStatusFromValidation(), request->getType());
+	HTTPrequest 	*request = this->_requests[clientSocket];
+	HTTPresponse	*response = this->_responses[clientSocket];
 	CGI				*cgi = nullptr;
 	int				HTMLfd = -1;
 
-	this->_responses[clientSocket] = response;
 	if (request->isCGI())
 	{
 		cgi = new CGI(*request);
@@ -495,8 +495,7 @@ void	WebServer::writeToClients( int clientSocket )
 		{
 			if (response->isAutoIndex())
 				response->listContentDirectory(request->getRealPath());
-			response->setServName(request->getServName());
-			response->parseFromStatic();
+			response->parseFromStatic(request->getServName());
 		}
 	}
 	response->writeContent();
@@ -513,49 +512,29 @@ void	WebServer::writeToClients( int clientSocket )
 
 void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 {
-	int				clientSocket=-1, HTMLfd=-1;
-	HTTPrequest		*request = nullptr;
-	HTTPresponse	*response = nullptr;
+	int				clientSocket=_getSocketFromFd(genericFd), HTMLfd=-1;
+	HTTPrequest		*request = this->_requests[clientSocket];
+	HTTPresponse	*response = this->_responses[clientSocket];
 	t_path			HTMLerrPage;
 
-	if (this->_pollitems[genericFd]->pollType > CLIENT_CONNECTION)	// genericFd refers to a pipe or a static file
+	if (this->_pollitems[genericFd]->pollType > CLIENT_CONNECTION)	// when genericFd refers to a pipe or a static file
 		this->_emptyConns.push_back(genericFd);
+	if (response == nullptr)
+	{
+		response = new HTTPresponse(clientSocket, statusCode, HTTP_STATIC);
+		this->_responses[clientSocket] = response;
+	}
+	response->errorReset(statusCode, false);
 	try {
-		clientSocket = _getSocketFromFd(genericFd);		// throws out_of_range
-		request = this->_requests.at(clientSocket);		// throws out_of_range
-		response = this->_responses[clientSocket];
-		if (this->_responses[clientSocket] != nullptr)
-			response->errorReset(statusCode);
-		else
-		{
-			response = new HTTPresponse(clientSocket, statusCode, HTTP_STATIC);
-			this->_responses[clientSocket] = response;
-		}
-		if (statusCode == 500)
-			this->_pollitems[clientSocket]->pollState = WRITE_TO_CLIENT;
-		else
-		{
-			HTMLerrPage = request->getErrorPageFromCode(statusCode, SERVER_DEF_PAGES);	// throws RequestException
-			HTMLfd = open(HTMLerrPage.c_str(), O_RDONLY);
-			response->setHTMLfd(HTMLfd);							// throws ResponseException
-			_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);		// throws ServerException
-			this->_pollitems[clientSocket]->pollState = READ_STATIC_FILE;
-		}
+		HTMLerrPage = request->getErrorPageFromCode(statusCode, SERVER_DEF_PAGES);	// throws RequestException
+		HTMLfd = open(HTMLerrPage.c_str(), O_RDONLY);
+		response->setHTMLfd(HTMLfd);							// throws ResponseException
+		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);		// throws ServerException
+		this->_pollitems[clientSocket]->pollState = READ_STATIC_FILE;
 	}
-	catch(const HTTPexception& e1) {
+	catch(const std::exception& e1) {
 		std::cerr << C_RED << e1.what() << '\n' << C_RESET;
-		response->errorReset(500);
+		response->errorReset(500, true);
 		this->_pollitems[clientSocket]->pollState = WRITE_TO_CLIENT;
-	}
-	catch(const ServerException& e2) {
-		std::cerr << C_RED << e2.what() << '\n' << C_RESET;
-		response->errorReset(500);
-		this->_pollitems[clientSocket]->pollState = WRITE_TO_CLIENT;
-	}
-	catch(const std::out_of_range& e3) {
-		std::cerr << C_RED << "invalid fd or request/response not found\n" << C_RESET;
-		this->_emptyConns.push_back(genericFd);
-		if (clientSocket != -1)
-			this->_emptyConns.push_back(clientSocket);
 	}
 }

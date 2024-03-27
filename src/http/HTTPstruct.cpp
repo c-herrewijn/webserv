@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/27 19:57:43 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/28 00:15:34 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,16 +27,6 @@ HTTPtype	HTTPstruct::getType( void ) const noexcept
 int		HTTPstruct::getSocket( void ) const noexcept
 {
 	return (this->_socket);
-}
-
-std::string const&	HTTPstruct::getServName( void ) const noexcept
-{
-	return(this->_servName);
-}
-
-void	HTTPstruct::setServName( std::string const& nameServ) noexcept
-{
-	this->_servName = nameServ;
 }
 
 std::string const&	HTTPstruct::getTmpBody( void )

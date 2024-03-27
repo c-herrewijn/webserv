@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/27 20:59:41 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/28 00:41:18 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,7 +61,6 @@ void		HTTPrequest::validate( void )
 {
 	if (this->_state != HTTP_REQ_VALIDATING)
 		throw(RequestException({"instance in wrong state to perfom action"}, 500));
-	_setHandlerServer();
 	this->_validator.setConfig(this->_handlerServer);
 	this->_validator.setMethod(this->_method);
 	this->_validator.setPath(this->_url.path);
@@ -192,6 +191,11 @@ std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 	return (boundary);
 }
 
+std::string const&	HTTPrequest::getServName( void ) const noexcept
+{
+	return(this->_handlerServer.getPrimaryName());
+}
+
 t_path const&	HTTPrequest::getRealPath( void ) const noexcept
 {
 	return (this->_validator.getRealPath());
@@ -206,7 +210,10 @@ t_path	HTTPrequest::getErrorPageFromCode( int statusCode, t_path const& defaultE
 {
 	try {
 		if (isDoneReadingHead() == false)	// fail occured even before validation, so no error pages, skipping directly to server ones
-			throw(std::out_of_range(""));
+		{
+			this->_handlerServer = this->_defaultServer;
+			return (this->_defaultServer.getParams().getErrorPages().at(statusCode));
+		}
 		return (this->_validator.getErrorPages().at(statusCode));
 	}
 	catch(const std::out_of_range& e1) {
@@ -215,7 +222,7 @@ t_path	HTTPrequest::getErrorPageFromCode( int statusCode, t_path const& defaultE
 		}
 		catch(const std::out_of_range& e2) {
 			try {
-				this->_servName = this->_defaultServer.getPrimaryName();
+				this->_handlerServer = this->_defaultServer;
 				return (this->_defaultServer.getParams().getErrorPages().at(statusCode));
 			}
 			catch(const std::out_of_range& e3) {
@@ -425,6 +432,7 @@ void	HTTPrequest::_setHostPort( std::string const& strURL )
 	std::string	port;
 
 	this->_url.host = strURL.substr(0, delimiter);
+	_setHandlerServer(this->_url.host);
 	if (delimiter != std::string::npos)	// there's the port
 	{
 		port = strURL.substr(delimiter + 1);
@@ -442,6 +450,29 @@ void	HTTPrequest::_setHostPort( std::string const& strURL )
 	}
 	else
 		this->_url.port = HTTP_DEF_PORT;
+}
+
+void	HTTPrequest::_setHandlerServer( std::string const& hostName ) noexcept
+{
+	bool	handlerFound = false;
+	std::string tmpHostName=hostName, tmpServName;
+
+	std::transform(tmpHostName.begin(), tmpHostName.end(), tmpHostName.begin(), ::tolower);
+	for (auto const& server : this->_servers)
+	{
+		for (auto const& servName : server.getNames())
+		{
+			tmpServName = servName;
+			std::transform(tmpServName.begin(), tmpServName.end(), tmpServName.begin(), ::tolower);
+			if ((tmpServName == tmpHostName))
+			{
+				handlerFound = true;
+				this->_handlerServer = server;
+			}
+		}
+	}
+	if (handlerFound == false)
+		this->_handlerServer = this->_defaultServer;
 }
 
 void	HTTPrequest::_setPath( std::string const& strPath )
@@ -547,7 +578,6 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 	catch (const HTTPexception& e) {
 		throw(RequestException({"invalid header"}, e.getStatus()));
 	}
-
 	if (this->_headers.count(HEADER_HOST) == 0)		// missing Host header
 		throw(RequestException({"no Host header"}, 444));
 	else if (this->_url.host == "")
@@ -612,32 +642,6 @@ void	HTTPrequest::_unchunkBody( void )
 			throw(RequestException({"bad chunking"}, 400));
 		}
 	} while (sizeChunk != 0);
-}
-
-// NB: default server is not set properly
-void	HTTPrequest::_setHandlerServer( void ) noexcept
-{
-	bool	handlerFound = false;
-	std::string hostName, tmpServName;
-
-	for (auto const& server : this->_servers)
-	{
-		for (auto const& servName : server.getNames())
-		{
-			tmpServName = servName;
-			hostName = getHost();
-			std::transform(tmpServName.begin(), tmpServName.end(), tmpServName.begin(), ::tolower);
-			std::transform(hostName.begin(), hostName.end(), hostName.begin(), ::tolower);
-			if (tmpServName == hostName)
-			{
-				handlerFound = true;
-				this->_handlerServer = server;
-			}
-		}
-	}
-	if (handlerFound == false)
-		this->_handlerServer = this->_defaultServer;
-	this->_servName = this->_handlerServer.getPrimaryName();
 }
 
 // std::string	HTTPrequest::_unchunkChunk( std::string const& chunkedChunk, std::string& remainder)

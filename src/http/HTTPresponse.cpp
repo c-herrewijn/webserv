@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/27 20:36:11 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/28 00:47:35 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,9 +17,7 @@ HTTPresponse::HTTPresponse( int socket, int statusCode, HTTPtype type ) :
 	_HTMLfd(-1),
 	_contentLengthWrite(0)
 {
-	if (statusCode >= 400)
-		errorReset(statusCode);
-	else if (type == HTTP_STATIC)
+	if (type == HTTP_STATIC)
 	{
 		this->_state = HTTP_RESP_HTML_READING;
 		this->_statusCode = statusCode;
@@ -51,12 +49,12 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 	this->_strSelf = toString();
 }
 
-void	HTTPresponse::parseFromStatic( void )
+void	HTTPresponse::parseFromStatic( std::string const& servName )
 {
 	if ((this->_type > HTTP_AUTOINDEX_STATIC) or (this->_state != HTTP_RESP_PARSING))
 		throw(ResponseException({"instance in wrong state or type to perfom action1"}, 500));
 	_addHeader("Date", _getDateTime());
-	_addHeader("Server", this->_servName);
+	_addHeader("Server", servName);
 	_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
 	_addHeader("Content-Type", STD_CONTENT_TYPE);
 	HTTPstruct::_setBody(this->_tmpBody);
@@ -262,14 +260,14 @@ void	HTTPresponse::writeContent( void )
 	}
 }
 
-void	HTTPresponse::errorReset( int errorStatus ) noexcept
+void	HTTPresponse::errorReset( int errorStatus, bool hardCode ) noexcept
 {
 	this->_statusCode = errorStatus;
 	this->_HTMLfd = -1;
 	this->_contentLengthWrite = 0;
 	this->_redirectFile.clear();
 
-	if (this->_statusCode == 500)
+	if (hardCode == true)
 	{
 		this->_tmpBody = ERROR_500_CONTENT;
 		this->_state = HTTP_RESP_PARSING;

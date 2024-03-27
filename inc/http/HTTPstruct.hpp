@@ -68,8 +68,6 @@ class HTTPstruct
 
 		HTTPtype			getType( void ) const noexcept;
 		int					getSocket( void ) const noexcept;
-		std::string const&	getServName( void ) const noexcept;
-		void				setServName( std::string const& ) noexcept;
 		std::string const&	getTmpBody( void );
 		virtual void		setTmpBody( std::string const& );
 
@@ -85,7 +83,7 @@ class HTTPstruct
 		HTTPtype	_type;
 	
 		t_dict 		_headers;
-		std::string	_servName, _tmpHead, _body, _tmpBody;
+		std::string	_tmpHead, _tmpBody, _body;
     	HTTPversion	_version;
 
 		steady_clock::time_point	_lastActivity;

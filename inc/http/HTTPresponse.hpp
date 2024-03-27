@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/27 21:04:47 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/28 00:16:48 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,11 +40,11 @@ class HTTPresponse : public HTTPstruct
 		virtual ~HTTPresponse( void ) override {};
 
 		void		parseFromCGI( std::string const& );
-		void		parseFromStatic( void );
+		void		parseFromStatic( std::string const& );
 		void		readHTML( void );
 		void		listContentDirectory( t_path const&);
 		void		writeContent( void ) ;
-		void		errorReset( int ) noexcept;
+		void		errorReset( int, bool hardCode ) noexcept;
 		std::string	toString( void ) const noexcept override;
 
 		void				setHTMLfd( int );
@@ -60,7 +60,7 @@ class HTTPresponse : public HTTPstruct
 		t_path			_root, _redirectFile;
 		int				_statusCode, _HTMLfd;
 		size_t			_contentLengthWrite;
-		std::string		_contentType, _servName, _strSelf;
+		std::string		_contentType, _strSelf;
 
 		void		_setHeaders( std::string const& ) override;
 		std::string	_mapStatusCode( int ) const ;
