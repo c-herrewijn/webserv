@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/27 02:39:03 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/27 16:54:45 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,7 +50,7 @@ void		HTTPrequest::validate( ConfigServer const& configServer )
 	if ((this->_validator.isRedirection() == false) and (this->_validator.getStatusCode() >= 400))
 		throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
 	_checkMaxBodySize(this->_validator.getMaxBodySize());
-	_setType();
+	_setType();	
 	if (((this->_type == HTTP_FILE_UPL_CGI) and (this->_body.size() < this->_contentLength))
 		or ((this->_type == HTTP_CHUNKED) and (this->_tmpBody.find(HTTP_DEF_TERM) == std::string::npos)))
 			this->_state = HTTP_REQ_BODY_READING;

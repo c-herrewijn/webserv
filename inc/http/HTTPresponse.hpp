@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/27 02:49:16 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/27 17:24:34 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,7 @@ typedef enum HTTPrespState_f
 class HTTPresponse : public HTTPstruct
 {
 	public:
-		HTTPresponse( int, HTTPtype, int, t_path const& targetFile="" );
+		HTTPresponse( int, HTTPtype, int );
 		virtual ~HTTPresponse( void ) override {};
 
 		void		parseFromCGI( std::string const& );
@@ -51,6 +51,7 @@ class HTTPresponse : public HTTPstruct
 		int			getHTMLfd( void ) const noexcept;
 		int			getStatusCode( void ) const noexcept;
 		t_path		getRoot( void ) const noexcept;
+		void		setRedirectFile( t_path const& );
 		bool		isDoneReadingHTML( void ) const noexcept;
 		bool		isParsingNeeded( void ) const noexcept;
 		bool		isDoneWriting( void ) const noexcept;
@@ -61,8 +62,8 @@ class HTTPresponse : public HTTPstruct
 		std::string		_strSelf;
 		size_t			_contentLengthWrite;
 
-		std::string	_contentType;		// NB: what to do with that? (update errorReset())
-		t_path		_root, _targetFile;
+		std::string	_contentType;
+		t_path		_root, _redirectFile;
 
 		void		_setHeaders( std::string const& ) override;
 		std::string	_mapStatusCode( int ) const ;

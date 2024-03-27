@@ -6,13 +6,13 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/27 02:49:08 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/27 17:08:16 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPresponse.hpp"
 
-HTTPresponse::HTTPresponse( int socket, HTTPtype type, int statusCode, t_path const& redirectFile ) : HTTPstruct(socket, type) ,
+HTTPresponse::HTTPresponse( int socket, HTTPtype type, int statusCode ) : HTTPstruct(socket, type) ,
 	_HTMLfd(-1),
 	_contentLengthWrite(0)
 {
@@ -28,7 +28,6 @@ HTTPresponse::HTTPresponse( int socket, HTTPtype type, int statusCode, t_path co
 		this->_state = HTTP_RESP_PARSING;
 		this->_statusCode = 200;
 	}
-	this->_targetFile = redirectFile;
 }
 
 void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
@@ -62,9 +61,9 @@ void	HTTPresponse::parseFromStatic( void )
 	HTTPstruct::_setBody(this->_tmpBody);
 	if ((this->_statusCode >= 300) and (this->_statusCode < 400))
 	{
-		if (this->_targetFile.empty() == true)
+		if (this->_redirectFile.empty() == true)
 			throw(ResponseException({"redirect file target not set"}, 500));
-		_addHeader("Location", this->_targetFile.c_str());
+		_addHeader("Location", this->_redirectFile.c_str());
 	}
 	this->_state = HTTP_RESP_WRITING;
 	this->_strSelf = toString();
@@ -267,7 +266,7 @@ void	HTTPresponse::errorReset( int errorStatus ) noexcept
 	this->_statusCode = errorStatus;
 	this->_HTMLfd = -1;
 	this->_contentLengthWrite = 0;
-	this->_targetFile.clear();
+	this->_redirectFile.clear();
 
 	if (this->_statusCode == 500)
 	{
@@ -338,6 +337,11 @@ t_path		HTTPresponse::getRoot( void ) const noexcept
 	return (this->_root);
 }
 
+void	HTTPresponse::setRedirectFile( t_path const& redirectFile)
+{
+	this->_redirectFile = redirectFile;
+}
+
 bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept
 {
 	return (this->_state > HTTP_RESP_HTML_READING);
@@ -376,7 +380,7 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 		{
 			if (this->_statusCode != 201)
 				throw(ResponseException({"file upload needs status code 201, given:", std::to_string(this->_statusCode)}, 500));
-			this->_targetFile = this->_headers.at("Location");
+			this->_redirectFile = this->_headers.at("Location");
 		}
 	}
 	catch(const std::out_of_range& e1) {

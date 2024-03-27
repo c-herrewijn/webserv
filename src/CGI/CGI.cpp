@@ -20,11 +20,7 @@ CGI::~CGI() {
 
 std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(const HTTPrequest &req)
 {
-    t_path tmp = std::filesystem::current_path();   // NB: temporary
-        tmp += "/var/www/";
-        tmp += _req.getRealPath();
-        std::string CGIfileName = _req.getRealPath().filename();
-
+    std::string CGIfileName = _req.getRealPath().filename();
     std::array<std::string, CGI_ENV_SIZE> CGIEnv {
         "AUTH_TYPE=",
         "CONTENT_LENGTH=" + std::to_string(this->_req.getContentLength()),
