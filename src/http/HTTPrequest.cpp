@@ -6,13 +6,12 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/27 02:13:11 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/27 02:39:03 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPrequest.hpp"
 
-// throws: ServerException , RequestException
 void	HTTPrequest::parseHead( void )
 {
 	std::string strHead, strHeaders;
@@ -507,7 +506,7 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 		throw(RequestException({"invalid header"}, e.getStatus()));
 	}
 
-	if (this->_headers.count(HEADER_HOST) == 0)		// missing Host header, NGINX custom error Code
+	if (this->_headers.count(HEADER_HOST) == 0)		// missing Host header
 		throw(RequestException({"no Host header"}, 444));
 	else if (this->_url.host == "")
 		_setHostPort(this->_headers.at(HEADER_HOST));

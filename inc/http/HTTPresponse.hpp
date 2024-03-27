@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:01:20 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/27 01:03:49 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/27 02:49:16 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,7 @@ typedef enum HTTPrespState_f
 class HTTPresponse : public HTTPstruct
 {
 	public:
-		HTTPresponse( int, HTTPtype, int );
+		HTTPresponse( int, HTTPtype, int, t_path const& targetFile="" );
 		virtual ~HTTPresponse( void ) override {};
 
 		void		parseFromCGI( std::string const& );
@@ -47,13 +47,10 @@ class HTTPresponse : public HTTPstruct
 		void		errorReset( int ) noexcept;
 		std::string	toString( void ) const noexcept override;
 
-		int			getStatusCode( void ) const noexcept;
 		void		setHTMLfd( int );
 		int			getHTMLfd( void ) const noexcept;
-		void		setRoot( t_path ) noexcept;
+		int			getStatusCode( void ) const noexcept;
 		t_path		getRoot( void ) const noexcept;
-		void		setRedirectFile( t_path const& );
-		// t_path const&	getRedirectFile( void ) const noexcept;
 		bool		isDoneReadingHTML( void ) const noexcept;
 		bool		isParsingNeeded( void ) const noexcept;
 		bool		isDoneWriting( void ) const noexcept;
@@ -65,7 +62,7 @@ class HTTPresponse : public HTTPstruct
 		size_t			_contentLengthWrite;
 
 		std::string	_contentType;		// NB: what to do with that? (update errorReset())
-		t_path		_root, _redirectFile;
+		t_path		_root, _targetFile;
 
 		void		_setHeaders( std::string const& ) override;
 		std::string	_mapStatusCode( int ) const ;

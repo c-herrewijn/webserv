@@ -71,19 +71,10 @@ void	WebServer::run( void )
 {
 	int				nConn = -1;
 	struct pollfd 	pollfdItem;
-	// int count = 0;
-	// int oldnConn = 0;
 
 	while (true)
 	{
 		nConn = poll(this->_pollfds.data(), this->_pollfds.size(), 0);
-		// count++;
-		// if (count == 1000000 || oldnConn != nConn) {
-		// 	oldnConn = nConn;
-		// 	std::cout << "polling...  nr poll items = " << nConn << "; "<< std::endl;
-		// 	count = 0;
-		// }
-
 		if (nConn < 0)
 		{
 			if ((errno != EAGAIN) and (errno != EWOULDBLOCK))
@@ -221,8 +212,8 @@ void	WebServer::_readData( int readFd )	// POLLIN
 			break;
 
 		default:
-			std::cout << C_RED << "UNEXPECTED POLLIN - " << readFd << " - state of pollitem: " << this->_pollitems[readFd]->pollState << C_RESET << std::endl;
-			break;		// NB: or throw exception?
+			std::cout << C_RED << "UNEXPECTED POLLIN - " << readFd << " - STATE: " << this->_pollitems[readFd]->pollState << C_RESET << std::endl;
+			break;
 	}
 }
 
@@ -241,7 +232,8 @@ void	WebServer::_writeData( int writeFd )	// POLLOUT
 			break;
 
 		default:
-			break;		// NB: or throw exception?
+			std::cout << C_RED << "UNEXPECTED POLLOUT - " << writeFd << " - STATE: " << this->_pollitems[writeFd]->pollState << C_RESET << std::endl;
+			break;
 	}
 }
 
@@ -429,7 +421,6 @@ void	WebServer::handleNewConnections( int listenerFd )
 void	WebServer::readRequestHeaders( int clientSocket )
 {
 	HTTPrequest 	*request = nullptr;
-	HTTPresponse 	*response = nullptr;
 	CGI				*cgiPtr = nullptr;
 	int				HTMLfd = -1;
 	fdState			nextStatus = READ_REQ_HEADER;
@@ -441,7 +432,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	if (request->isDoneReadingHead() == false)
 		return ;
 	request->validate(_getHandler(request->getHost()));
-	this->_responses[clientSocket] = new HTTPresponse(clientSocket, request->getType(), request->getStatusFromValidation());
+	this->_responses[clientSocket] = new HTTPresponse(clientSocket, request->getType(), request->getStatusFromValidation(), request->getRealPath());
 	if (request->isCGI())
 	{
 		cgiPtr = new CGI(*request);
@@ -457,12 +448,9 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	}
 	else if (request->isStatic())
 	{
-		response = this->_responses[clientSocket];
 		HTMLfd = open(request->getRealPath().c_str(), O_RDONLY);
 		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
-		response->setHTMLfd(HTMLfd);
-		if (request->isRedirection())
-			response->setRedirectFile(request->getRealPath());
+		this->_responses[clientSocket]->setHTMLfd(HTMLfd);
 	}
 	if (request->isAutoIndex())
 		nextStatus = WRITE_TO_CLIENT;
@@ -557,14 +545,14 @@ void	WebServer::writeToClients( int clientSocket )
 
 	if (response->isParsingNeeded() == true)
 	{
-		if ((request->isCGI()) and (response->getStatusCode() < 400)) 	// NB: check the second condition
+		if (response->isCGI())
 		{
 			CGI *cgi = this->_cgi.at(clientSocket);
 			response->parseFromCGI(cgi->getResponse());
 		}
 		else
 		{
-			if ((request->isAutoIndex()) and (response->getStatusCode() < 400))	// NB: check the second condition
+			if (response->isAutoIndex())
 				response->listContentDirectory(request->getRealPath());
 			response->setServName(_getHandler(request->getHost()).getPrimaryName());
 			response->parseFromStatic();
@@ -573,7 +561,7 @@ void	WebServer::writeToClients( int clientSocket )
 	response->writeContent();
 	if (response->isDoneWriting() == false)
 		return ;
-	if ((request->isEndConn() == true) or (response->getStatusCode() == 444))
+	else if ((request->isEndConn() == true) or (response->getStatusCode() == 444))		// NGINX custom behaviour, if code == 444 connection is closed as well
 		this->_emptyConns.push_back(clientSocket);
 	else
 	{
@@ -594,8 +582,8 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 		(this->_pollitems[genericFd]->pollType == CGI_RESPONSE_PIPE_READ_END))
 		this->_emptyConns.push_back(genericFd);
 	try {
-		clientSocket = _getSocketFromFd(genericFd);
-		request = this->_requests.at(clientSocket);
+		clientSocket = _getSocketFromFd(genericFd);		// throws out_of_range
+		request = this->_requests.at(clientSocket);		// throws out_of_range
 		response = this->_responses[clientSocket];
 		if (this->_responses[clientSocket] != nullptr)
 			response->errorReset(statusCode);
@@ -608,10 +596,10 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 			this->_pollitems[clientSocket]->pollState = WRITE_TO_CLIENT;
 		else
 		{
-			HTMLerrPage = _getHTMLerrorPage(statusCode, request);
+			HTMLerrPage = _getHTMLerrorPage(statusCode, request);		// throws ServerException
 			HTMLfd = open(HTMLerrPage.c_str(), O_RDONLY);
-			response->setHTMLfd(HTMLfd);
-			_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
+			response->setHTMLfd(HTMLfd);							// throws HTTPexception
+			_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);		// throws ServerException
 			this->_pollitems[clientSocket]->pollState = READ_STATIC_FILE;
 		}
 	}
