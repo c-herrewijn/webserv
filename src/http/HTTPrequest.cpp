@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        ::::::::            */
-/*   HTTPrequest.cpp                                    :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: fra <fra@student.codam.nl>                   +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/28 18:34:29 by faru          ########   odam.nl         */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "HTTPrequest.hpp"
 
 HTTPrequest::HTTPrequest( int socket, t_serv_list const& servers ) :

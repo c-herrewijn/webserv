@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        ::::::::            */
-/*   RequestValidate.hpp                                :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: itopchu <itopchu@student.codam.nl>           +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2023/11/25 11:44:46 by itopchu       #+#    #+#                 */
-/*   Updated: 2023/11/25 11:44:46 by itopchu       ########   odam.nl         */
-/*                                                                            */
-/* ************************************************************************** */
-
 #ifndef REQUESTVALIDATE_HPP
 # define REQUESTVALIDATE_HPP
 # include "HTTPstruct.hpp"

@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        ::::::::            */
-/*   HTTPstruct.cpp                                     :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: fra <fra@student.codam.nl>                   +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2024/02/08 21:27:03 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/28 00:15:34 by fra           ########   odam.nl         */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "HTTPstruct.hpp"
 
 HTTPstruct::HTTPstruct( int socket, HTTPtype type ) : _socket(socket) , _type(type)

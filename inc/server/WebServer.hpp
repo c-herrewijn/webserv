@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        ::::::::            */
-/*   WebServer.hpp                                      :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: itopchu <itopchu@student.42.fr>              +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/28 17:56:07 by faru          ########   odam.nl         */
-/*                                                                            */
-/* ************************************************************************** */
-
 #pragma once
 #include <netdb.h>          // gai_strerror, getaddrinfo, freeaddrinfo
 #include <cerrno>           // errno

@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        ::::::::            */
-/*   Exceptions.cpp                                     :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: faru <faru@student.codam.nl>                 +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2024/01/18 14:04:58 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/25 20:07:20 by fra           ########   odam.nl         */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "Exceptions.hpp"
 
 ParserException::ParserException( std::initializer_list<std::string> const& prompts) noexcept

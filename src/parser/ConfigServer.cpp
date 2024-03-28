@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        ::::::::            */
-/*   ConfigServer.cpp                                   :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: itopchu <itopchu@student.codam.nl>           +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2023/11/26 14:16:43 by itopchu       #+#    #+#                 */
-/*   Updated: 2023/11/26 14:16:43 by itopchu       ########   odam.nl         */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "ConfigServer.hpp"
 
 ConfigServer&	ConfigServer::operator=(const ConfigServer& assign)

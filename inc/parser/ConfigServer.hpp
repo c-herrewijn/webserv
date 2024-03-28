@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        ::::::::            */
-/*   ConfigServer.hpp                                   :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: itopchu <itopchu@student.codam.nl>           +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2023/11/26 05:34:59 by itopchu       #+#    #+#                 */
-/*   Updated: 2023/11/26 05:34:59 by itopchu       ########   odam.nl         */
-/*                                                                            */
-/* ************************************************************************** */
-
 #ifndef CONFIGSERVER_HPP
 # define CONFIGSERVER_HPP
 # include <map>

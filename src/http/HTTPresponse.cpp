@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        ::::::::            */
-/*   HTTPresponse.cpp                                   :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: fra <fra@student.codam.nl>                   +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/28 23:09:03 by fra           ########   odam.nl         */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "HTTPresponse.hpp"
 
 HTTPresponse::HTTPresponse( int socket, int statusCode, HTTPtype type ) :
