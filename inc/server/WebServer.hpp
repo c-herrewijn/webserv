@@ -80,14 +80,14 @@ typedef struct PollItem
 class WebServer
 {
 	public:
-		WebServer ( std::vector<ConfigServer> const& );
+		WebServer ( std::vector<Config> const& );
 		~WebServer ( void ) noexcept;
 
 		void	run( void );
 
 	private:
-		ConfigServer				 _defaultServer;
-		std::vector<ConfigServer>	 _servers;
+		Config				 _defaultServer;
+		std::vector<Config>	 _servers;
 		std::vector<struct pollfd>	 _pollfds;
 		std::unordered_map<int, t_PollItem*>	 _pollitems;
 		std::unordered_map<int, HTTPrequest*> 	_requests;
@@ -103,8 +103,8 @@ class WebServer
 		void				_dropStructs( int ) noexcept;
 		void				_clearEmptyConns( void ) noexcept;
 		std::string			_getAddress( const struct sockaddr_storage*) const noexcept ;
-		ConfigServer const&	_getHandler( std::string const& ) const noexcept;
-		ConfigServer const&	_getDefaultHandler( void ) const noexcept;
+		Config const&	_getHandler( std::string const& ) const noexcept;
+		Config const&	_getDefaultHandler( void ) const noexcept;
 		int					_getSocketFromFd( int );
 		t_path				_getHTMLerrorPage( int, HTTPrequest* ) const;
 

@@ -13,7 +13,7 @@
 #include "WebServer.hpp"
 #include "CGI.hpp"
 
-WebServer::WebServer( std::vector<ConfigServer> const& servers ) : _servers(servers)
+WebServer::WebServer( std::vector<Config> const& servers ) : _servers(servers)
 {
 	bool 				defServerFound = false;
 	std::vector<Listen>	listeners;
@@ -76,7 +76,7 @@ void	WebServer::run( void )
 	int				nConn = -1;
 	struct pollfd 	pollfdItem;
 	int count = 0;
-	int oldnConn = 0;
+	// int oldnConn = 0;
 
 	while (true)
 	{
@@ -331,7 +331,7 @@ std::string		WebServer::_getAddress( const struct sockaddr_storage *addr ) const
 	return (ipAddress);
 }
 
-ConfigServer const&	WebServer::_getHandler( std::string const& servName ) const noexcept
+Config const&	WebServer::_getHandler( std::string const& servName ) const noexcept
 {
 	std::string	tmpServName = servName;
 
@@ -348,7 +348,7 @@ ConfigServer const&	WebServer::_getHandler( std::string const& servName ) const 
 	return (_getDefaultHandler());
 }
 
-ConfigServer const&	WebServer::_getDefaultHandler( void ) const noexcept
+Config const&	WebServer::_getDefaultHandler( void ) const noexcept
 {
 	return (this->_defaultServer);
 }

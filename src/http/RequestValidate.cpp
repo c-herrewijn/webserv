@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        ::::::::            */
-/*   RequestValidate.hpp                                :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: itopchu <itopchu@student.codam.nl>           +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2023/11/25 11:44:46 by itopchu       #+#    #+#                 */
-/*   Updated: 2023/11/25 11:44:46 by itopchu       ########   odam.nl         */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "RequestValidate.hpp"
 
 // ╔════════════════════════════════╗
@@ -80,7 +68,7 @@ t_string_map const&	RequestValidate::getErrorPages( void ) const
 // ╔════════════════════════════════╗
 // ║			SETTER PART			║
 // ╚════════════════════════════════╝
-void	RequestValidate::setConfig( ConfigServer const& configServ)
+void	RequestValidate::setConfig( Config const& configServ)
 {
 	this->_requestConfig = &configServ;
 }

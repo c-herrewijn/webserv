@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        ::::::::            */
-/*   RequestValidate.hpp                                :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: itopchu <itopchu@student.codam.nl>           +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2023/11/25 11:44:46 by itopchu       #+#    #+#                 */
-/*   Updated: 2023/11/25 11:44:46 by itopchu       ########   odam.nl         */
-/*                                                                            */
-/* ************************************************************************** */
-
 #ifndef REQUESTVALIDATE_HPP
 # define REQUESTVALIDATE_HPP
 # include "HTTPstruct.hpp"
@@ -34,7 +22,7 @@ typedef enum PermType_s
 class RequestValidate
 {
 	private:
-		ConfigServer const*	_requestConfig;
+		Config const*	_requestConfig;
 		HTTPmethod			_requestMethod;
 		t_path				_requestPath;
 
@@ -71,7 +59,7 @@ class RequestValidate
 		RequestValidate( void );
 		virtual	~RequestValidate( void );
 
-		void	setConfig( ConfigServer const& );
+		void	setConfig( Config const& );
 		void	setMethod( HTTPmethod );
 		void	setPath( t_path const& );
 		void	solvePath( void );

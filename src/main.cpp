@@ -1,23 +1,11 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        ::::::::            */
-/*   main.cpp                                           :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: itopchu <itopchu@student.codam.nl>           +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2023/11/26 14:13:43 by itopchu       #+#    #+#                 */
-/*   Updated: 2023/11/26 14:13:43 by itopchu       ########   odam.nl         */
-/*                                                                            */
-/* ************************************************************************** */
-
-#include "parser/Config.hpp"
+#include "parser/Tokenizer.hpp"
 #include "server/WebServer.hpp"
 
-std::vector<ConfigServer>	parseServers(std::string const& fileName)
+std::vector<Config>	parseServers(std::string const& fileName)
 {
-	Config *config;
-	config = new Config();
-	std::vector<ConfigServer> servers;
+	Tokenizer *config;
+	config = new Tokenizer();
+	std::vector<Config> servers;
 	try {
 		config->fillConfig(fileName);
 	}
@@ -30,7 +18,7 @@ std::vector<ConfigServer>	parseServers(std::string const& fileName)
 	delete config;
 	for (size_t i = 0; i < separated.size(); i++)
 	{
-		ConfigServer tmp;
+		Config tmp;
 		std::cout << "--Parsing Server index " C_GREEN << i << C_RESET "--\n";
 		try {
 			tmp.parseBlock(separated[i]);
@@ -47,7 +35,7 @@ std::vector<ConfigServer>	parseServers(std::string const& fileName)
 
 int main(int ac, char **av)
 {
-	std::vector<ConfigServer> servers;
+	std::vector<Config> servers;
 	std::cout << av[0] << '\n';
 	if (ac == 1)
 	{

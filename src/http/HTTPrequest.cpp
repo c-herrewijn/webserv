@@ -40,7 +40,7 @@ void	HTTPrequest::parseHead( void )
 }
 
 // NB: fix after validation is ok
-void		HTTPrequest::validate( ConfigServer const& configServer )
+void		HTTPrequest::validate( Config const& configServer )
 {
 	if (this->_state != HTTP_REQ_VALIDATING)
 		throw(RequestException({"instance in wrong state to perfom action"}, 500));

@@ -65,7 +65,7 @@ class HTTPrequest : public HTTPstruct
 		virtual ~HTTPrequest( void ) override {};
 
 		void		parseHead( void );
-		void		validate( ConfigServer const& );
+		void		validate( Config const& );
 		void		parseBody( void );
 		std::string	toString( void ) const noexcept override;
 
