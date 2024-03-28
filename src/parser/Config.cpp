@@ -1,4 +1,4 @@
-#include "ConfigServer.hpp"
+#include "Config.hpp"
 
 Config&	Config::operator=(const Config& assign)
 {

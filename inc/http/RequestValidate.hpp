@@ -1,7 +1,7 @@
 #ifndef REQUESTVALIDATE_HPP
 # define REQUESTVALIDATE_HPP
 # include "HTTPstruct.hpp"
-# include "ConfigServer.hpp"
+# include "Config.hpp"
 // Needed for file size calculation
 # include <iostream>
 # include <fstream>

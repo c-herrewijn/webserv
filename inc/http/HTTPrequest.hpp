@@ -19,7 +19,7 @@
 #include <fstream>
 
 #include "HTTPstruct.hpp"
-#include "ConfigServer.hpp"
+#include "Config.hpp"
 #include "RequestValidate.hpp"
 
 #define MAIN_PAGE_PATH	 		t_path("var/www/index.html")

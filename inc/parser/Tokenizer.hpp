@@ -7,7 +7,7 @@
 # include <exception>
 # include <cctype>
 # include <stack>
-# include "ConfigServer.hpp"
+# include "Config.hpp"
 # include "Exceptions.hpp"
 
 class Tokenizer

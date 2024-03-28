@@ -1,5 +1,5 @@
 #include "Tokenizer.hpp"
-#include "ConfigServer.hpp"
+#include "Config.hpp"
 
 Tokenizer::Tokenizer(void) {}
 
