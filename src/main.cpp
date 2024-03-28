@@ -37,27 +37,25 @@ int main(int ac, char **av)
 {
 	std::vector<Config> servers;
 	std::cout << av[0] << '\n';
-	if (ac == 1)
-	{
-		std::cout << "No argument provided, using default configuration in " C_GREEN << DEF_CONF << C_RESET "\n";
-		servers = parseServers(DEF_CONF);
-	}
-	else if (ac == 2)
-	{
-		std::cout << "Using custom configuration in " C_GREEN << av[1] << C_RESET "\n";
-		servers = parseServers(av[1]);
-		if (servers.empty())
-		{
-			std::cout << C_RED "No valid server configuration in " << av[1] << C_RESET "\nSwitching to default configuration in " C_GREEN << DEF_CONF << C_RESET "\n";
-			servers = parseServers(DEF_CONF);
-		}
-	}
-	else
+	std::string	file = DEF_CONF;
+
+	if (ac != 1 && ac !=2)
 	{
 		std::cerr << C_RED "Wrong amount of arguments - valid usage: ./" << av[0] << " [config_file_path]\n";
 		return (EXIT_FAILURE);
 	}
-	std::cout << "Found " C_AZURE << servers.size() << C_RESET " available server\n";
+	if (ac == 1)
+		file = DEF_CONF;
+	else if (ac == 2)
+		file = av[1];
+	std::cout << "Using config: " << C_GREEN << file << C_RESET << "\n";
+	servers = parseServers(file);
+	if (servers.empty() && file != DEF_CONF)
+	{
+		std::cout << C_RED "No valid server configuration in " << file << C_RESET "\nSwitching to default configuration in " C_GREEN << DEF_CONF << C_RESET "\n";
+		servers = parseServers(DEF_CONF);
+	}
+	std::cout << "Found " C_AZURE << servers.size() << C_RESET " valid server(s)\n";
 
 	try
 	{
