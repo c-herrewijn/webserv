@@ -446,7 +446,7 @@ void	HTTPrequest::_setQuery( std::string const& queries )
 		del2 = keyValue.find('&');
 		key = keyValue.substr(0, del1);
 		value = keyValue.substr(del1 + 1, del2 - del1 - 1);
-		if (key.empty() or value.empty())
+		if (key.empty())
 			throw(RequestException({"invalid query:", keyValue}, 400));
 		this->_url.query.insert({key, value});
 		if (del2 == std::string::npos)
