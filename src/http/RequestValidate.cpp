@@ -42,6 +42,11 @@ t_path const&	RequestValidate::getRealPath( void ) const
 	return (_realPath);
 }
 
+void	RequestValidate::setRealPath( t_path const& newRealPath ) noexcept
+{
+	this->_realPath = newRealPath;
+}
+
 int	RequestValidate::getStatusCode( void ) const
 {
 	return (_statusCode);

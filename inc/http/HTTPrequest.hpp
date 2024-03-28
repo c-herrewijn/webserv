@@ -76,7 +76,8 @@ class HTTPrequest : public HTTPstruct
 		std::string	const&	getQueryRaw( void ) const noexcept;
 		std::string			getContentTypeBoundary( void ) const noexcept;
 		// t_path				getRealPath( void ) const noexcept;
-		t_path const&	getRealPath( void ) const noexcept;
+		t_path const&		getRealPath( void ) const noexcept;
+		void				setRealPath( t_path const& ) noexcept;
 		t_path const&		getRoot( void ) const noexcept;
 		t_string_map const&	getErrorPages( void ) const noexcept;
 

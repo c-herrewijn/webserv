@@ -190,6 +190,11 @@ t_path const&	HTTPrequest::getRealPath( void ) const noexcept
 	return (this->_validator.getRealPath());
 }
 
+void	HTTPrequest::setRealPath( t_path const& newRealPath ) noexcept
+{
+	this->_validator.setRealPath(newRealPath);
+}
+
 t_path const&	HTTPrequest::getRoot( void ) const noexcept
 {
 	return (this->_validator.getRoot());

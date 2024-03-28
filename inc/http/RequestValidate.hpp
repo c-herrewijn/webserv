@@ -78,6 +78,7 @@ class RequestValidate
 
 		// Parameters*			getValidParams( void ) const;
 		t_path const&		getRealPath( void ) const;
+		void				setRealPath( t_path const& ) noexcept;
 		std::uintmax_t		getMaxBodySize( void ) const;
 		int					getStatusCode( void ) const;
 		t_path const&		getRoot( void ) const;

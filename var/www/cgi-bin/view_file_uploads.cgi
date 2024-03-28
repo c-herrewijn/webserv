@@ -3,32 +3,33 @@ import sys
 from os import environ, listdir
 from pathlib import Path
 
-
-script_path = Path(environ['SCRIPT_FILENAME']).parent
-p_var = ""
-
 html_file_section = ""
+fetch_script = "<script>function deleteRequest(path) {fetch(path, {method: 'DELETE'});}</script>"
 
-while (script_path.__str__() != script_path.root):
-    script_path = script_path.parent
-    if (script_path.name == "var"):
-        p_var = script_path
+p_var = ""
+path_tmp = Path(environ['SCRIPT_FILENAME']).parent
+while (path_tmp.__str__() != path_tmp.root):
+    path_tmp = path_tmp.parent
+    if (path_tmp.name == "var"):
+        p_var = path_tmp
 
-if (p_var != "" and (p_var.parent / 'uploads').is_dir()):
-    upload_dir = (p_var.parent / 'uploads').__str__()
+if (p_var != "" and (p_var / 'upload').is_dir()):
+    upload_dir = (p_var / 'upload').__str__()
     file_list = listdir(path=upload_dir)
     if (len(file_list) == 0):
         html_file_section += "<p>There are no uploaded files on the server</p>"
     else:
-        html_file_section += "<ul>"
+        html_file_section += "\n<ul>"
         for file_name in listdir(path=upload_dir):
-            html_file_section += f"<li>{file_name}</li>"
-        html_file_section += "</ul>"
+            delete_button = f'<input type="button" value="Delete" onclick="deleteRequest(\'/upload/{file_name}\');">'
+            html_file_section += f"\n<li>{file_name} {delete_button}</li>"
+        html_file_section += "\n</ul>"
 else:
     html_file_section += "<p>There are no uploaded files on the server</p>"
 
 
 html_content = f'''<html><body>
+                {fetch_script}
                 <h1>Uploaded files</h1>
                 <a href="/">go home</a>
                 {html_file_section}

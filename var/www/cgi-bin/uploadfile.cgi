@@ -17,7 +17,7 @@ fileitem = form['filename']
 if fileitem.filename:
     # strip leading path from file name to avoid directory traversal attacks
     file_name = os.path.basename(fileitem.filename)
-    upload_dir = os.path.join(os.getcwd(), "uploads")
+    upload_dir = os.path.join(os.getcwd(), "var/upload")
     file_path = os.path.join(upload_dir, file_name)
     if os.path.exists(file_path):
         message = 'Not uploaded: file with same name already present on server!'

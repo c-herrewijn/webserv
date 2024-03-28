@@ -12,6 +12,7 @@
 
 #include "WebServer.hpp"
 #include "CGI.hpp"
+#include <cstdio>  // to delete files
 
 WebServer::WebServer( std::vector<ConfigServer> const& servers ) : _servers(servers)
 {
@@ -446,6 +447,13 @@ void	WebServer::readRequestHeaders( int clientSocket )
 		return ;
 	request->validate(_getHandler(request->getHost()));
 	this->_responses[clientSocket] = new HTTPresponse(clientSocket, request->getType());
+	if (request->getMethod() == "DELETE")
+	{
+		std::cout << "deleting file:\n" << request->getRealPath() << std::endl;
+		std::remove(request->getRealPath().c_str());
+		request->setRealPath("default/200_upload.html");
+		nextStatus = WRITE_TO_CLIENT;
+	}
 	if (request->isCGI())
 	{
 		cgiPtr = new CGI(*request);
@@ -472,7 +480,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	else if (request->theresBodyToRead())
 		nextStatus = READ_REQ_BODY;
 	else if (request->isStatic())
-		nextStatus = READ_STATIC_FILE;		
+		nextStatus = READ_STATIC_FILE;
 	else
 		nextStatus = READ_CGI_RESPONSE;
 	this->_pollitems[clientSocket]->pollState = nextStatus;
