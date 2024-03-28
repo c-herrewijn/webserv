@@ -89,7 +89,8 @@ class WebServer
 		void		_dropStructs( int ) noexcept;
 		void		_clearEmptyConns( void ) noexcept;
 		std::string	_getAddress( const struct sockaddr_storage*) const noexcept ;
-		int			_getSocketFromFd( int );		
+		int			_getSocketFromFd( int );
+		std::vector<ConfigServer const&>	_getServersFromIP( std::string const& ) const noexcept;
 
 		void	handleNewConnections( int ); // keep - DONE
 		void	readRequestHeaders( int ); // keep / rework
