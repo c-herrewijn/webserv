@@ -195,7 +195,7 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 		</head>
 		<body>
 		<div class="container">
-		<h1>Index of )" + pathDir.string().substr(_root.string().length()) + "/" + "</h1><hr>";
+		<h1>Index of )" + pathDir.string().substr(_root.string().length()) + "/" + "</h1><hr>";	
 	std::string parentDir = pathDir.parent_path().string() + "/";
 	std::string tmpRoot = _root.string();
 	size_t i = 0;
