@@ -6,7 +6,7 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/28 18:34:35 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/28 23:09:03 by fra           ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -354,19 +354,21 @@ bool	HTTPresponse::isDoneWriting( void ) const noexcept
 void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 {
 	size_t	delimiter = 0;
+	int		statusCode = -1;
 
+	HTTPstruct::_setHeaders(strHeaders);
 	try
 	{
-		HTTPstruct::_setHeaders(strHeaders);
 		delimiter = this->_headers.at("Status").find(HTTP_DEF_SP);
 		try {
-			this->_statusCode = std::stoi(this->_headers.at("Status").substr(0, delimiter));
+			statusCode = std::stoi(this->_headers.at("Status").substr(0, delimiter));
 		}
 		catch (const std::exception& e) {
-			throw(ResponseException({"invalid status code"}, 500));
+			throw(ResponseException({"invalid status code:", this->_headers.at("Status")}, 500));
 		}
-		if (this->_statusCode >= 400)
-			throw(ResponseException({"error while running CGI"}, this->_statusCode));
+		if (statusCode >= 400)
+			throw(ResponseException({"error while running CGI"}, statusCode));
+		this->_statusCode = statusCode;
 		this->_headers.at("Server");
 		this->_headers.at("Content-type");
 		this->_headers.at("Content-Length");

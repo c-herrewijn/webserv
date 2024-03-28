@@ -26,12 +26,6 @@ WebServer::WebServer( t_serv_list const& servers )
 			auto isPresent = std::find(distinctListeners.begin(), distinctListeners.end(), address);
 			if ( isPresent == distinctListeners.end() )
 				distinctListeners.push_back(address);
-			// try {
-			// 	this->_listenTo(address.getIpString(), address.getPortString());
-			// }
-			// catch (const ServerException& e) {
-			// 	std::cout << C_RED << e.what() << '\n' << C_RESET;
-			// }
 		}
 	}
 	for (auto const& listener : distinctListeners)
@@ -464,43 +458,34 @@ void	WebServer::readRequestBody( int clientSocket )
 
 void	WebServer::writeToCGI( int cgiPipe )
 {
-	HTTPrequest *request = nullptr;
+	int socket = _getSocketFromFd(cgiPipe);
+	HTTPrequest *request = this->_requests[socket];
 	ssize_t		readChars = -1;
-	for (auto& cgiMapItem : this->_cgi) {
-		if (cgiMapItem.second->getUploadPipe()[1] == cgiPipe) {
-			request = this->_requests[cgiMapItem.first];
-			break;
-		}
-	}
-	if (request != nullptr) {
-		close(this->_cgi[request->getSocket()]->getUploadPipe()[0]); // close read end of cgi upload pipe
-		std::string tmpBody = request->getTmpBody();
-		if (tmpBody != "") {
-			readChars = write(cgiPipe, tmpBody.data(), tmpBody.length());
-			if (readChars < 0)
-				throw(ServerException({"unavailable socket"}));
-			request->setTmpBody("");
+	
+	close(this->_cgi[request->getSocket()]->getUploadPipe()[0]); // close read end of cgi upload pipe
+	std::string tmpBody = request->getTmpBody();
+	if (tmpBody != "") {
+		readChars = write(cgiPipe, tmpBody.data(), tmpBody.length());
+		if (readChars < 0)
+			throw(ServerException({"unavailable socket"}));
+		request->setTmpBody("");
 
-			// drop from pollList after writing is done
-			if (request->isDoneReadingBody()) {
-				close(cgiPipe); // close write end of cgi upload pipe
-				this->_emptyConns.push_back(cgiPipe);
-				this->_pollitems[request->getSocket()]->pollState = WAIT_FOR_CGI;
-			}
+		// drop from pollList after writing is done
+		if (request->isDoneReadingBody()) {
+			close(cgiPipe); // close write end of cgi upload pipe
+			this->_emptyConns.push_back(cgiPipe);
+			this->_pollitems[request->getSocket()]->pollState = WAIT_FOR_CGI;
 		}
 	}
-	// else
-	// 	throw(ServerException({"request not found"}));
 }
 
 void	WebServer::readCGIResponses( int cgiPipe )
 {
-	int 			socket = _getSocketFromFd(cgiPipe);
-	CGI				*cgi = nullptr;
-
-	cgi = this->_cgi.at(socket);
+	int 	socket = _getSocketFromFd(cgiPipe);
+	CGI		*cgi = this->_cgi.at(socket);
 	ssize_t	readChars = -1;
 	char 	buffer[HTTP_BUF_SIZE];
+
 	bzero(buffer, HTTP_BUF_SIZE);
 	readChars = read(cgiPipe, buffer, HTTP_BUF_SIZE);
 	if (readChars < 0)
