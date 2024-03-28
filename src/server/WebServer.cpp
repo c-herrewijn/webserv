@@ -12,20 +12,35 @@
 
 #include "WebServer.hpp"
 
-WebServer::WebServer( std::vector<ConfigServer> const& servers ) : _servers(servers)
+WebServer::WebServer( t_serv_list const& servers )
 {
+	std::vector<Listen>	distinctListeners;
+
 	if (servers.empty() == true)
 		throw(ServerException({"no Servers provided for configuration"}));
+	this->_servers = servers;
 	for (auto const& server : this->_servers)
 	{
 		for (auto const& address : server.getListens())
 		{
-			try {
-				this->_listenTo(address.getIpString(), address.getPortString());
-			}
-			catch (const ServerException& e) {
-				std::cout << C_RED << e.what() << '\n' << C_RESET;
-			}
+			auto isPresent = std::find(distinctListeners.begin(), distinctListeners.end(), address);
+			if ( isPresent == distinctListeners.end() )
+				distinctListeners.push_back(address);
+			// try {
+			// 	this->_listenTo(address.getIpString(), address.getPortString());
+			// }
+			// catch (const ServerException& e) {
+			// 	std::cout << C_RED << e.what() << '\n' << C_RESET;
+			// }
+		}
+	}
+	for (auto const& listener : distinctListeners)
+	{
+		try {
+			this->_listenTo(listener.getIpString(), listener.getPortString());
+		}
+		catch (const ServerException& e) {
+			std::cout << C_RED << e.what() << '\n' << C_RESET;
 		}
 	}
 	if (this->_pollfds.empty() == true)
@@ -158,7 +173,7 @@ void	WebServer::_listenTo( std::string const& hostname, std::string const& port 
 		throw(ServerException({"failed listen on", this->_getAddress(&hostIP)}));
 	}
 	std::cout << C_GREEN << "listening on: " << this->_getAddress(&hostIP) << "\n" << C_RESET;
-	this->_addConn(listenSocket, LISTENER, WAITING_FOR_CONNECTION);
+	this->_addConn(listenSocket, LISTENER, WAITING_FOR_CONNECTION, hostname, port);
 }
 
 void	WebServer::_readData( int readFd )	// POLLIN
@@ -220,7 +235,7 @@ void	WebServer::_writeData( int writeFd )	// POLLOUT
 	}
 }
 
-void	WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePollItem )
+void	WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePollItem, std::string const& ip, std::string const& port )
 {
 	t_PollItem *newPollitem = nullptr;
 
@@ -231,6 +246,8 @@ void	WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePoll
 	newPollitem->fd = newSocket;
 	newPollitem->pollType = typePollItem;
 	newPollitem->pollState = statePollItem;
+	newPollitem->IPaddr = ip;
+	newPollitem->port = port;
 	this->_pollitems[newSocket] = newPollitem;
 }
 
@@ -330,6 +347,24 @@ int		WebServer::_getSocketFromFd( int fd )
 	throw(std::out_of_range("invalid file descriptor or not found:"));	// entity not found, this should not happen
 }
 
+t_serv_list	WebServer::_getServersFromIP( std::string const& ip, std::string const& port) const noexcept
+{
+	t_serv_list	matchingServers;
+
+	for (auto const& server : this->_servers)
+	{
+		for (auto const& address : server.getListens())
+		{
+			if ((address.getIpString() == ip) and (address.getPortString() == port))
+			{
+				matchingServers.push_back(server);
+				break ;
+			}
+		}
+	}
+	return (matchingServers);
+}
+
 void	WebServer::handleNewConnections( int listenerFd )
 {
 	struct sockaddr_storage client;
@@ -343,7 +378,7 @@ void	WebServer::handleNewConnections( int listenerFd )
 		return;
 	}
 	fcntl(connFd, F_SETFL, O_NONBLOCK);
-	this->_addConn(connFd, CLIENT_CONNECTION, READ_REQ_HEADER);
+	this->_addConn(connFd, CLIENT_CONNECTION, READ_REQ_HEADER, this->_pollitems[listenerFd]->IPaddr, this->_pollitems[listenerFd]->port);
 	std::cout << C_GREEN << "connected to " << this->_getAddress(&client) << '\n' << C_RESET;
 }
 
@@ -354,7 +389,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 
 	if (request == nullptr)
 	{
-		request = new HTTPrequest(clientSocket, this->_servers);
+		request = new HTTPrequest(clientSocket, _getServersFromIP(this->_pollitems[clientSocket]->IPaddr, this->_pollitems[clientSocket]->port));
 		this->_requests[clientSocket] = request;
 	}
 	request->parseHead();
@@ -391,15 +426,15 @@ void	WebServer::_addSecondaryConnections( int clientSocket )
 			close(cgi->getUploadPipe()[0]);
 			close(cgi->getUploadPipe()[1]);
 		}
-		this->_addConn(cgi->getResponsePipe()[0], CGI_RESPONSE_PIPE_READ_END, READ_CGI_RESPONSE);
+		this->_addConn(cgi->getResponsePipe()[0], CGI_RESPONSE_PIPE_READ_END, READ_CGI_RESPONSE, "", "");
 		if (request->isFileUpload())
-			this->_addConn(cgi->getUploadPipe()[1], CGI_REQUEST_PIPE_WRITE_END, WRITE_TO_CGI);
+			this->_addConn(cgi->getUploadPipe()[1], CGI_REQUEST_PIPE_WRITE_END, WRITE_TO_CGI, "", "");
 		cgi->run();
 	}
 	else if (request->isStatic())
 	{
 		HTMLfd = open(request->getRealPath().c_str(), O_RDONLY);
-		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
+		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE, "", "");
 		response->setHTMLfd(HTMLfd);
 		if (request->isRedirection() == true)
 			response->setRedirectFile(request->getRealPath());
@@ -529,7 +564,7 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 		HTMLerrPage = request->getErrorPageFromCode(statusCode, SERVER_DEF_PAGES);	// throws RequestException
 		HTMLfd = open(HTMLerrPage.c_str(), O_RDONLY);
 		response->setHTMLfd(HTMLfd);							// throws ResponseException
-		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);		// throws ServerException
+		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE, "", "");		// throws ServerException
 		this->_pollitems[clientSocket]->pollState = READ_STATIC_FILE;
 	}
 	catch(const std::exception& e1) {

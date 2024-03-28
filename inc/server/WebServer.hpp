@@ -6,7 +6,7 @@
 /*   By: itopchu <itopchu@student.42.fr>              +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2023/11/25 18:19:29 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/27 21:07:41 by faru          ########   odam.nl         */
+/*   Updated: 2024/03/28 17:56:07 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,22 +58,24 @@ enum fdState
 
 typedef struct PollItem
 {
-	int		fd;
-	fdType  pollType;
-    fdState pollState;
+	int			fd;
+	fdType  	pollType;
+    fdState 	pollState;
+	std::string	IPaddr;
+	std::string	port;
 } t_PollItem;
+
 
 class WebServer
 {
 	public:
-		WebServer ( std::vector<ConfigServer> const& );
+		WebServer ( t_serv_list const& );
 		~WebServer ( void ) noexcept;
 
 		void	run( void );
 
 	private:
-		ConfigServer				 			_defaultServer;
-		std::vector<ConfigServer>	 			_servers;
+		t_serv_list	 							_servers;
 		std::vector<struct pollfd>	 			_pollfds;
 		std::unordered_map<int, t_PollItem*>	_pollitems;
 		std::unordered_map<int, HTTPrequest*> 	_requests;
@@ -84,13 +86,13 @@ class WebServer
 		void		_listenTo( std::string const&, std::string const& );
 		void		_readData( int );
 		void		_writeData( int );
-		void		_addConn( int , fdType , fdState );
+		void		_addConn( int , fdType , fdState, std::string const&, std::string const& );
 		void		_dropConn( int ) noexcept;
 		void		_dropStructs( int ) noexcept;
 		void		_clearEmptyConns( void ) noexcept;
 		std::string	_getAddress( const struct sockaddr_storage*) const noexcept ;
 		int			_getSocketFromFd( int );
-		std::vector<ConfigServer const&>	_getServersFromIP( std::string const& ) const noexcept;
+		t_serv_list	_getServersFromIP( std::string const&, std::string const& ) const noexcept;
 
 		void	handleNewConnections( int ); // keep - DONE
 		void	readRequestHeaders( int ); // keep / rework

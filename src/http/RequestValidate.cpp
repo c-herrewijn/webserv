@@ -312,7 +312,10 @@ void	RequestValidate::solvePath(void)
 		_validParams = &(_validLocation->getParams());
 	}
 	if (!_validParams->getAllowedMethods()[_requestMethod])
+	{
+		std::cout << "method: " << _requestMethod << '\n';
 		return (_setStatusCode(405));	// 405 error, method not allowed
+	}
 	if (_handleReturns())	// handle return
 		return ;
 	if (targetFile.empty() || targetFile == "/")	// set indexfile if necessarry

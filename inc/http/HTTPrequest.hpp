@@ -6,7 +6,7 @@
 /*   By: faru <faru@student.codam.nl>                 +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 17:05:42 by faru          #+#    #+#                 */
-/*   Updated: 2024/03/28 00:50:46 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/28 17:47:30 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,10 +52,12 @@ typedef struct HTTPurl_f
 
 } HTTPurl;
 
+typedef std::vector<ConfigServer> t_serv_list;
+
 class HTTPrequest : public HTTPstruct
 {
 	public:
-		HTTPrequest( int socket, std::vector<ConfigServer> const& );
+		HTTPrequest( int socket, t_serv_list const& );
 		virtual ~HTTPrequest( void ) override {};
 
 		void		parseHead( void );
@@ -87,7 +89,7 @@ class HTTPrequest : public HTTPstruct
 		HTTPurl			_url;
 		RequestValidate	_validator;
 
-		std::vector<ConfigServer>	_servers;
+		t_serv_list	_servers;
 		ConfigServer				_defaultServer, _handlerServer;
 
 		size_t	_contentLength, _contentLengthRead, _maxBodySize;

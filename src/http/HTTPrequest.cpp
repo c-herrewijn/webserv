@@ -6,13 +6,13 @@
 /*   By: fra <fra@student.codam.nl>                   +#+                     */
 /*                                                   +#+                      */
 /*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/28 00:41:18 by fra           ########   odam.nl         */
+/*   Updated: 2024/03/28 18:34:29 by faru          ########   odam.nl         */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "HTTPrequest.hpp"
 
-HTTPrequest::HTTPrequest( int socket, std::vector<ConfigServer> const& servers ) :
+HTTPrequest::HTTPrequest( int socket, t_serv_list const& servers ) :
 	HTTPstruct(socket, HTTP_STATIC),
 	_state(HTTP_REQ_HEAD_READING),
 	_servers(servers),
@@ -212,7 +212,7 @@ t_path	HTTPrequest::getErrorPageFromCode( int statusCode, t_path const& defaultE
 		if (isDoneReadingHead() == false)	// fail occured even before validation, so no error pages, skipping directly to server ones
 		{
 			this->_handlerServer = this->_defaultServer;
-			return (this->_defaultServer.getParams().getErrorPages().at(statusCode));
+			return (this->_handlerServer.getParams().getErrorPages().at(statusCode));
 		}
 		return (this->_validator.getErrorPages().at(statusCode));
 	}
@@ -223,7 +223,7 @@ t_path	HTTPrequest::getErrorPageFromCode( int statusCode, t_path const& defaultE
 		catch(const std::out_of_range& e2) {
 			try {
 				this->_handlerServer = this->_defaultServer;
-				return (this->_defaultServer.getParams().getErrorPages().at(statusCode));
+				return (this->_handlerServer.getParams().getErrorPages().at(statusCode));
 			}
 			catch(const std::out_of_range& e3) {
 				for (auto const& dir_entry : std::filesystem::directory_iterator{defaultErrorPages})
