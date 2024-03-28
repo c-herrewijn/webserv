@@ -153,7 +153,6 @@ static void	capSize(uintmax_t& value, char* type)
     }
 }
 
-// size must be stored as uint. max size can be 20G, value must be clamped 0-20G
 void	Parameters::_parseBodySize(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
@@ -200,8 +199,6 @@ void	Parameters::_parseIndex(std::vector<std::string>& block)
 	block.erase(block.begin());
 	if (block.front() == ";")
 		throw ParserException({"After index expected a file"});
-	// if (block.front().front() != '/')
-	// 	throw ParserException({"File name for index must start with a '/': " + block.front()});
 	if (block.front().find_first_of('/') != std::string::npos)
 		throw ParserException({"'index' must be file '" + block.front() + "'"});
 	this->index = block.front();
@@ -244,7 +241,6 @@ void	Parameters::_parseReturn(std::vector<std::string>& block)
 {
 	int code;
 	block.erase(block.begin());
-	// return /old-url /new-url; is not valid right now
 	try {
 		code = std::stoi(block.front());
 		if (code < 100 || code > 599)
@@ -257,8 +253,6 @@ void	Parameters::_parseReturn(std::vector<std::string>& block)
 	}
 	if (block.front() == ";")
 		throw ParserException({"After return code expected a file '" + block.front() + "'"});
-	// if (block.front().front() != '/')
-	// 	throw ParserException({"File name for return must start with a '/': " + block.front()});
 	if (block.front().find_first_of('/') != std::string::npos)
 		throw ParserException({"'return' must be file '" + block.front() + "'"});
 	returns = {(size_t)code, block.front()};
@@ -318,7 +312,6 @@ void	Parameters::setAutoindex(bool status)
 	autoindex = status;
 }
 
-// this must be updated. size must be stored as bytes
 void	Parameters::setSize(uintmax_t val, char *order)
 {
 	this->max_size = val;

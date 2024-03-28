@@ -2,10 +2,8 @@
 # define REQUESTVALIDATE_HPP
 # include "HTTPstruct.hpp"
 # include "Config.hpp"
-// Needed for file size calculation
 # include <iostream>
 # include <fstream>
-// filesystem management
 # include "Exceptions.hpp"
 
 # define SERVER_DEF_PAGES "/default/errors/";
@@ -34,7 +32,6 @@ class RequestValidate
 		Location const*		_validLocation;
 		Parameters const*	_validParams;
 
-		// t_path				targetRoot;
 		t_path				targetDir;
 		t_path				targetFile;
 
@@ -64,7 +61,6 @@ class RequestValidate
 		void	setPath( t_path const& );
 		void	solvePath( void );
 
-		// Parameters*			getValidParams( void ) const;
 		t_path const&		getRealPath( void ) const;
 		std::uintmax_t		getMaxBodySize( void ) const;
 		int					getStatusCode( void ) const;

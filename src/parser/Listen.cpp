@@ -6,8 +6,7 @@ Listen::Listen(const Listen& copy) :
 	i_ip(copy.i_ip),
 	s_ip(copy.s_ip),
 	s_port(copy.s_port),
-	def(copy.def),
-	all(copy.all) {}
+	def(copy.def) {}
 
 Listen&	Listen::operator=(const Listen& assign)
 {
@@ -18,19 +17,17 @@ Listen&	Listen::operator=(const Listen& assign)
 		s_ip = assign.s_ip;
 		s_port = assign.s_port;
 		def = assign.def;
-		all = assign.all;
 	}
 	return (*this);
 }
 
 Listen::Listen(void)
 {
-	i_ip = {0, 0, 0, 0};
-	i_port = 0;
-	s_ip = "0.0.0.0";
-	s_port = "0";
+	i_ip = {127, 0, 0, 1};
+	i_port = std::stoi(DEF_PORT);
+	s_ip = "127.0.0.1";
+	s_port = DEF_PORT;
 	def = false;
-	all = false;
 }
 
 Listen::~Listen(void)
@@ -40,7 +37,6 @@ Listen::~Listen(void)
 
 void	Listen::_fillFull(std::vector<std::string>& block)
 {
-	all = 0;
 	if (!std::isdigit(block.front().front()))
 		throw ParserException({"first element is not a digit in listen '" + block.front() + "'"});
 	uint8_t counter = 0;
@@ -91,8 +87,6 @@ void	Listen::_fillIp(std::vector<std::string>& block)
 {
 	if (!std::isdigit(block.front().front()))
 		throw ParserException({"first element is not a digit in listen '" + block.front() + "'"});
-	s_port = DEF_PORT;
-	i_port = std::stoi(DEF_PORT);
 	uint8_t counter = 0;
 	uint16_t	tmp = 0;
 	int i = 0;
@@ -125,16 +119,11 @@ void	Listen::_fillIp(std::vector<std::string>& block)
 
 void	Listen::_fillPort(std::vector<std::string>& block)
 {
-	all = false;
 	if (block.front().find_first_of(":") != block.front().find_last_of(":"))
-		throw ParserException({"expected 'port' type '*:80' or ':80' or '8080' on '" + block.front() + "'"});
-	if (block.front().front() == '*')
-	{
-		block.front().erase(block.front().begin());
-		all = true;
-	}
+		throw ParserException({"expected 'port' type ':80' or '8080' on '" + block.front() + "'"});
 	if (block.front().front() == ':')
 		block.front().erase(block.front().begin());
+	
 	uint32_t port = 0;
 	int i = 0;
 	while (std::isdigit(block.front()[i]))
@@ -153,18 +142,16 @@ void	Listen::_fillPort(std::vector<std::string>& block)
 
 void	Listen::fillValues(std::vector<std::string>& block)
 {
-	if (block.front().find_first_not_of("*:.0123456789") != std::string::npos)
+	if (block.front().find_first_not_of(":.0123456789") != std::string::npos)
 		throw ParserException({"unexpected character in listen '" + block.front() + "'"});
 	if (!std::isdigit(block.front()[0]) && block.front()[0] != '*')
-		throw ParserException({"after 'listen' a digit or '*' expected. Fault on '" + block.front() + "'"});
+		throw ParserException({"after 'listen' a digit expected. Fault on '" + block.front() + "'"});
 	bool hasDot = false;
 	bool hasColumn = false;
 	if (block.front().find('.') != std::string::npos)
 		hasDot = true;
 	if (block.front().find(':') != std::string::npos)
 		hasColumn = true;
-	if (block.front().find('*') != std::string::npos && (hasDot || !hasColumn))
-		throw ParserException({"faulty parameter in 'listen': '" + block.front() + "'"});
 	if (hasDot && hasColumn)
 		_fillFull(block);
 	else if (hasDot)
@@ -193,11 +180,6 @@ const uint16_t&	Listen::getPortInt(void) const
 	return (i_port);
 }
 
-const bool&	Listen::getAll(void) const
-{
-	return (all);
-}
-
 const bool&	Listen::getDef(void) const
 {
 	return (def);
@@ -206,11 +188,6 @@ const bool&	Listen::getDef(void) const
 void	Listen::setDef(bool	status)
 {
 	def = status;
-}
-
-void	Listen::setAll(bool	status)
-{
-	all = status;
 }
 
 bool Listen::operator==(const Listen& other) const

@@ -54,7 +54,6 @@ void	Config::_parseListen(std::vector<std::string>& block)
 
 void	Config::_parseServerName(std::vector<std::string>& block)
 {
-	// THIS PART IS SUS. What about asterix?
 	block.erase(block.begin());
 	for (std::vector<std::string>::iterator it = block.begin(); it != block.end();)
 	{
@@ -82,7 +81,6 @@ void	Config::_fillServer(std::vector<std::string>& block)
 	std::vector<std::vector<std::string>> locationHolder;
 	std::vector<std::string>::iterator index;
 	uint64_t size = 0;
-	// Parser keyword separations
 	for (std::vector<std::string>::iterator it = block.begin(); it != block.end();)
 	{
 		if (*it == "listen")
@@ -110,11 +108,6 @@ void	Config::_fillServer(std::vector<std::string>& block)
 				throw ParserException({"Error on location parsing with brackets"});
 			std::vector<std::string> subVector(it, index);
 			block.erase(it, index);
-			// for (auto element : subVector)
-			// {
-			// 	std::cout << element << " ";
-			// }
-			// std::cout << "\n";
 			locationHolder.push_back(subVector);
 		}
 		else
