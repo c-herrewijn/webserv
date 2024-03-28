@@ -50,8 +50,6 @@ class HTTPresponse : public HTTPstruct
 		int			getStatusCode( void ) const noexcept;
 		void		setHTMLfd( int HTMLfd );
 		int			getHTMLfd( void ) const noexcept;
-		void		setRoot( t_path ) noexcept;
-		t_path		getRoot( void ) const noexcept;
 		bool		isDoneReadingHTML( void ) const noexcept;
 		bool		isParsingNeeded( void ) const noexcept;
 		bool		isDoneWriting( void ) const noexcept;
@@ -63,7 +61,6 @@ class HTTPresponse : public HTTPstruct
 		size_t			_contentLengthWrite;
 
 		std::string	_contentType;
-		t_path		_root;
 
 		void		_setHeaders( std::string const& ) override;
 		std::string	_mapStatusCode( int ) const ;

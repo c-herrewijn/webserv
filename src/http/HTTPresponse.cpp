@@ -323,16 +323,6 @@ int		HTTPresponse::getHTMLfd( void ) const noexcept
 	return (this->_HTMLfd);
 }
 
-void		HTTPresponse::setRoot( t_path root) noexcept
-{
-	this->_root = root;
-}
-
-t_path		HTTPresponse::getRoot( void ) const noexcept
-{
-	return (this->_root);
-}
-
 bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept
 {
 	return (this->_state > HTTP_RESP_HTML_READING);

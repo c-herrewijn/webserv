@@ -72,6 +72,8 @@ class HTTPstruct
 		void				setServName(std::string) noexcept;
 		std::string const&	getTmpBody( void );
 		virtual void		setTmpBody( std::string const& );
+		t_path const&		getRoot( void ) const noexcept;
+		void				setRoot( t_path const& ) noexcept;
 
 		bool				isStatic( void ) const noexcept;
 		bool				isAutoIndex( void ) const noexcept;
@@ -87,6 +89,7 @@ class HTTPstruct
 		t_dict 		_headers;
 		std::string	_servName, _tmpHead, _body, _tmpBody;
     	HTTPversion	_version;
+		t_path		_root;
 
 		steady_clock::time_point	_lastActivity;
 

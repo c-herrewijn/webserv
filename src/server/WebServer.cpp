@@ -82,11 +82,11 @@ void	WebServer::run( void )
 	{
 		nConn = poll(this->_pollfds.data(), this->_pollfds.size(), 0);
 		count++;
-		if (count == 1000000 || oldnConn != nConn) {
-			oldnConn = nConn;
-			std::cout << "polling...  nr poll items = " << nConn << "; "<< std::endl;
-			count = 0;
-		}
+		// if (count == 1000000 || oldnConn != nConn) {
+		// 	oldnConn = nConn;
+		// std::cout << "polling...  nr poll items = " << nConn << "; "<< std::endl;
+		// 	count = 0;
+		// }
 
 		if (nConn < 0)
 		{
@@ -434,6 +434,7 @@ void	WebServer::handleNewConnections( int listenerFd )
 void	WebServer::readRequestHeaders( int clientSocket )
 {
 	HTTPrequest 	*request = nullptr;
+	HTTPresponse 	*response = nullptr;
 	CGI				*cgiPtr = nullptr;
 	int				HTMLfd = -1;
 	fdState			nextStatus = READ_REQ_HEADER;
@@ -445,7 +446,9 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	if (request->isDoneReadingHead() == false)
 		return ;
 	request->validate(_getHandler(request->getHost()));
-	this->_responses[clientSocket] = new HTTPresponse(clientSocket, request->getType());
+	response = new HTTPresponse(clientSocket, request->getType());
+	response->setRoot(request->getRoot());
+	this->_responses[clientSocket] = response;
 	if (request->isCGI())
 	{
 		cgiPtr = new CGI(*request);
@@ -463,7 +466,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	{
 		HTMLfd = open(request->getRealPath().c_str(), O_RDONLY);
 		_addConn(HTMLfd, STATIC_FILE, READ_STATIC_FILE);
-		this->_responses[clientSocket]->setHTMLfd(HTMLfd);
+		response->setHTMLfd(HTMLfd);
 	}
 	if (request->isAutoIndex())
 		nextStatus = WRITE_TO_CLIENT;

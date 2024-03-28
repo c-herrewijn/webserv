@@ -51,6 +51,7 @@ void		HTTPrequest::validate( ConfigServer const& configServer )
 	this->_validator.solvePath();
 	if (this->_validator.getStatusCode() >= 400)
 		throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
+	this->_root = this->_validator.getRoot();
 	_checkMaxBodySize(this->_validator.getMaxBodySize());
 	_setType();
 	if (((this->_type == HTTP_FILE_UPL_CGI) and (this->_body.size() < this->_contentLength))
@@ -188,11 +189,6 @@ t_path const&	HTTPrequest::getRealPath( void ) const noexcept
 	// cwd /= this->_url.path.string().substr(1);
 	// return (cwd);
 	return (this->_validator.getRealPath());
-}
-
-t_path const&	HTTPrequest::getRoot( void ) const noexcept
-{
-	return (this->_validator.getRoot());
 }
 
 t_string_map const&	HTTPrequest::getErrorPages( void ) const noexcept
