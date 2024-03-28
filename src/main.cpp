@@ -33,6 +33,11 @@ std::vector<Config>	parseServers(std::string const& fileName)
 	return (servers);
 }
 
+static void assignDefaults(std::vector<Config> servers)
+{
+	(void)servers;
+}
+
 int main(int ac, char **av)
 {
 	std::vector<Config> servers;
@@ -53,6 +58,7 @@ int main(int ac, char **av)
 		std::cout << C_RED "No valid server configuration in " << file << C_RESET "\nSwitching to default configuration in " C_GREEN << DEF_CONF << C_RESET "\n";
 		servers = parseServers(DEF_CONF);
 	}
+	assignDefaults(servers);
 	std::cout << "Found " C_AZURE << servers.size() << C_RESET " valid server(s)\n";
 
 	try
