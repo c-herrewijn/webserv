@@ -123,8 +123,14 @@ void	Parameters::_parseRoot(std::vector<std::string>& block)
 	if (block.front() == ";")
 		throw ParserException({"'root' can't have an empty parameter"});
 	if (block.front().front() != '/')
-		throw ParserException({"'root' must begin with a '/' '" + block.front() + "'"});
-	setRoot(t_path(block.front()));
+	{
+		root /= std::filesystem::current_path() / block.front();
+	}
+	else
+	{
+		root /= std::fileblock.front();
+	}
+		// throw ParserException({"'root' must begin with a '/' '" + block.front() + "'"});
 	block.erase(block.begin());
 	if (block.front() != ";")
 		throw ParserException({"'root' can't have multiple parameters '" + block.front() + "'"});
@@ -211,9 +217,9 @@ void	Parameters::_parseIndex(std::vector<std::string>& block)
 	block.erase(block.begin());
 	if (block.front() == ";")
 		throw ParserException({"After index expected a file"});
-	if (block.front().front() != '/')
-		throw ParserException({"File name for index must start with a '/': " + block.front()});
-	if (block.front().find_first_of('/') != block.front().find_last_of('/'))
+	// if (block.front().front() != '/')
+	// 	throw ParserException({"File name for index must start with a '/': " + block.front()});
+	if (block.front().find_first_of('/') != std::string::npos)
 		throw ParserException({"'index' must be file '" + block.front() + "'"});
 	this->index = block.front();
 	block.erase(block.begin());
@@ -268,9 +274,9 @@ void	Parameters::_parseReturn(std::vector<std::string>& block)
 	}
 	if (block.front() == ";")
 		throw ParserException({"After return code expected a file '" + block.front() + "'"});
-	if (block.front().front() != '/')
-		throw ParserException({"File name for return must start with a '/': " + block.front()});
-	if (block.front().find_first_of('/') != block.front().find_last_of('/'))
+	// if (block.front().front() != '/')
+	// 	throw ParserException({"File name for return must start with a '/': " + block.front()});
+	if (block.front().find_first_of('/') != std::string::npos)
 		throw ParserException({"'return' must be file '" + block.front() + "'"});
 	returns = {(size_t)code, block.front()};
 	block.erase(block.begin());

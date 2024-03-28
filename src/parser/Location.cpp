@@ -101,8 +101,6 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 			throw ParserException({"'" + block.front() + "' is not a valid parameter in 'location' context"});
 	}
 	block.erase(block.begin());
-	this->filesystem = std::filesystem::weakly_canonical(URL);
-	// std::cout << "Parsed URL: " << URL << " : " << "Parsed filesystem: " << filesystem << "\n";
 	for (std::vector<std::vector<std::string>>::iterator it = locationHolder.begin(); it != locationHolder.end(); it++)
 	{
 		Location local(*it, params);

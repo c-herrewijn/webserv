@@ -68,7 +68,7 @@ class Parameters
 		t_path				index;	// Will be searched in given order
 		t_path				root;		// Last found will be used.
 		t_string_map		error_pages;	// Same status codes will be overwriten
-		std::pair<size_t, std::string>	returns;	// Overwritten by the last
+		std::pair<size_t, t_path>	returns;	// Overwritten by the last
 		std::bitset<METHOD_AMOUNT> allowedMethods;	// Allowed methods
 		std::string			cgi_extension;	// extention .py .sh
 		bool				cgi_allowed;	// Check for permissions
