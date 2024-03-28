@@ -49,7 +49,7 @@ class Parameters
 		void	setSize(uintmax_t val, char *c);
 		void	setAutoindex(bool status);
 
-		const std::pair<size_t, std::string>& getReturns(void) const;
+		const std::pair<size_t, t_path>& getReturns(void) const;
 		void 						setBlockIndex(size_t ref);
 		const size_t& 				getBlockIndex(void) const;
 		const t_path&	 			getIndex(void) const;

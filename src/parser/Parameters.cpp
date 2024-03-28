@@ -123,14 +123,9 @@ void	Parameters::_parseRoot(std::vector<std::string>& block)
 	if (block.front() == ";")
 		throw ParserException({"'root' can't have an empty parameter"});
 	if (block.front().front() != '/')
-	{
-		root /= std::filesystem::current_path() / block.front();
-	}
+		root = std::filesystem::weakly_canonical(std::filesystem::current_path() / block.front());
 	else
-	{
-		root /= std::fileblock.front();
-	}
-		// throw ParserException({"'root' must begin with a '/' '" + block.front() + "'"});
+		root = block.front();
 	block.erase(block.begin());
 	if (block.front() != ";")
 		throw ParserException({"'root' can't have multiple parameters '" + block.front() + "'"});
@@ -315,7 +310,7 @@ const	t_string_map& Parameters::getErrorPages(void) const
 	return (error_pages);
 }
 
-const	std::pair<size_t, std::string>& Parameters::getReturns(void) const
+const	std::pair<size_t, t_path>&  Parameters::getReturns(void) const
 {
 	return (returns);
 }

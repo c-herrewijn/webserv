@@ -239,13 +239,13 @@ bool	RequestValidate::_handleFolder(void)
 
 bool	RequestValidate::_handleFile(void)
 {
-	t_path dirPath = _validParams->getRoot();
-	dirPath += "/";
-	dirPath += targetDir;
-	dirPath += "/";
-	t_path filePath = dirPath;
-	filePath += "/";
-	filePath += targetFile;
+	t_path dirPath = _validParams->getRoot().string() + "/" + targetDir.string() + "/";
+	// dirPath += "/";
+	// dirPath += targetDir;
+	// dirPath += "/";
+	t_path filePath = dirPath.string() + "/" + targetFile.string();
+	// filePath += "/";
+	// filePath += targetFile;
 	_isCGI = false;
 	// check filePath
 	// std::cout << "Checked paths: " << dirPath << " : " << filePath << "\n";
