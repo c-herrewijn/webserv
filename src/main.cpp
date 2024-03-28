@@ -44,9 +44,7 @@ int main(int ac, char **av)
 		std::cerr << C_RED "Wrong amount of arguments - valid usage: ./" << av[0] << " [config_file_path]\n";
 		return (EXIT_FAILURE);
 	}
-	if (ac == 1)
-		file = DEF_CONF;
-	else if (ac == 2)
+	if (ac == 2)
 		file = av[1];
 	std::cout << "Using config: " << C_GREEN << file << C_RESET << "\n";
 	servers = parseServers(file);
