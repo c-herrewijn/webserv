@@ -3,7 +3,6 @@ function display_name_from_cookies() {
     let key, value
     let first_name = "";
     let last_name = "";
-    console.log("hello world");
 
     const cookieArr = cookieStr.split('; ');
     for (let i = 0; i < cookieArr.length; i++) {
