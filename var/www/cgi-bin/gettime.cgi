@@ -3,11 +3,24 @@ from os import environ
 from datetime import datetime
 import sys
 
+# get user name from cookie
+first_name: str = ""
+last_name: str = ""
+if ('HTTP_COOKIE' in environ.keys() and environ['HTTP_COOKIE'] != ""):
+    for cookie in environ['HTTP_COOKIE'].split(";"):
+        key, value = map(str.strip, cookie.split('='))
+        if (key == "first_name"):
+            first_name = value
+        if (key == "last_name"):
+            last_name = value
+
+# get time
 now = datetime.now()
 now_str = now.strftime('%H:%M:%S')
 
 html_content = f'''<html><body>
-                <h1>Current time: {now_str}</h1>
+                <h1>Hello {f"{first_name} {last_name}".strip() if first_name or last_name else "anonymous user"}!</h1>
+                <h2>Current time: {now_str}</h2>
                 <a href="/">go home</a>
                 </body></html>'''
 
