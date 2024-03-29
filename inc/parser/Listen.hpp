@@ -19,7 +19,7 @@ class Listen
 		virtual ~Listen(void);
 
 		void						fillValues(std::vector<std::string>& block);
-		void						setDef(bool	status);
+		void						setDef(bool);
 		const std::string&			getIpString(void) const;
 		const std::vector<uint8_t>&	getIpInt(void) const;
 		const std::string&			getPortString(void) const;
