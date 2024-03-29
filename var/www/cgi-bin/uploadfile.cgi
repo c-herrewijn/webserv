@@ -51,7 +51,9 @@ print("Content-type: text/html", end='\r\n')
 print(f"Content-Length: {len(html_content)}", end='\r\n')
 if (status_code == '201 Created'):
     print(f"Location: {os.path.join('/uploads', file_name)}", end='\r\n')
-print(f"Server: {environ['SERVER_NAME']}", end='\r\n\r\n')
+if ('SERVER_NAME' in environ.keys()):
+    print(f"Server: {environ['SERVER_NAME']}", end='\r\n')
+print("", end='\r\n')  # mandatory empty line
 print(html_content)
 
 # cgi.print_environ()

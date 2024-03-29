@@ -16,5 +16,7 @@ html_content = f'''<html><body>
 print("Status: 200 OK", end='\r\n')
 print("Content-type: text/html", end='\r\n')
 print(f"Content-Length: {len(html_content)}", end='\r\n')
-print(f"Server: {environ['SERVER_NAME']}", end='\r\n\r\n')
+if ('SERVER_NAME' in environ.keys()):
+    print(f"Server: {environ['SERVER_NAME']}", end='\r\n')
+print("", end='\r\n')  # mandatory empty line
 print(html_content)
