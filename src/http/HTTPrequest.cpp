@@ -163,6 +163,14 @@ std::string	const&	HTTPrequest::getQueryRaw( void ) const noexcept
 	return (this->_url.queryRaw);
 }
 
+std::string	const	HTTPrequest::getCookie( void ) const noexcept
+{
+	if (this->_headers.count(HEADER_COOKIE) != 0)
+		return (this->_headers.find(HEADER_COOKIE)->second);
+	else
+		return std::string();
+}
+
 std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 {
 	std::string boundary = "";

@@ -31,6 +31,7 @@
 #define	HEADER_HOST				"Host"
 #define	HEADER_CONN				"Connection"
 #define	HEADER_TRANS_ENCODING	"Transfer-Encoding"
+#define	HEADER_COOKIE			"Cookie"
 
 typedef enum HTTPreqState_f
 {
@@ -74,6 +75,7 @@ class HTTPrequest : public HTTPstruct
 		std::string		 	getPort( void ) const noexcept;
 		size_t			 	getContentLength( void ) const noexcept;
 		std::string	const&	getQueryRaw( void ) const noexcept;
+		std::string	const	getCookie( void ) const noexcept;
 		std::string			getContentTypeBoundary( void ) const noexcept;
 		// t_path				getRealPath( void ) const noexcept;
 		t_path const&		getRealPath( void ) const noexcept;

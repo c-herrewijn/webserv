@@ -44,7 +44,7 @@ std::array<std::string, CGI_ENV_SIZE> CGI::_createCgiEnv(const HTTPrequest &req)
         "SERVER_PORT=" + req.getPort(),
         "SERVER_PROTOCOL=HTTP/1.1", // fixed
         "SERVER_SOFTWARE=WebServServer/1.0", // fixed
-        "HTTP_COOKIE=", // TODO
+        "HTTP_COOKIE=" + req.getCookie(),
     };
     return CGIEnv;
 }
