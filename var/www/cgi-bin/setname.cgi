@@ -15,13 +15,13 @@ if ('last_name' in query_string_dict):
 
 # update cookies
 if (first_name):
-    cookie_header = f"Set-Cookie: first_name={first_name}; Max-Age={3600*24*365}; SameSite=Lax\r\n"
+    cookie_header = f"Set-Cookie: first_name={first_name}; Max-Age={3600*24*365}; SameSite=Lax; Path=/" + "\r\n"
 else:
-    cookie_header = f"Set-Cookie: first_name=; Max-Age=0; SameSite=Lax\r\n"
+    cookie_header = f"Set-Cookie: first_name=; Max-Age=0; SameSite=Lax; Path=/" + "\r\n"
 if (last_name):
-    cookie_header += f"Set-Cookie: last_name={last_name}; Max-Age={3600*24*365}; SameSite=Lax\r\n"
+    cookie_header += f"Set-Cookie: last_name={last_name}; Max-Age={3600*24*365}; SameSite=Lax; Path=/" + "\r\n"
 else:
-    cookie_header += f"Set-Cookie: last_name=; Max-Age=0; SameSite=Lax\r\n"
+    cookie_header += f"Set-Cookie: last_name=; Max-Age=0; SameSite=Lax; Path=/" + "\r\n"
 
 html_content = f'''<html><body>
                 <h1>Hello {f"{first_name} {last_name}".strip() if first_name or last_name else "anonymous user"}!</h1>
