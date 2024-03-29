@@ -129,6 +129,8 @@ void	Config::parseBlock(std::vector<std::string>& block)
 		throw ParserException({"last element is not a '}"});
 	block.pop_back();
 	_fillServer(block);
+	if (names.empty())
+		names.push_back(DEF_NAME);
 }
 
 const std::vector<Listen>& Config::getListens(void) const
