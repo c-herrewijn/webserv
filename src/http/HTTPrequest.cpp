@@ -69,7 +69,7 @@ void	HTTPrequest::parseBody( void )
 {
 	if (this->_state != HTTP_REQ_BODY_READING)
 		throw(RequestException({"instance in (wrong) state:", std::to_string(this->_state), "unable to perfom read body"}, 500));
-	
+
 	if (this->_type == HTTP_CHUNKED)
 		_readChunkedBody();
 	else
@@ -168,7 +168,7 @@ std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 	std::string boundary = "";
 	if (this->_headers.count(HEADER_CONT_TYPE) > 0)
 	{
-		std::string contentType = this->_headers.at(HEADER_CONT_TYPE);
+		std::string contentType = this->_headers.find(HEADER_CONT_TYPE)->second;
 		size_t delim = contentType.find('=');
 		boundary = contentType.substr(delim + 1, contentType.length() - delim);
 	}
@@ -516,23 +516,23 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 	if (this->_headers.count(HEADER_HOST) == 0)		// missing Host header, NGINX custom error Code
 		throw(RequestException({"no Host header"}, 444));
 	else if (this->_url.host == "")
-		_setHostPort(this->_headers.at(HEADER_HOST));
-	else if (this->_headers.at(HEADER_HOST).find(this->_url.host) == std::string::npos)
+		_setHostPort(this->_headers.find(HEADER_HOST)->second);
+	else if (this->_headers.find(HEADER_HOST)->second.find(this->_url.host) == std::string::npos)
 		throw(RequestException({"hosts do not match"}, 412));
 
 	if (this->_headers.count(HEADER_CONN) != 0)
-		this->_endConn = this->_headers.at(HEADER_CONN) == "close";
+		this->_endConn = this->_headers.find(HEADER_CONN)->second == "close";
 	if (this->_headers.count(HEADER_CONT_LEN) == 0)
 	{
 		if (this->_headers.count(HEADER_TRANS_ENCODING) == 0)		// no body
 			return ;
-		else if (this->_headers.at(HEADER_TRANS_ENCODING) != "chunked")
+		else if (this->_headers.find(HEADER_TRANS_ENCODING)->second != "chunked")
 			throw(RequestException({HEADER_TRANS_ENCODING, "required"}, 411));
 	}
 	else
 	{
 		try {
-			this->_contentLength = std::stoull(this->_headers.at(HEADER_CONT_LEN));
+			this->_contentLength = std::stoull(this->_headers.find(HEADER_CONT_LEN)->second);
 		}
 		catch (const std::exception& e) {
 			throw(RequestException({"invalid Content-Length"}, 400));
@@ -544,9 +544,9 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 
 void	HTTPrequest::_setType( void )
 {
-	if (this->_headers[HEADER_TRANS_ENCODING] == "chunked")
+	if (this->_headers.count(HEADER_TRANS_ENCODING) && this->_headers.find(HEADER_TRANS_ENCODING)->second == "chunked")
 		this->_type = HTTP_CHUNKED;
-	else if (this->_headers[HEADER_CONT_TYPE].find("multipart/form-data; boundary=-") == 0)
+	else if (this->_headers.count(HEADER_CONT_TYPE) && this->_headers.find(HEADER_CONT_TYPE)->second.find("multipart/form-data; boundary=-") == 0)
 		this->_type = HTTP_FILE_UPL_CGI;
 	else if (this->_validator.isAutoIndex() == true)
 		this->_type = HTTP_AUTOINDEX_STATIC;

@@ -122,5 +122,5 @@ void	HTTPstruct::_checkTimeout( void )
 
 void	HTTPstruct::_addHeader(std::string const& name, std::string const& content) noexcept
 {
-	this->_headers[name] = content;
+	this->_headers.insert({name, content});
 }

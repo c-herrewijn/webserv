@@ -32,7 +32,7 @@
 
 using namespace std::chrono;
 
-typedef std::map<std::string, std::string> t_dict;
+typedef std::multimap<std::string, std::string> t_dict;
 typedef std::filesystem::path t_path;
 
 typedef enum HTTPmethod_s
@@ -83,7 +83,7 @@ class HTTPstruct
 	protected:
 		int			_socket;
 		HTTPtype	_type;
-	
+
 		t_dict 		_headers;
 		std::string	_servName, _tmpHead, _body, _tmpBody;
     	HTTPversion	_version;

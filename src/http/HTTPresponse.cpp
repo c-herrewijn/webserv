@@ -357,24 +357,27 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 	try
 	{
 		HTTPstruct::_setHeaders(strHeaders);
-		delimiter = this->_headers.at("Status").find(HTTP_DEF_SP);
+		if (this->_headers.count("Status"))
+			delimiter = this->_headers.find("Status")->second.find(HTTP_DEF_SP);
 		try {
-			this->_statusCode = std::stoi(this->_headers.at("Status").substr(0, delimiter));
+			this->_statusCode = std::stoi(this->_headers.find("Status")->second.substr(0, delimiter));
 		}
 		catch(const std::exception& e) {
 			throw(ResponseException({"invalid status code"}, 500));
 		}
-		this->_headers.at("Server");
-		this->_headers.at("Content-type");
-		this->_headers.at("Content-Length");
-		if (this->_type == HTTP_FILE_UPL_CGI)
+		if (this->_headers.find("Server") == this->_headers.end()
+			|| this->_headers.find("Content-type") == this->_headers.end()
+			|| this->_headers.find("Content-Length") == this->_headers.end())
 		{
-			if (this->_statusCode < 400)
-				this->_headers.at("Location");
+			throw(ResponseException({"missing mandatory header(s) in CGI response"}, 500));
 		}
-	}
-	catch(const std::out_of_range& e1) {
-		throw(ResponseException({"missing mandatory header(s) in CGI response"}, 500));
+
+		if (this->_type == HTTP_FILE_UPL_CGI
+			&& this->_statusCode < 400
+			&& this->_headers.find("Location") == this->_headers.end())
+		{
+			throw(ResponseException({"missing mandatory header(s) in CGI response"}, 500));
+		}
 	}
 	catch (const HTTPexception& e2) {
 		throw(ResponseException({"invalid header"}, e2.getStatus()));
