@@ -1,12 +1,15 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html> -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Webserv Demo Page</title>
+    <script src="read_cookies.js"></script>
 </head>
-<body>
-    <h1>Welcome!</h1>
+
+<body onLoad="display_name_from_cookies()">
+
+    <h1>Welcome <span id="welcome-name"></span>!</h1>
     <p>You can do the following things:</p>
     <ul>
         <li><p>Tell us your name
