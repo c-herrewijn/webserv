@@ -1,57 +1,53 @@
 #include "HTTPresponse.hpp"
 
 HTTPresponse::HTTPresponse( int socket, int statusCode, HTTPtype type ) :
-	HTTPstruct(socket, type) ,
+	HTTPstruct(socket, statusCode, type) ,
 	_HTMLfd(-1),
 	_contentLengthWrite(0)
 {
-	if (type == HTTP_STATIC)
-	{
+	if (isStatic() == true)
 		this->_state = HTTP_RESP_HTML_READING;
-		this->_statusCode = statusCode;
-	}
 	else
-	{
 		this->_state = HTTP_RESP_PARSING;
-		this->_statusCode = 200;
-	}
 }
 
 void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 {
-	std::string headers, body;
+	std::string headers;
 	size_t		delimiter;
 
-	if ((this->_type < HTTP_FAST_CGI) or (this->_state != HTTP_RESP_PARSING))
+	if ((isCGI() == false) or (isParsingNeeded() == false))
 		throw(ResponseException({"instance in wrong state or type to perfom action"}, 500));
 	delimiter = CGIresp.find(HTTP_DEF_TERM);
 	if (delimiter == std::string::npos)
 		throw(ResponseException({"no headers terminator in CGI response"}, 500));
 	delimiter += HTTP_DEF_TERM.size();
 	headers = CGIresp.substr(0, delimiter - HTTP_DEF_NL.size());
-	body = CGIresp.substr(delimiter);
+	this->_tmpBody = CGIresp.substr(delimiter);
+	_setVersion(HTTP_DEF_VERSION);
 	_setHeaders(headers);
 	_addHeader("Date", _getDateTime());
-	HTTPstruct::_setBody(body);
+	HTTPstruct::_setBody();
 	this->_state = HTTP_RESP_WRITING;
 	this->_strSelf = toString();
 }
 
 void	HTTPresponse::parseFromStatic( std::string const& servName )
 {
-	if ((this->_type > HTTP_AUTOINDEX_STATIC) or (this->_state != HTTP_RESP_PARSING))
-		throw(ResponseException({"instance in wrong state or type to perfom action1"}, 500));
+	if ((isStatic() == false) or (isParsingNeeded() == false))
+		throw(ResponseException({"instance in wrong state or type to perfom action"}, 500));
+	_setVersion(HTTP_DEF_VERSION);
 	_addHeader("Date", _getDateTime());
 	_addHeader("Server", servName);
 	_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
-	_addHeader("Content-Type", STD_CONTENT_TYPE);
-	HTTPstruct::_setBody(this->_tmpBody);
+	_addHeader("Content-Type", HTML_CONTENT_TYPE);
 	if ((this->_statusCode >= 300) and (this->_statusCode < 400))
 	{
-		if (this->_redirectFile.empty() == true)
+		if (this->_targetFile.empty() == true)
 			throw(ResponseException({"redirect file target not set"}, 500));
-		_addHeader("Location", this->_redirectFile.c_str());
+		_addHeader("Location", this->_targetFile.c_str());
 	}
+	HTTPstruct::_setBody();
 	this->_state = HTTP_RESP_WRITING;
 	this->_strSelf = toString();
 }
@@ -61,15 +57,24 @@ void	HTTPresponse::readHTML( void )
     ssize_t 	readChar = -1;
     char        buffer[HTTP_BUF_SIZE];
 
-	if ((this->_type != HTTP_STATIC) or (this->_state != HTTP_RESP_HTML_READING))
+	if ((isStatic() == false) or (isDoneReadingHTML() == true))
 		throw(ResponseException({"instance in wrong state or type to perfom action2"}, 500));
 	bzero(buffer, HTTP_BUF_SIZE);
 	readChar = read(this->_HTMLfd, buffer, HTTP_BUF_SIZE);
 	if (readChar < 0)
-		throw(ServerException({"fd unavailable or not set"}));
+	{
+		if (this->_targetFile.empty() == true)
+			throw(ServerException({"targetFile not set"}));
+		else
+			throw(ServerException({"file", this->_targetFile, "not available"}));
+	}
 	this->_tmpBody += std::string(buffer, buffer + readChar);
 	if (readChar < HTTP_BUF_SIZE)
+	{
+		close(this->_HTMLfd);
+		this->_HTMLfd = -1;
 		this->_state = HTTP_RESP_PARSING;
+	}
 }
 
 // Function to convert file_time_type to string
@@ -223,7 +228,7 @@ void	HTTPresponse::writeContent( void )
     ssize_t writtenChars = -1;
 	size_t	charsToWrite = 0;
 
-	if (this->_state != HTTP_RESP_WRITING)
+	if (isDoneWriting() == true)
 		throw(ResponseException({"instance in wrong state or type to perfom action"}, 500));
 	else if (this->_contentLengthWrite == 0)
 		_resetTimeout();
@@ -251,12 +256,18 @@ void	HTTPresponse::writeContent( void )
 void	HTTPresponse::errorReset( int errorStatus, bool hardCode ) noexcept
 {
 	this->_statusCode = errorStatus;
-	this->_HTMLfd = -1;
+	if (this->_HTMLfd != -1)
+	{
+		close(this->_HTMLfd);
+		this->_HTMLfd = -1;
+	}
 	this->_contentLengthWrite = 0;
-	this->_redirectFile.clear();
-
+	this->_targetFile.clear();
+	this->_headers.clear();
+	this->_root.clear();
 	if (hardCode == true)
 	{
+		this->_targetFile = "500.html";
 		this->_tmpBody = ERROR_500_CONTENT;
 		this->_state = HTTP_RESP_PARSING;
 	}
@@ -302,26 +313,23 @@ std::string	HTTPresponse::toString( void ) const noexcept
 	return (strResp);
 }
 
-void	HTTPresponse::setHTMLfd( int HTMLfd )
-{
-	if (HTMLfd == -1)
-		throw(ResponseException({"invalid file descriptor"}, 500));
-	this->_HTMLfd = HTMLfd;
-}
-
 int		HTTPresponse::getHTMLfd( void ) const noexcept
 {
 	return (this->_HTMLfd);
 }
 
-t_path		HTTPresponse::getRoot( void ) const noexcept
+void	HTTPresponse::setTargetFile( t_path const& targetFile)
 {
-	return (this->_root);
-}
+	if (isStatic() == true)
+	{
+		if (this->_HTMLfd != -1)
+			throw(ResponseException({"already reading file", this->_targetFile}, 500));
+		this->_HTMLfd = open(targetFile.c_str(), O_RDONLY);
+		if (this->_HTMLfd == -1)
+			throw(ResponseException({"invalid file descriptor"}, 500));
+	}
+	this->_targetFile = targetFile;
 
-void	HTTPresponse::setRedirectFile( t_path const& redirectFile)
-{
-	this->_redirectFile = redirectFile;
 }
 
 bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept
@@ -364,7 +372,7 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 		{
 			if (this->_statusCode != 201)
 				throw(ResponseException({"file upload needs status code 201, given:", std::to_string(this->_statusCode)}, 500));
-			this->_redirectFile = this->_headers.at("Location");
+			this->_targetFile = this->_headers.at("Location");
 		}
 	}
 	catch (const std::out_of_range& e1) {

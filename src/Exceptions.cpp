@@ -1,54 +1,27 @@
 #include "Exceptions.hpp"
 
-ParserException::ParserException( std::initializer_list<std::string> const& prompts) noexcept
+WebservException::WebservException( std::initializer_list<std::string> const& args, std::string const& prompt ) noexcept
+	: std::exception() , _prompt(prompt)
+{
+	for (std::string const& arg : args)
+		this->_info += arg + " ";
+	this->_fullInfo = std::string(this->_prompt) + " - " + this->_info;
+}
+
+HTTPexception::HTTPexception( std::initializer_list<std::string> const& args, int status, std::string const& prompt ) noexcept
+	: WebservException(args, prompt) , _status(status)
+{
+	this->_fullInfo += "- status: " + std::to_string(this->_status);
+}
+
+HTTPexception::HTTPexception( HTTPexception const& obj, std::string const& prompt) noexcept
 	: WebservException()
 {
-	this->_msg = "config file parsing error -";
-	for (std::string prompt : prompts)
-		this->_msg += " " + prompt;
-}
-
-ServerException::ServerException( std::initializer_list<std::string> const& prompts) noexcept
-	: WebservException()
-{
-	this->_msg = "server error -";
-	for (std::string prompt : prompts)
-		this->_msg += " " + prompt;
-}
-
-HTTPexception::HTTPexception( std::initializer_list<std::string> const& prompts, int status) noexcept
-	: WebservException()
-{
-	this->_msg = "HTTP generic error -";
-	for (std::string prompt : prompts)
-		this->_msg += " " + prompt;
-	this->_msg += " - error code: " + std::to_string(status);
-	this->_status = status;
-}
-
-RequestException::RequestException( std::initializer_list<std::string> const& prompts, int status) noexcept
-	: HTTPexception(prompts, status)
-{
-	this->_msg = "HTTP request error -";
-	for (std::string prompt : prompts)
-		this->_msg += " " + prompt;
-	this->_msg += " - error code: " + std::to_string(status);
-}
-
-ResponseException::ResponseException( std::initializer_list<std::string> const& prompts, int status) noexcept
-	: HTTPexception(prompts, status)
-{
-	this->_msg = "HTTP response error -";
-	for (std::string prompt : prompts)
-		this->_msg += " " + prompt;
-	this->_msg += " - error code: " + std::to_string(status);
-}
-
-CGIexception::CGIexception( std::initializer_list<std::string> const& prompts, int status) noexcept
-	: HTTPexception(prompts, status)
-{
-	this->_msg = "HTTP cgi error -";
-	for (std::string prompt : prompts)
-		this->_msg += " " + prompt;
-	this->_msg += " - error code: " + std::to_string(status);
+	if (this != &obj)
+	{
+		this->_prompt = prompt;
+		this->_info = obj.getInfo();
+		this->_status = obj.getStatus();
+		this->_fullInfo = std::string(this->_prompt) + " - " + this->_info + "- status: " + std::to_string(this->_status);
+	}
 }

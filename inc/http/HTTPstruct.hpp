@@ -15,6 +15,7 @@
 #define HTTP_DEF_TERM		std::string("\r\n\r\n")		// http terminator
 #define HTTP_DEF_NL			std::string("\r\n")			// http delimiter
 #define HTTP_DEF_SP			' '							// shortcut for space
+#define HTTP_DEF_VERSION	HTTP_DEF_SCHEME + std::string("/1.1")
 #define HTTP_BUF_SIZE 		1024
 #define HTTP_MAX_TIMEOUT	5
 
@@ -49,15 +50,19 @@ typedef struct HTTPversion_f
 class HTTPstruct
 {
 	public:
-		HTTPstruct( int, HTTPtype );
+		HTTPstruct( int socket, int statusCode, HTTPtype type ) : 
+			_socket(socket),
+			_statusCode(statusCode),
+			_type(type) {}
 		virtual	~HTTPstruct( void ) {};
 
 		virtual std::string	toString( void ) const noexcept =0;
 
 		HTTPtype			getType( void ) const noexcept;
 		int					getSocket( void ) const noexcept;
-		std::string const&	getTmpBody( void );
-		virtual void		setTmpBody( std::string const& );
+		int					getStatusCode( void ) const noexcept;
+		std::string const&	getTmpBody( void ) const noexcept;
+		virtual void		setTmpBody( std::string const& ) noexcept;
 
 		bool				isStatic( void ) const noexcept;
 		bool				isAutoIndex( void ) const noexcept;
@@ -67,20 +72,23 @@ class HTTPstruct
 		bool				isCGI( void ) const noexcept;
 
 	protected:
-		int			_socket;
+		int			_socket, _statusCode;
 		HTTPtype	_type;
 	
 		t_dict 		_headers;
-		std::string	_tmpHead, _tmpBody, _body;
+		std::string	_tmpBody, _body;
     	HTTPversion	_version;
 
 		steady_clock::time_point	_lastActivity;
 
+		virtual void	_setHead( std::string const& ) {};
 		virtual void	_setHeaders( std::string const& );
-		virtual void	_setBody( std::string const& );
+		void			_setBody( void );
+		virtual void	_setVersion( std::string const& );
 
-		void			_resetTimeout( void ) noexcept;
-		void			_checkTimeout( void );
+		void	_resetTimeout( void ) noexcept;
+		void	_checkTimeout( void );
 
-		void			_addHeader(std::string const&, std::string const& ) noexcept;
+		void	_addHeader(std::string const&, std::string const& ) noexcept;
+		void	_unchunkBody( void );
 	};

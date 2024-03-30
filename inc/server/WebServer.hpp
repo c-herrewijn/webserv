@@ -74,7 +74,7 @@ class WebServer
 		void		_listenTo( std::string const&, std::string const& );
 		void		_readData( int );
 		void		_writeData( int );
-		void		_addConn( int , fdType , fdState, std::string const&, std::string const& );
+		void		_addConn( int , fdType , fdState, std::string const& ip="", std::string const& port="" );
 		void		_dropConn( int ) noexcept;
 		void		_dropStructs( int ) noexcept;
 		void		_clearEmptyConns( void ) noexcept;
@@ -84,7 +84,6 @@ class WebServer
 
 		void	handleNewConnections( int ); // keep - DONE
 		void	readRequestHeaders( int ); // keep / rework
-		void	_addSecondaryConnections( int );
 		void	readStaticFiles( int ); // keep / rework
 		void	readRequestBody( int );
 		void	readCGIResponses( int ); // keep / rework

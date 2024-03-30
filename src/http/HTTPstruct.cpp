@@ -1,12 +1,5 @@
 #include "HTTPstruct.hpp"
 
-HTTPstruct::HTTPstruct( int socket, HTTPtype type ) : _socket(socket) , _type(type)
-{
-	this->_version.scheme = HTTP_DEF_SCHEME;
-	this->_version.major = 1;
-	this->_version.minor = 1;
-}
-
 HTTPtype	HTTPstruct::getType( void ) const noexcept
 {
 	return(this->_type);
@@ -17,12 +10,17 @@ int		HTTPstruct::getSocket( void ) const noexcept
 	return (this->_socket);
 }
 
-std::string const&	HTTPstruct::getTmpBody( void )
+int	HTTPstruct::getStatusCode( void ) const noexcept
+{
+	return (this->_statusCode);
+}
+
+std::string const&	HTTPstruct::getTmpBody( void ) const noexcept
 {
 	return (this->_tmpBody);
 }
 
-void	HTTPstruct::setTmpBody( std::string const& tmpBody )
+void	HTTPstruct::setTmpBody( std::string const& tmpBody ) noexcept
 {
     this->_tmpBody = tmpBody;
 }
@@ -78,9 +76,43 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 	}
 }
 
-void	HTTPstruct::_setBody( std::string const& strBody )
+void	HTTPstruct::_setBody( void )
 {
-    this->_body = strBody;
+	if (this->_tmpBody.empty() == true)
+		return;
+	else if (this->_type == HTTP_CHUNKED)
+		_unchunkBody();
+    this->_body = this->_tmpBody;
+}
+
+void	HTTPstruct::_setVersion( std::string const& strVersion )
+{
+	size_t		del1, del2;
+	std::string scheme;
+	int			major=0, minor=0;
+
+	del1 = strVersion.find('/');
+	if (del1 == std::string::npos)
+		throw(HTTPexception({"invalid version:", strVersion}, 400));
+	scheme = strVersion.substr(0, del1);
+	std::transform(scheme.begin(), scheme.end(), scheme.begin(), ::toupper);
+	if (scheme != HTTP_DEF_SCHEME)
+		throw(HTTPexception({"invalid scheme:", strVersion}, 400));
+	del2 = strVersion.find('.');
+	if (del2 == std::string::npos)
+		throw(HTTPexception({"invalid version:", strVersion}, 400));
+	try {
+		major = std::stoi(strVersion.substr(del1 + 1, del2 - del1 - 1));
+		minor = std::stoi(strVersion.substr(del2 + 1));
+	}
+	catch (std::exception const& e) {
+		throw(HTTPexception({"invalid version numbers:", strVersion}, 400));
+	}
+	if (major + minor != 2)
+		throw(HTTPexception({"unsupported HTTP version:", strVersion}, 505));
+	this->_version.scheme = scheme;
+	this->_version.major = major;
+	this->_version.minor = minor;
 }
 
 void	HTTPstruct::_resetTimeout( void ) noexcept
@@ -101,4 +133,27 @@ void	HTTPstruct::_checkTimeout( void )
 void	HTTPstruct::_addHeader(std::string const& name, std::string const& content) noexcept
 {
 	this->_headers[name] = content;
+}
+
+void	HTTPstruct::_unchunkBody( void )
+{
+	size_t		sizeChunk=0, delimiter=0;
+	std::string	tmpChunkedBody;
+
+	tmpChunkedBody = this->_tmpBody;
+	this->_tmpBody.clear();
+	do
+	{
+		delimiter = tmpChunkedBody.find(HTTP_DEF_NL);
+		if (delimiter == std::string::npos)
+			throw(HTTPexception({"bad chunking"}, 400));
+		try {
+			sizeChunk = std::stoul(tmpChunkedBody.substr(0, delimiter), nullptr, 16);
+			this->_tmpBody += tmpChunkedBody.substr(delimiter + HTTP_DEF_NL.size(), sizeChunk);
+			tmpChunkedBody = tmpChunkedBody.substr(delimiter + sizeChunk + HTTP_DEF_NL.size() * 2);
+		}
+		catch(const std::exception& e){
+			throw(HTTPexception({"bad chunking"}, 400));
+		}
+	} while (sizeChunk != 0);
 }
