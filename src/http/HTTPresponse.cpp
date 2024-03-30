@@ -40,7 +40,10 @@ void	HTTPresponse::parseFromStatic( std::string const& servName )
 	_addHeader("Date", _getDateTime());
 	_addHeader("Server", servName);
 	_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
-	_addHeader("Content-Type", HTML_CONTENT_TYPE);
+	if (this->_targetFile.extension() == ".ico")
+		_addHeader("Content-Type", ICO_CONTENT_TYPE);
+	else
+		_addHeader("Content-Type", HTML_CONTENT_TYPE);
 	if ((this->_statusCode >= 300) and (this->_statusCode < 400))
 	{
 		if (this->_targetFile.empty() == true)
