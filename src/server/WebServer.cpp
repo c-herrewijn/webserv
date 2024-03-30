@@ -378,8 +378,8 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	if (request->isDoneReadingHead() == false)
 		return;
 	response = new HTTPresponse(request->getSocket(), request->getStatusCode(), request->getType());
-	response->setTargetFile(request->getRealPath());
 	this->_responses[clientSocket] = response;
+	response->setTargetFile(request->getRealPath());
 	if (request->isCGI())
 	{
 		cgi = new CGI(*request);

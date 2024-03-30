@@ -270,11 +270,20 @@ bool	RequestValidate::_handleReturns(void)
 	if (_validParams->getReturns().first)
 	{
 		_statusCode = _validParams->getReturns().first;
-		targetFile = std::filesystem::weakly_canonical(_validParams->getReturns().second);
-		if (_handleFile())
+		if (_validParams->getReturns().second == "")	// file redirect name not provided in return directive
 		{
+			_realPath = t_path("");
 			_isRedirection = true;
 			return (true);
+		}
+		else
+		{
+			targetFile = std::filesystem::weakly_canonical(_validParams->getReturns().second);
+			if (_handleFile())
+			{
+				_isRedirection = true;
+				return (true);
+			}
 		}
 	}
 	return (false);

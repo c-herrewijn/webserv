@@ -255,15 +255,18 @@ void	Parameters::_parseReturn(std::vector<std::string>& block)
 		throw ParserException({"given value is out of range: " + block.front()});
 	}
 	if (block.front() == ";")
-		throw ParserException({"After return code expected a file '" + block.front() + "'"});
-	if (block.front().front() != '/')
-		throw ParserException({"File name for return must start with a '/': " + block.front()});
-	if (block.front().find_first_of('/') != block.front().find_last_of('/'))
-		throw ParserException({"'return' must be file '" + block.front() + "'"});
-	returns = {(size_t)code, block.front()};
-	block.erase(block.begin());
+		returns = {(size_t)code, ""};
+	else
+	{
+		if (block.front().front() != '/')
+			throw ParserException({"File name for return must start with a '/': " + block.front()});
+		if (block.front().find_first_of('/') != block.front().find_last_of('/'))
+			throw ParserException({"'return' must be file '" + block.front() + "'"});
+		returns = {(size_t)code, block.front()};
+		block.erase(block.begin());
+	}
 	if (block.front() != ";")
-		throw ParserException({"'return' keyword must have 2 parameters"});
+		throw ParserException({"'return' must not have more than 2 parameters"});
 	block.erase(block.begin());
 }
 

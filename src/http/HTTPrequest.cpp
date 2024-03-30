@@ -16,6 +16,7 @@ HTTPrequest::HTTPrequest( int socket, t_serv_list const& servers ) :
 				this->_defaultServer = server;
 		}
 	}
+	this->_handlerServer = this->_defaultServer;
 }
 
 void	HTTPrequest::parseHead( void )
@@ -52,7 +53,7 @@ std::string	HTTPrequest::toString( void ) const noexcept
 	strReq += "://";
 	strReq += this->_url.host;
 	strReq += ":";
-	strReq += std::to_string(this->_url.port);
+	strReq += this->_url.port;
 	strReq += this->_url.path.generic_string();
 	if (!this->_url.queryRaw.empty())
 	{
@@ -103,14 +104,33 @@ std::string 	HTTPrequest::getMethod( void ) const noexcept
 	}
 }
 
-std::string const&	HTTPrequest::getHost( void ) const noexcept
+std::string		HTTPrequest::getHost( void ) const noexcept
 {
-	return (this->_url.host);
+	try
+	{
+		std::string	hostPort = this->_headers.at(HEADER_HOST);
+		size_t	semiColPos = hostPort.find(':');
+		return (hostPort.substr(0, semiColPos));
+	}
+	catch(const std::out_of_range& e) {
+		return ("");
+	}
 }
 
 std::string		HTTPrequest::getPort( void ) const noexcept
 {
-	return (std::to_string(this->_url.port));
+	try
+	{
+		std::string	hostPort = this->_headers.at(HEADER_HOST);
+		size_t	semiColPos = hostPort.find(':');
+		if (semiColPos == std::string::npos)
+			return (HTTP_DEF_PORT);
+		else
+			return (hostPort.substr(semiColPos + 1));
+	}
+	catch(const std::out_of_range& e) {
+		return ("");
+	}
 }
 
 size_t	HTTPrequest::getContentLength( void ) const noexcept
@@ -142,6 +162,7 @@ std::string const&	HTTPrequest::getServName( void ) const noexcept
 
 t_path const&	HTTPrequest::getRealPath( void ) const noexcept
 {
+
 	return (this->_validator.getRealPath());
 }
 
@@ -154,10 +175,7 @@ t_path	HTTPrequest::getErrorPageFromCode( int statusCode, t_path const& defaultE
 {
 	try {
 		if (isDoneParsingHead() == false)	// fail occured even before validation, so no error pages, skipping directly to server ones
-		{
-			this->_handlerServer = this->_defaultServer;
-			return (this->_handlerServer.getParams().getErrorPages().at(statusCode));
-		}
+			throw(std::out_of_range(""));
 		return (this->_validator.getErrorPages().at(statusCode));
 	}
 	catch(const std::out_of_range& e1) {
@@ -312,12 +330,26 @@ void	HTTPrequest::_validate( void )
 		this->_tmpBody = this->_tmpHead.substr(endReq);
 	_setHead(strHead);
 	_setHeaders(strHeaders);
+	_checkConfig();
+}
+
+void	HTTPrequest::_checkConfig( void )
+{
 	this->_validator.setConfig(this->_handlerServer);
 	this->_validator.setMethod(this->_method);
 	this->_validator.setPath(this->_url.path);
 	this->_validator.solvePath();
 	this->_statusCode = this->_validator.getStatusCode();
-	if ((this->_validator.isRedirection() == false) and (this->_statusCode >= 400))
+	if (isRedirection() == true)	// (internal) redirection, look for new path
+	{
+		this->_method = HTTP_GET;
+		if (getRealPath() != "")		// redirection 301, 302, 303, 307, and 308
+			this->_url.path = getRealPath();
+		else							// usually is a 40X redirect
+			this->_url.path = getErrorPageFromCode(this->_statusCode, std::filesystem::path("var/www/errors"));
+		_checkConfig();
+	}
+	if (this->_statusCode >= 400)
 		throw RequestException({"validation from config file failed"}, this->_statusCode);
 	_checkMaxBodySize(this->_validator.getMaxBodySize());
 	_setTypeUpdateState();
@@ -354,6 +386,7 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 		_setHostPort(this->_headers[HEADER_HOST]);
 	else if (this->_headers[HEADER_HOST].find(this->_url.host) == std::string::npos)
 		throw(RequestException({"hosts do not match"}, 412));
+	_setHandlerServer(this->_headers[HEADER_HOST]);
 	// check CL
 	if (this->_headers[HEADER_CONT_LEN] == "")
 	{
@@ -372,6 +405,25 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 		}
 		if (this->_tmpHead.size() > this->_contentLength)
 			this->_tmpBody = this->_tmpBody.substr(0, this->_contentLength);
+	}
+}
+
+void	HTTPrequest::_setHandlerServer( std::string const& hostName ) noexcept
+{
+	std::string tmpHostName = hostName;
+
+	std::transform(tmpHostName.begin(), tmpHostName.end(), tmpHostName.begin(), ::tolower);
+	for (auto const& server : this->_servers)
+	{
+		for (std::string servName : server.getNames())
+		{
+			std::transform(servName.begin(), servName.end(), servName.begin(), ::tolower);
+			if ((servName == tmpHostName))
+			{
+				this->_handlerServer = server;
+				return ;
+			}
+		}
 	}
 }
 
@@ -491,7 +543,6 @@ void	HTTPrequest::_setHostPort( std::string const& strURL )
 	std::string	port;
 
 	this->_url.host = strURL.substr(0, delimiter);
-	_setHandlerServer(this->_url.host);
 	if (delimiter != std::string::npos)	// there's the port
 	{
 		port = strURL.substr(delimiter + 1);
@@ -509,29 +560,6 @@ void	HTTPrequest::_setHostPort( std::string const& strURL )
 	}
 	else
 		this->_url.port = HTTP_DEF_PORT;
-}
-
-void	HTTPrequest::_setHandlerServer( std::string const& hostName ) noexcept
-{
-	bool	handlerFound = false;
-	std::string tmpHostName=hostName, tmpServName;
-
-	std::transform(tmpHostName.begin(), tmpHostName.end(), tmpHostName.begin(), ::tolower);
-	for (auto const& server : this->_servers)
-	{
-		for (auto const& servName : server.getNames())
-		{
-			tmpServName = servName;
-			std::transform(tmpServName.begin(), tmpServName.end(), tmpServName.begin(), ::tolower);
-			if ((tmpServName == tmpHostName))
-			{
-				handlerFound = true;
-				this->_handlerServer = server;
-			}
-		}
-	}
-	if (handlerFound == false)
-		this->_handlerServer = this->_defaultServer;
 }
 
 void	HTTPrequest::_setPath( std::string const& strPath )

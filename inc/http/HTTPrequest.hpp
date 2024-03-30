@@ -31,7 +31,7 @@ typedef struct HTTPurl_f
 {
 	std::string	scheme;
 	std::string	host;
-	int			port;
+	std::string	port;
 	t_path		path;
 	t_dict		query;
 	std::string queryRaw;
@@ -52,7 +52,7 @@ class HTTPrequest : public HTTPstruct
 		std::string		toString( void ) const noexcept override;
 
 		std::string		 	getMethod( void ) const noexcept;
-		std::string const&	getHost( void ) const noexcept;
+		std::string			getHost( void ) const noexcept;
 		std::string		 	getPort( void ) const noexcept;
 		size_t			 	getContentLength( void ) const noexcept;
 		std::string	const&	getQueryRaw( void ) const noexcept;
@@ -87,6 +87,8 @@ class HTTPrequest : public HTTPstruct
 		void	_validate( void );
 		void	_setHead( std::string const& );
 		void	_setHeaders(std::string const& ) override;
+		void	_setHandlerServer( std::string const& ) noexcept;
+		void	_checkConfig( void );
 		void	_setTypeUpdateState( void );
 		void	_checkMaxBodySize( size_t );
 
@@ -94,7 +96,6 @@ class HTTPrequest : public HTTPstruct
 		void	_setURL( std::string const& );
 		void	_setScheme( std::string const& );
 		void	_setHostPort( std::string const& );
-		void	_setHandlerServer( std::string const& ) noexcept;
 		void	_setPath( std::string const& );
 		void	_setQuery( std::string const& );
 		void	_setFragment( std::string const& );

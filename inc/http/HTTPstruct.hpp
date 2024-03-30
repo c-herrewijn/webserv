@@ -10,7 +10,7 @@
 
 #include "Exceptions.hpp"
 
-#define HTTP_DEF_PORT		80							// default port
+#define HTTP_DEF_PORT		std::string("8000")			// default port, 80 if is
 #define HTTP_DEF_SCHEME		std::string("HTTP")			// http scheme
 #define HTTP_DEF_TERM		std::string("\r\n\r\n")		// http terminator
 #define HTTP_DEF_NL			std::string("\r\n")			// http delimiter
