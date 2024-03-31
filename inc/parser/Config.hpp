@@ -11,7 +11,7 @@
 # include "Listen.hpp"
 # include "Exceptions.hpp"
 
-# define DEF_CONF std::string("default/def.conf")
+# define DEF_CONF std::string("default/defaultConfig.conf")
 # define DEF_NAME std::string("localhost")
 
 class Config

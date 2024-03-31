@@ -302,6 +302,8 @@ void	RequestValidate::solvePath(void)
 		throw(RequestException({"No config given. Request validation can not continue."}, 500));
 	if (_requestPath.empty())
 		throw(RequestException({"No Path given. Request validation can not continue."}, 500));
+	std::cout << "Requested path: " << _requestPath << "\n";
+	std::cout << "Request Method: " << _requestMethod << "\n";
 	_setStatusCode(200);
 	_validParams = &(_requestConfig->getParams());
 	_initTargetElements();
