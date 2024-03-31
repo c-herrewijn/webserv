@@ -383,8 +383,9 @@ void	RequestValidate::_handleErrCode( int statusCode )
 {
 	t_path	errorPage;
 	try {
-		std::cout << "checking location with size " << this->_validParams->getMaxSize() << '\n';
+		std::cout << "code " << statusCode << " - checking location with size " << this->_validParams->getMaxSize() << '\n';
 		errorPage = this->_validParams->getErrorPages().at(statusCode);
+		std::cout << "err page " << errorPage << '\n';
 		this->_requestPath = t_path(this->_validLocation->getURL()) / std::string(errorPage).substr(1);
 		std::cout << "found (not good) " << this->_requestPath << "\n";
 	}
