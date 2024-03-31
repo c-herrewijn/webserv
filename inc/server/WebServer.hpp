@@ -81,6 +81,7 @@ class WebServer
 		std::string	_getAddress( const struct sockaddr_storage*) const noexcept ;
 		int			_getSocketFromFd( int );
 		t_serv_list	_getServersFromIP( std::string const&, std::string const& ) const noexcept;
+		t_path		_getDefErrorPage( int ) const ;
 
 		void	handleNewConnections( int ); // keep - DONE
 		void	readRequestHeaders( int ); // keep / rework

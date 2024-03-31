@@ -347,6 +347,16 @@ t_serv_list	WebServer::_getServersFromIP( std::string const& ip, std::string con
 	return (matchingServers);
 }
 
+t_path	WebServer::_getDefErrorPage( int statusCode ) const
+{
+	for (auto const& dir_entry : std::filesystem::directory_iterator{SERVER_DEF_PAGES})
+	{
+		if (dir_entry.path().stem() == std::to_string(statusCode))
+			return (dir_entry.path());
+	}
+	return ("/");
+}
+
 void	WebServer::handleNewConnections( int listenerFd )
 {
 	struct sockaddr_storage client;
@@ -513,18 +523,25 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 	if (this->_pollitems[genericFd]->pollType > CLIENT_CONNECTION)	// when genericFd refers to a pipe or a static file
 		this->_emptyConns.push_back(genericFd);
 	if (this->_responses[clientSocket] == nullptr)
-		this->_responses[clientSocket] = this->_responses[clientSocket] = new HTTPresponse(request->getSocket(), statusCode);
+		this->_responses[clientSocket] = new HTTPresponse(request->getSocket(), statusCode);
 	response = this->_responses[clientSocket];
-	response->errorReset(statusCode, false);
 	try {
-		HTMLerrPage = request->getErrorPageFromCode(statusCode, SERVER_DEF_PAGES);	// throws RequestException
-		response->setTargetFile(HTMLerrPage);										// throws ResponseException
-		_addConn(response->getHTMLfd(), STATIC_FILE, READ_STATIC_FILE, "", "");		// throws ServerException
-		this->_pollitems[clientSocket]->pollState = READ_STATIC_FILE;
+		request->updateErrorCode(statusCode);
+		response->errorReset(request->getStatusCode(), false);
+		HTMLerrPage = request->getRealPath();
 	}
-	catch(const std::exception& e1) {
+	catch(const RequestException& e1) {
 		std::cerr << C_RED << e1.what() << '\n' << C_RESET;
-		response->errorReset(500, true);
-		this->_pollitems[clientSocket]->pollState = WRITE_TO_CLIENT;
+		HTMLerrPage = _getDefErrorPage(e1.getStatus());
+		if (HTMLerrPage == "/")
+		{
+			response->errorReset(500, true);
+			this->_pollitems[clientSocket]->pollState = WRITE_TO_CLIENT;
+			return ;
+		}
 	}
+	response->errorReset(statusCode, false);
+	response->setTargetFile(HTMLerrPage);
+	_addConn(response->getHTMLfd(), STATIC_FILE, READ_STATIC_FILE, "", "");
+	this->_pollitems[clientSocket]->pollState = READ_STATIC_FILE;
 }

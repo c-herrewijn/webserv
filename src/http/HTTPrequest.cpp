@@ -1,24 +1,5 @@
 #include "HTTPrequest.hpp"
 
-HTTPrequest::HTTPrequest( int socket, t_serv_list const& servers ) :
-	HTTPstruct(socket, 200, HTTP_STATIC),
-	_state(HTTP_REQ_HEAD_READING),
-	_servers(servers),
-	_contentLength(0) ,
-	_contentLengthRead(0),
-	_maxBodySize(-1)
-{
-	for (auto const& server : this->_servers)
-	{
-		for (auto const& address : server.getListens())
-		{
-			if (address.getDef() == true)
-				this->_defaultServer = server;
-		}
-	}
-	this->_handlerServer = this->_defaultServer;
-}
-
 void	HTTPrequest::parseHead( void )
 {
 	if (this->_state != HTTP_REQ_HEAD_READING)
@@ -89,6 +70,31 @@ std::string	HTTPrequest::toString( void ) const noexcept
 	return (strReq);
 }
 
+void	HTTPrequest::updateErrorCode( int errorCode ) 
+{
+	this->_validator.solveErrorPath(errorCode);
+	_updateTypeAndState();
+	if (this->_validator.getStatusCode() < 400)
+		this->_statusCode = errorCode;
+	else
+	{
+		this->_statusCode = this->_validator.getStatusCode();
+		if (errorCode == this->_statusCode)
+			this->_validator.solveErrorPath(500);	// error 404 and lacks 404.html (or same for 403)
+		else
+			this->_validator.solveErrorPath(this->_statusCode);
+		if (this->_statusCode == this->_validator.getStatusCode())
+			throw(RequestException({"endless loop with code:", std::to_string(this->_statusCode)}, this->_statusCode));
+		else if (this->_validator.getStatusCode() > 0)
+		{
+			this->_statusCode = this->_validator.getStatusCode();
+			this->_validator.solveErrorPath(this->_statusCode);
+			if (this->_validator.getStatusCode() > 0)
+				throw(RequestException({"endless cross loop with code:", std::to_string(this->_statusCode)}, this->_statusCode));
+		}
+	}
+}
+
 std::string 	HTTPrequest::getMethod( void ) const noexcept
 {
 	switch (this->_method)
@@ -157,7 +163,7 @@ std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 
 std::string const&	HTTPrequest::getServName( void ) const noexcept
 {
-	return(this->_handlerServer.getPrimaryName());
+	return(this->_validator.getServName());
 }
 
 t_path const&	HTTPrequest::getRealPath( void ) const noexcept
@@ -169,34 +175,6 @@ t_path const&	HTTPrequest::getRealPath( void ) const noexcept
 t_path const&	HTTPrequest::getRoot( void ) const noexcept
 {
 	return (this->_validator.getRoot());
-}
-
-t_path	HTTPrequest::getErrorPageFromCode( int statusCode, t_path const& defaultErrorPages )
-{
-	try {
-		if (isDoneParsingHead() == false)	// fail occured even before validation, so no error pages, skipping directly to server ones
-			throw(std::out_of_range(""));
-		return (this->_validator.getErrorPages().at(statusCode));
-	}
-	catch(const std::out_of_range& e1) {
-		try {
-			return (this->_handlerServer.getParams().getErrorPages().at(statusCode));
-		}
-		catch(const std::out_of_range& e2) {
-			try {
-				this->_handlerServer = this->_defaultServer;
-				return (this->_handlerServer.getParams().getErrorPages().at(statusCode));
-			}
-			catch(const std::out_of_range& e3) {
-				for (auto const& dir_entry : std::filesystem::directory_iterator{defaultErrorPages})
-				{
-					if (dir_entry.path().stem() == std::to_string(statusCode))
-						return (dir_entry.path());
-				}
-				throw(RequestException({"absolutely no HTML found for code:", std::to_string(statusCode)}, 500));
-			}
-		}
-	}
 }
 
 bool	HTTPrequest::isRedirection( void ) const noexcept
@@ -335,24 +313,18 @@ void	HTTPrequest::_validate( void )
 
 void	HTTPrequest::_checkConfig( void )
 {
-	this->_validator.setConfig(this->_handlerServer);
-	this->_validator.setMethod(this->_method);
-	this->_validator.setPath(this->_url.path);
-	this->_validator.solvePath();
-	this->_statusCode = this->_validator.getStatusCode();
-	if (isRedirection() == true)	// (internal) redirection, look for new path
+	this->_validator.solvePath(this->_method, this->_url.path, getHost());
+	if (isRedirection() == true)
 	{
-		this->_method = HTTP_GET;
-		if (getRealPath() != "")		// redirection 301, 302, 303, 307, and 308
-			this->_url.path = getRealPath();
-		else							// usually is a 40X redirect
-			this->_url.path = getErrorPageFromCode(this->_statusCode, std::filesystem::path("var/www/errors"));
-		_checkConfig();
+		this->_statusCode = this->_validator.getRedirectStatusCode();
+		this->_validator.solvePath(HTTP_GET, getRealPath(), getHost());		// NB: check it with redirections
 	}
+	else
+		this->_statusCode = this->_validator.getStatusCode();
+	_updateTypeAndState();
 	if (this->_statusCode >= 400)
-		throw RequestException({"validation from config file failed"}, this->_statusCode);
+		throw(RequestException({"validation of config file failed"}, this->_statusCode));
 	_checkMaxBodySize(this->_validator.getMaxBodySize());
-	_setTypeUpdateState();
 }
 
 void	HTTPrequest::_setHead( std::string const& header )
@@ -386,7 +358,6 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 		_setHostPort(this->_headers[HEADER_HOST]);
 	else if (this->_headers[HEADER_HOST].find(this->_url.host) == std::string::npos)
 		throw(RequestException({"hosts do not match"}, 412));
-	_setHandlerServer(this->_headers[HEADER_HOST]);
 	// check CL
 	if (this->_headers[HEADER_CONT_LEN] == "")
 	{
@@ -408,28 +379,14 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 	}
 }
 
-void	HTTPrequest::_setHandlerServer( std::string const& hostName ) noexcept
+void	HTTPrequest::_updateTypeAndState( void )
 {
-	std::string tmpHostName = hostName;
-
-	std::transform(tmpHostName.begin(), tmpHostName.end(), tmpHostName.begin(), ::tolower);
-	for (auto const& server : this->_servers)
+	if (this->_statusCode >= 400)
 	{
-		for (std::string servName : server.getNames())
-		{
-			std::transform(servName.begin(), servName.end(), servName.begin(), ::tolower);
-			if ((servName == tmpHostName))
-			{
-				this->_handlerServer = server;
-				return ;
-			}
-		}
+		this->_type = HTTP_STATIC;
+		this->_state = HTTP_REQ_DONE;
 	}
-}
-
-void	HTTPrequest::_setTypeUpdateState( void )
-{
-	if (this->_headers[HEADER_TRANS_ENCODING] == "chunked")
+	else if (this->_headers[HEADER_TRANS_ENCODING] == "chunked")
 	{
 		this->_type = HTTP_CHUNKED;
 		if (this->_tmpBody.find(HTTP_DEF_TERM) == std::string::npos)
@@ -457,6 +414,8 @@ void	HTTPrequest::_setTypeUpdateState( void )
 			this->_type = HTTP_AUTOINDEX_STATIC;
 		else if (this->_validator.isCGI() == true)
 			this->_type = HTTP_FAST_CGI;
+		else
+			this->_type = HTTP_STATIC;
 		this->_state = HTTP_REQ_DONE;
 	}
 }

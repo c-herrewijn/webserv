@@ -216,27 +216,32 @@ void	Parameters::_parseErrorPage(std::vector<std::string>& block)
 	if (block.front() == ";")
 		throw ParserException({"'error_page' can't have an empty parameter"});
 	int code;
-	try {
-		code = std::stoi(block.front());
-		if (code < 100 || code > 599)
-			throw std::out_of_range("value is not in the range of 100-599");
+	while (true)
+	{
+		try {
+			code = std::stoi(block.front());
+			if (code < 100 || code > 599)
+				throw std::out_of_range("value is not in the range of 100-599");
+			block.erase(block.begin());
+		} catch (const std::invalid_argument& e) {
+			throw ParserException({"error_page code is not a valid integer '" + block.front() + "'"});
+		} catch (const std::out_of_range& e) {
+			throw ParserException({"error_page code is out of range: '" + block.front() + "'"});
+		}
+		if (block.front() == ";")
+			throw ParserException({"After error_page code expected a file '" + block.front() + "'"});
+		if (block.front().front() != '/')
+			throw ParserException({"File name for error_page must start with a '/': " + block.front()});
+		// if (block.front().find_first_of('/') != block.front().find_last_of('/'))
+		// 	throw ParserException({"'error_page' must be file '" + block.front() + "'"});
+		error_pages[code] = block.front();
 		block.erase(block.begin());
-	} catch (const std::invalid_argument& e) {
-		throw ParserException({"error_page code is not a valid integer '" + block.front() + "'"});
-	} catch (const std::out_of_range& e) {
-		throw ParserException({"error_page code is out of range: '" + block.front() + "'"});
+		if (block.front() == ";")	//throw ParserException({"error_page can only contain 2 arguments: '" + block.front() + "'"});
+		{
+			block.erase(block.begin());
+			break ;
+		}
 	}
-	if (block.front() == ";")
-		throw ParserException({"After error_page code expected a file '" + block.front() + "'"});
-	if (block.front().front() != '/')
-		throw ParserException({"File name for error_page must start with a '/': " + block.front()});
-	if (block.front().find_first_of('/') != block.front().find_last_of('/'))
-		throw ParserException({"'error_page' must be file '" + block.front() + "'"});
-	error_pages[code] = block.front();
-	block.erase(block.begin());
-	if (block.front() != ";")
-		throw ParserException({"error_page can only contain 2 arguments: '" + block.front() + "'"});
-	block.erase(block.begin());
 }
 
 void	Parameters::_parseReturn(std::vector<std::string>& block)

@@ -3,17 +3,18 @@
 // ╔════════════════════════════════╗
 // ║		CONSTRUCTION PART		║
 // ╚════════════════════════════════╝
-RequestValidate::RequestValidate(void)
+RequestValidate::RequestValidate(t_serv_list const& servers) : _servers(servers)
 {
-	_requestConfig = nullptr;
-	_validLocation = nullptr;
-	_validParams = nullptr;
-
-	_autoIndex = false;
-	_isCGI = false;
-	_isRedirection = false;
-	_realPath = "/IAMEMPTY";
-	_requestMethod = HTTP_GET;
+	for (auto& server : this->_servers)
+	{
+		for (auto const& address : server.getListens())
+		{
+			if (address.getDef() == true)
+				this->_defaultServer = &server;
+		}
+	}
+	this->_handlerServer = this->_defaultServer;
+	_resetValues();
 }
 
 RequestValidate::~RequestValidate( void ) {}
@@ -26,9 +27,19 @@ t_path const&	RequestValidate::getRealPath( void ) const
 	return (_realPath);
 }
 
+std::string const&	RequestValidate::getServName( void ) const
+{
+	return(this->_handlerServer->getPrimaryName());
+}
+
 int	RequestValidate::getStatusCode( void ) const
 {
 	return (_statusCode);
+}
+
+int	RequestValidate::getRedirectStatusCode( void ) const
+{
+	return (_redirectStatusCode);
 }
 
 std::uintmax_t	RequestValidate::getMaxBodySize( void ) const
@@ -61,25 +72,58 @@ t_path	const& RequestValidate::getRoot( void ) const
 	return (this->_validParams->getRoot());
 }
 
-t_string_map const&	RequestValidate::getErrorPages( void ) const
-{
-	return (this->_validParams->getErrorPages());
-}
+// t_string_map const&	RequestValidate::getErrorPages( void ) const
+// {
+// 	return (this->_validParams->getErrorPages());
+// }
 
 // ╔════════════════════════════════╗
 // ║			SETTER PART			║
 // ╚════════════════════════════════╝
-void	RequestValidate::setConfig( ConfigServer const& configServ)
+// void	RequestValidate::setConfig( ConfigServer const& configServ)
+// {
+// 	this->_handlerServer = &configServ;
+// }
+
+void	RequestValidate::_resetValues( void )
 {
-	this->_requestConfig = &configServ;
+	this->_validLocation = nullptr;
+	this->_validParams = &this->_handlerServer->getParams();
+
+	this->_autoIndex = false;
+	this->_isCGI = false;
+	this->_isRedirection = false;
+	this->_realPath = "/IAMEMPTY";
+	this->_requestMethod = HTTP_GET;
+	this->_statusCode = 200;
+	this->_redirectStatusCode = 200;
 }
 
-void	RequestValidate::setMethod( HTTPmethod method )
+void	RequestValidate::_setMethod( HTTPmethod method )
 {
 	this->_requestMethod = method;
 }
 
-void	RequestValidate::setPath( t_path const& newPath )
+void	RequestValidate::_setConfig( std::string const& hostName )
+{
+	std::string tmpHostName = hostName;
+
+	std::transform(tmpHostName.begin(), tmpHostName.end(), tmpHostName.begin(), ::tolower);
+	for (auto& server : this->_servers)
+	{
+		for (std::string servName : server.getNames())
+		{
+			std::transform(servName.begin(), servName.end(), servName.begin(), ::tolower);
+			if ((servName == tmpHostName))
+			{
+				this->_handlerServer = &server;
+				return ;
+			}
+		}
+	}
+}
+
+void	RequestValidate::_setPath( t_path const& newPath )
 {
 	this->_requestPath = std::filesystem::weakly_canonical(newPath);
 }
@@ -140,7 +184,7 @@ void	RequestValidate::_initValidLocation(void)
 	// for (auto folder : folders)
 		// std::cout << folder << " ";
 	// std::cout << "\n";
-	for (auto& location : _requestConfig->getLocations())
+	for (auto& location : _handlerServer->getLocations())
 	{
 		it = folders.begin();
 		valid = _diveLocation(location, it, folders);
@@ -167,6 +211,7 @@ void	RequestValidate::_separateFolders(std::string const& input, std::vector<std
 			output.push_back(folder);
 	}
 }
+
 // ╭───────────────────────────╮
 // │     FILE/FOLDER PERMS     │
 // ╰───────────────────────────╯
@@ -269,15 +314,14 @@ bool	RequestValidate::_handleReturns(void)
 {
 	if (_validParams->getReturns().first)
 	{
-		_statusCode = _validParams->getReturns().first;
-		if (_validParams->getReturns().second == "")	// file redirect name not provided in return directive
+		if (_validParams->getReturns().second == "")	// file redirect name not provided in return directive, usually an error 40X
 		{
-			_realPath = t_path("");
-			_isRedirection = true;
+			_setStatusCode(_validParams->getReturns().first);
 			return (true);
 		}
 		else
 		{
+			_redirectStatusCode = _validParams->getReturns().first;
 			targetFile = std::filesystem::weakly_canonical(_validParams->getReturns().second);
 			if (_handleFile())
 			{
@@ -292,14 +336,12 @@ bool	RequestValidate::_handleReturns(void)
 // ╭───────────────────────────╮
 // │   MAIN FUNCTION TO START  │
 // ╰───────────────────────────╯
-void	RequestValidate::solvePath(void)
+void	RequestValidate::solvePath( HTTPmethod method, t_path const& path, std::string const& hostName)
 {
-	if (!_requestConfig)	// given NULL is not valid
-		throw(RequestException({"No config given. Request validation can not continue."}, 500));
-	if (_requestPath.empty())
-		throw(RequestException({"No Path given. Request validation can not continue."}, 500));
-	_setStatusCode(200);
-	_validParams = &(_requestConfig->getParams());	// default params
+	_resetValues();
+	_setMethod(method);
+	_setPath(path);
+	_setConfig(hostName);
 	_initTargetElements();		// Clean up the _requestPath, Set targetDir and targetFile based on _requestPath
 	if (!targetDir.empty() || targetDir == "/")	// if directory is not root check for location
 	{
@@ -319,4 +361,47 @@ void	RequestValidate::solvePath(void)
 		_handleFolder();
 	else
 		_handleFile();
+}
+
+void	RequestValidate::solveErrorPath( int statusCode )
+{
+	_handleErrCode(statusCode);
+	_resetValues();
+	_initTargetElements();	
+	if (!targetDir.empty() || targetDir == "/")	// if directory is not root check for location
+	{
+		_initValidLocation();
+		if (_validLocation == nullptr)
+			return (_setStatusCode(404));
+		_validParams = &(_validLocation->getParams());
+	}
+	targetFile = std::filesystem::weakly_canonical(targetFile);	// Normalization for the case user gives sth random
+	_handleFile();
+}
+
+void	RequestValidate::_handleErrCode( int statusCode )
+{
+	t_path	errorPage;
+	try {
+		std::cout << "checking location with size " << this->_validParams->getMaxSize() << '\n';
+		errorPage = this->_validParams->getErrorPages().at(statusCode);
+		this->_requestPath = t_path(this->_validLocation->getURL()) / std::string(errorPage).substr(1);
+		std::cout << "found (not good) " << this->_requestPath << "\n";
+	}
+	catch(const std::out_of_range& e1) {
+		try {
+			std::cout << "should be going here\n";
+			this->_requestPath = this->_handlerServer->getParams().getErrorPages().at(statusCode);
+			std::cout << "found " << this->_requestPath << "\n";
+		}
+		catch(const std::out_of_range& e2) {
+			try {
+				this->_handlerServer = this->_defaultServer;
+				this->_requestPath = this->_handlerServer->getParams().getErrorPages().at(statusCode);
+			}
+			catch(const std::out_of_range& e3) {
+				throw(RequestException({"config doesn't provide a page for code:", std::to_string(statusCode)}, statusCode));
+			}
+		}
+	}
 }

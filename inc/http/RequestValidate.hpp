@@ -15,43 +15,50 @@ typedef enum PermType_s
 	PERM_EXEC,
 } PermType;
 
+typedef std::vector<ConfigServer> t_serv_list;
+
 class RequestValidate
 {
 	public:
-		RequestValidate( void );
+		RequestValidate( t_serv_list const& );
 		virtual	~RequestValidate( void );
 
-		void	setConfig( ConfigServer const& );
-		void	setMethod( HTTPmethod );
-		void	setPath( t_path const& );
-		void	solvePath( void );
+		void	solvePath( HTTPmethod, t_path const&, std::string const& );
+		void	solveErrorPath( int );
 
 		t_path const&		getRealPath( void ) const;
+		std::string const&	getServName( void ) const;
 		std::uintmax_t		getMaxBodySize( void ) const;
 		int					getStatusCode( void ) const;
+		int					getRedirectStatusCode( void ) const;
 		t_path const&		getRoot( void ) const;
-		t_string_map const&	getErrorPages( void ) const;
 		bool				isAutoIndex( void ) const;
 		bool				isFile( void ) const;
 		bool				isCGI( void ) const;
 		bool				isRedirection( void ) const;
 
 	private:
-		ConfigServer const*	_requestConfig;
-		HTTPmethod			_requestMethod;
-		t_path				_requestPath;
+		t_serv_list		_servers;
+		ConfigServer	*_defaultServer, *_handlerServer;
+		HTTPmethod		_requestMethod;
+		t_path			_requestPath;
 
-		size_t				_statusCode;
-		t_path				_realPath;
-		bool				_autoIndex;
-		bool				_isCGI;
-		bool				_isRedirection;
+		size_t	_statusCode , _redirectStatusCode;
+		t_path	_realPath;
+		bool	_autoIndex;
+		bool	_isCGI;
+		bool	_isRedirection;
 
 		Location const*		_validLocation;
 		Parameters const*	_validParams;
 
 		t_path				targetDir;
 		t_path				targetFile;
+
+		void			_resetValues( void );
+		void			_setConfig( std::string const& );
+		void			_setMethod( HTTPmethod );
+		void			_setPath( t_path const& );
 
 		bool			_checkPerm(t_path const& path, PermType type);
 		void			_separateFolders(std::string const& input, std::vector<std::string>& output);
@@ -63,6 +70,7 @@ class RequestValidate
 		bool	_handleFolder( void );
 		bool	_handleFile( void );
 		bool	_handleReturns( void );
+		void	_handleErrCode( int );
 
 		void	_setStatusCode(const size_t& code);
 };
