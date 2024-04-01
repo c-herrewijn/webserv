@@ -1,7 +1,7 @@
 #ifndef REQUESTVALIDATE_HPP
 # define REQUESTVALIDATE_HPP
 # include "HTTPstruct.hpp"
-# include "ConfigServer.hpp"
+# include "Config.hpp"
 # include <iostream>
 # include <fstream>
 # include "Exceptions.hpp"
@@ -15,7 +15,7 @@ typedef enum PermType_s
 	PERM_EXEC,
 } PermType;
 
-typedef std::vector<ConfigServer> t_serv_list;
+typedef std::vector<Config> t_serv_list;
 
 class RequestValidate
 {
@@ -39,7 +39,7 @@ class RequestValidate
 
 	private:
 		t_serv_list		_servers;
-		ConfigServer	*_defaultServer, *_handlerServer;
+		Config	*_defaultServer, *_handlerServer;
 		HTTPmethod		_requestMethod;
 		t_path			_requestPath;
 

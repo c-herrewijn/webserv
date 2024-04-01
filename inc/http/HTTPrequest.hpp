@@ -6,8 +6,7 @@
 #include <fstream>
 
 #include "HTTPstruct.hpp"
-#include "HTTPresponse.hpp"
-#include "ConfigServer.hpp"
+#include "Config.hpp"
 #include "RequestValidate.hpp"
 
 #define LOCALHOST		std::string("localhost") 
@@ -39,7 +38,7 @@ typedef struct HTTPurl_f
 
 } HTTPurl;
 
-typedef std::vector<ConfigServer> t_serv_list;
+typedef std::vector<Config> t_serv_list;
 
 class HTTPrequest : public HTTPstruct
 {

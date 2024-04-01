@@ -15,7 +15,7 @@
 #include "HTTPrequest.hpp"
 #include "HTTPresponse.hpp"
 #include "Exceptions.hpp"
-#include "ConfigServer.hpp"
+#include "Config.hpp"
 #include "CGI.hpp"
 
 #define BACKLOG 			10		// max pending connection queued up

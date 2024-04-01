@@ -80,7 +80,7 @@ t_path	const& RequestValidate::getRoot( void ) const
 // ╔════════════════════════════════╗
 // ║			SETTER PART			║
 // ╚════════════════════════════════╝
-// void	RequestValidate::setConfig( ConfigServer const& configServ)
+// void	RequestValidate::setConfig( Config const& configServ)
 // {
 // 	this->_handlerServer = &configServ;
 // }
@@ -147,7 +147,6 @@ Location const*	RequestValidate::_diveLocation(Location const& cur, std::vector<
 
 	_separateFolders(cur.getFilesystem().string(), curURL);
 	itFolders = curURL.begin();
-	// std::cout << "Diving inner scope\n";
 	while (itFolders != curURL.end() && itDirectory != folders.end())
 	{
 		if (*itFolders != *itDirectory)
@@ -156,13 +155,9 @@ Location const*	RequestValidate::_diveLocation(Location const& cur, std::vector<
 		itDirectory++;
 	}
 	if (itFolders == curURL.end() && itDirectory == folders.end())
-	{
-		// std::cout << "Matching location found\n";
 		return (&cur);
-	}
 	else if (itFolders == curURL.end())
 	{
-		// std::cout << "Dives into nested\n";
 		for (auto& nest : cur.getNested())
 		{
 			valid = _diveLocation(nest, itDirectory, folders);
@@ -191,13 +186,8 @@ void	RequestValidate::_initValidLocation(void)
 		if (valid)
 			break ;
 	}
-	// std::cout << "End of diving\n";
 	if (!valid)
-	{
-		// std::cout << "Not found\n";
 		return ;
-	}
-	// std::cout << "Found in: " << valid->getURL() << "\n";
 	_validLocation = valid;
 }
 
@@ -261,10 +251,9 @@ bool	RequestValidate::_handleFolder(void)
 	_autoIndex = false;
 	if (!std::filesystem::exists(dirPath) ||
 	!std::filesystem::is_directory(dirPath))
-		return (_setStatusCode(404), false); // 404 error, not found
-	// check autoindex
+		return (_setStatusCode(404), false);
 	if (!_validParams->getAutoindex())
-		return (_setStatusCode(404), false); // 404 error, not found
+		return (_setStatusCode(404), false);
 	if (!_checkPerm(dirPath, PERM_READ))
 		return (_setStatusCode(403), false);
 	_autoIndex = true;
@@ -273,16 +262,9 @@ bool	RequestValidate::_handleFolder(void)
 
 bool	RequestValidate::_handleFile(void)
 {
-	t_path dirPath = _validParams->getRoot();
-	dirPath += "/";
-	dirPath += targetDir;
-	dirPath += "/";
-	t_path filePath = dirPath;
-	filePath += "/";
-	filePath += targetFile;
+	t_path dirPath = _validParams->getRoot().string() + "/" + targetDir.string() + "/";
+	t_path filePath = dirPath.string() + "/" + targetFile.string();
 	_isCGI = false;
-	// check filePath
-	// std::cout << "Checked paths: " << dirPath << " : " << filePath << "\n";
 	if (!std::filesystem::exists(filePath))
 		return (_setStatusCode(404), false);
 	if (std::filesystem::is_directory(filePath))
@@ -292,12 +274,10 @@ bool	RequestValidate::_handleFile(void)
 	}
 
 	_realPath = std::filesystem::weakly_canonical(filePath);
-	// Check request type for permission check
 	if (_validParams->getCgiAllowed() &&
 		filePath.has_extension() &&
 		filePath.extension() == _validParams->getCgiExtension())
 	{
-		// check permission
 		if (!_checkPerm(filePath, PERM_EXEC))
 			return (_setStatusCode(403), false);
 		_isCGI = true;
@@ -333,6 +313,46 @@ bool	RequestValidate::_handleReturns(void)
 	return (false);
 }
 
+// bool	RequestValidate::_handleErrorCode(void)
+// {
+// 	std::map<size_t, std::string>::const_iterator it;
+// 	it = _validParams->getErrorPages().find(_statusCode);
+// 	if (it == _validParams->getErrorPages().end())
+// 		return (false);
+// 	targetFile = std::filesystem::weakly_canonical((*it).second);
+// 	return (_handleFile());
+// }
+
+// bool	RequestValidate::_handleServerPages(void)
+// {
+// 	t_path lastChance = std::filesystem::current_path();
+// 	lastChance += SERVER_DEF_PAGES;
+// 	lastChance += (std::to_string(_statusCode) + ".html");
+// 	if (!std::filesystem::is_regular_file(lastChance))
+// 		return (false);
+// 	if (!_checkPerm(lastChance, PERM_READ))
+// 		return (false);
+// 	_realPath = std::filesystem::weakly_canonical(lastChance);
+// 	return (true);
+// }
+
+// void	RequestValidate::_handleStatus(void)
+// {
+// 	if (_statusCode < 400)
+// 		return ;
+// 	if (_handleErrorCode())
+// 		return ;
+// 	_validParams = &(_requestConfig->getParams());
+// 	if (_handleErrorCode())
+// 		return ;
+// 	if (_handleServerPages())
+// 		return ;
+// 	_realPath = "/";
+// 	targetDir.clear();
+// 	targetFile.clear();
+// 	_setStatusCode(500);
+// }
+
 // ╭───────────────────────────╮
 // │   MAIN FUNCTION TO START  │
 // ╰───────────────────────────╯
@@ -357,6 +377,29 @@ void	RequestValidate::solvePath( HTTPmethod method, t_path const& path, std::str
 	if (targetFile.empty() || targetFile == "/")	// set indexfile if necessarry
 		targetFile = _validParams->getIndex();
 	targetFile = std::filesystem::weakly_canonical(targetFile);	// Normalization for the case user gives sth random
+	// if (!_requestConfig)
+	// 	throw(RequestException({"No config given. Request validation can not continue."}, 500));
+	// if (_requestPath.empty())
+	// 	throw(RequestException({"No Path given. Request validation can not continue."}, 500));
+	// std::cout << "Requested path: " << _requestPath << "\n";
+	// std::cout << "Request Method: " << _requestMethod << "\n";
+	// _setStatusCode(200);
+	// _validParams = &(_requestConfig->getParams());
+	// _initTargetElements();
+	// if (!targetDir.empty() || targetDir == "/")
+	// {
+	// 	_initValidLocation();
+	// 	if (_validLocation == nullptr)
+	// 		return (_setStatusCode(404), _handleStatus());
+	// 	_validParams = &(_validLocation->getParams());
+	// }
+	// if (!_validParams->getAllowedMethods()[_requestMethod])
+	// 	return (_setStatusCode(405), _handleStatus());
+	// if (_handleReturns())
+	// 	return ;
+	// if (targetFile.empty() || targetFile == "/")
+	// 	targetFile = _validParams->getIndex();
+	// targetFile = std::filesystem::weakly_canonical(targetFile);
 	if (targetFile.empty() || targetFile.string() == "/")
 		_handleFolder();
 	else

@@ -196,16 +196,14 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 		</head>
 		<body>
 		<div class="container">
-		<h1>Index of )" + pathDir.string().substr(_root.string().length()) + "/" + R"(</h1>
-		<hr>)";
-
+		<h1>Index of )" + pathDir.string().substr(_root.string().length()) + "/" + "</h1><hr>";	
 	std::string parentDir = pathDir.parent_path().string() + "/";
 	std::string tmpRoot = _root.string();
 	size_t i = 0;
 	while (i < tmpRoot.length() && parentDir[i] == tmpRoot[i])
 		i++;
 	if (!parentDir.empty())
-		_tmpBody += R"(<tr><td><a href=")" + parentDir.substr(i) + R"(">[Parent directory]</a></td><td></td><td></td></tr>)";
+		_tmpBody += "<tr><td><a href=\"" + parentDir.substr(i) + "\">[Parent directory]</a></td><td></td><td></td></tr>";
 	_tmpBody += "<table><thead><tr><th>Name</th><th>Size</th><th>Date Modified</th></tr></thead><tbody>";
 	// Inserting folders into HTML
 	std::string name;
@@ -214,14 +212,14 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 	{
 		name = folder.path().filename().string();
 		path = std::filesystem::weakly_canonical(folder).string().substr(_root.string().length());
-		_tmpBody += "<tr><td><a href=" + path + "/" + "\">" + name + "/" + "</a></td><td>" + "</td><td>" + fileTimeToString(std::filesystem::last_write_time(folder)) + "</td></tr>";
+		_tmpBody += "<tr><td><a href=\"" + path + "/" + "\">" + name + "/" + "</a></td><td>" + "</td><td>" + fileTimeToString(std::filesystem::last_write_time(folder)) + "</td></tr>";
 	}
 	// Inserting files into HTML
 	for (const auto& file : files)
 	{
 		name = file.path().filename().string();
 		path = std::filesystem::weakly_canonical(file).string().substr(_root.string().length());
-		_tmpBody += "<tr><td><a href=" + path + "\">" + name + "</a></td><td>" + formatSize(std::filesystem::file_size(file)) +  "</td><td>" + fileTimeToString(std::filesystem::last_write_time(file)) + "</td></tr>";
+		_tmpBody += "<tr><td><a href=\"" + path + "\">" + name + "</a></td><td>" + formatSize(std::filesystem::file_size(file)) +  "</td><td>" + fileTimeToString(std::filesystem::last_write_time(file)) + "</td></tr>";
 	}
 	_tmpBody += "</tbody></table></div></body></html>";
 }

@@ -37,7 +37,7 @@ class Parameters
 		void	setSize(uintmax_t val, char *c);
 		void	setAutoindex(bool status);
 
-		const std::pair<size_t, std::string>& getReturns(void) const;
+		const std::pair<size_t, t_path>& getReturns(void) const;
 		void 						setBlockIndex(size_t ref);
 		const size_t& 				getBlockIndex(void) const;
 		const t_path&	 			getIndex(void) const;
@@ -56,7 +56,7 @@ class Parameters
 		t_path				index;	// Will be searched in given order
 		t_path				root;		// Last found will be used.
 		t_string_map		error_pages;	// Same status codes will be overwriten
-		std::pair<size_t, std::string>	returns;	// Overwritten by the last
+		std::pair<size_t, t_path>	returns;	// Overwritten by the last
 		std::bitset<METHOD_AMOUNT> allowedMethods;	// Allowed methods
 		std::string			cgi_extension;	// extention .py .sh
 		bool				cgi_allowed;	// Check for permissions

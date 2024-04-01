@@ -78,6 +78,7 @@ class HTTPstruct
 		t_dict 		_headers;
 		std::string	_tmpBody, _body;
     	HTTPversion	_version;
+		t_path		_root;
 
 		steady_clock::time_point	_lastActivity;
 

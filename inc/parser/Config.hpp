@@ -1,42 +1,45 @@
 #ifndef CONFIG_HPP
 # define CONFIG_HPP
+# include <map>
+# include <unordered_map>
+# include <unordered_set>
 # include <iostream>
-# include <fstream>
-# include <sstream>
-# include <string>
-# include <exception>
-# include <cctype>
-# include <stack>
-# include "ConfigServer.hpp"
+
+# include "colors.hpp"
+# include "Parameters.hpp"
+# include "Location.hpp"
+# include "Listen.hpp"
 # include "Exceptions.hpp"
+
+# define DEF_CONF std::string("default/defaultConfig.conf")
+# define DEF_NAME std::string("localhost")
 
 class Config
 {
 	public:
-		Config(void);
-		virtual	~Config();
+		// Form
+		Config(void) {};
 		Config(const Config& copy);
 		Config&	operator=(const Config& assign);
-
-		void									fillConfig(const std::string& file);
-		bool									clearEmpty(void);
-		std::vector<std::string>				getFileContent(void);
-		std::vector<std::vector<std::string>>	divideContent(void);
+		virtual ~Config(void);
+		
+		void							parseBlock(std::vector<std::string>& block);
+		const std::vector<Listen>& 		getListens(void) const;
+		const std::vector<std::string>&	getNames(void) const;
+		const std::string&				getPrimaryName(void) const;
+		const Parameters&				getParams(void) const;
+		const std::vector<Location>&	getLocations(void) const;
 
 	private:
-		size_t	_doComment(size_t &i);
-		size_t	_doSpace(size_t& i);
-		void	_doQuote(size_t& i, size_t& j);
-		void	_doToken(size_t& i, size_t& j);
-		void	_doExceptions(size_t& i);
-		void	_doClean(void);
-		void	_readFile(const std::string& file_path);
-		void	_tokenizeFile(void);
-		void	_checkBrackets(void);
-		void	_printContent(void);
+		std::vector<Listen> 		listens; // Listens
+		std::vector<std::string>	names; // is the given "server_name".
+		Parameters					params; // Default parameters for whole server block
+		std::vector<Location>		locations; // declared Locations
 
-		std::vector<std::string>	file_content;
-		std::string 				raw_input;
+		void	_parseListen(std::vector<std::string>& block);
+		void	_parseServerName(std::vector<std::string>& block);
+		void	_parseLocation(std::vector<std::string>& block);
+		void	_fillServer(std::vector<std::string>& block);
 };
 
 #endif

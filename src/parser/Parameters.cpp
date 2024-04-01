@@ -111,8 +111,9 @@ void	Parameters::_parseRoot(std::vector<std::string>& block)
 	if (block.front() == ";")
 		throw ParserException({"'root' can't have an empty parameter"});
 	if (block.front().front() != '/')
-		throw ParserException({"'root' must begin with a '/' '" + block.front() + "'"});
-	setRoot(t_path(block.front()));
+		root = std::filesystem::weakly_canonical(std::filesystem::current_path() / block.front());
+	else
+		root = block.front();
 	block.erase(block.begin());
 	if (block.front() != ";")
 		throw ParserException({"'root' can't have multiple parameters '" + block.front() + "'"});
@@ -152,7 +153,6 @@ static void	capSize(uintmax_t& value, char* type)
     }
 }
 
-// size must be stored as uint. max size can be 20G, value must be clamped 0-20G
 void	Parameters::_parseBodySize(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
@@ -199,9 +199,7 @@ void	Parameters::_parseIndex(std::vector<std::string>& block)
 	block.erase(block.begin());
 	if (block.front() == ";")
 		throw ParserException({"After index expected a file"});
-	if (block.front().front() != '/')
-		throw ParserException({"File name for index must start with a '/': " + block.front()});
-	if (block.front().find_first_of('/') != block.front().find_last_of('/'))
+	if (block.front().find_first_of('/') != std::string::npos)
 		throw ParserException({"'index' must be file '" + block.front() + "'"});
 	this->index = block.front();
 	block.erase(block.begin());
@@ -248,7 +246,6 @@ void	Parameters::_parseReturn(std::vector<std::string>& block)
 {
 	int code;
 	block.erase(block.begin());
-	// return /old-url /new-url; is not valid right now
 	try {
 		code = std::stoi(block.front());
 		if (code < 100 || code > 599)
@@ -305,7 +302,7 @@ const	t_string_map& Parameters::getErrorPages(void) const
 	return (error_pages);
 }
 
-const	std::pair<size_t, std::string>& Parameters::getReturns(void) const
+const	std::pair<size_t, t_path>&  Parameters::getReturns(void) const
 {
 	return (returns);
 }
@@ -325,7 +322,6 @@ void	Parameters::setAutoindex(bool status)
 	autoindex = status;
 }
 
-// this must be updated. size must be stored as bytes
 void	Parameters::setSize(uintmax_t val, char *order)
 {
 	this->max_size = val;
