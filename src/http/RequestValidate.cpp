@@ -72,19 +72,9 @@ t_path	const& RequestValidate::getRoot( void ) const
 	return (this->_validParams->getRoot());
 }
 
-// t_string_map const&	RequestValidate::getErrorPages( void ) const
-// {
-// 	return (this->_validParams->getErrorPages());
-// }
-
 // ╔════════════════════════════════╗
 // ║			SETTER PART			║
 // ╚════════════════════════════════╝
-// void	RequestValidate::setConfig( Config const& configServ)
-// {
-// 	this->_handlerServer = &configServ;
-// }
-
 void	RequestValidate::_resetValues( void )
 {
 	this->_validLocation = nullptr;
