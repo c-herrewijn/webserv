@@ -77,7 +77,6 @@ void	Config::_parseLocation(std::vector<std::string>& block)
 
 void	Config::_fillServer(std::vector<std::string>& block)
 {
-	params.setBlockIndex(0);
 	std::vector<std::vector<std::string>> locationHolder;
 	std::vector<std::string>::iterator index;
 	uint64_t size = 0;

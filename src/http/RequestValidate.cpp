@@ -242,10 +242,19 @@ bool	RequestValidate::_handleFile(void)
 // ╰───────────────────────────╯
 bool	RequestValidate::_handleReturns(void)
 {
-	if (_validParams->getReturns().first)
+	auto const& local = _validParams->getReturns();
+	if (local.first)
 	{
-		_statusCode = _validParams->getReturns().first;
-		targetFile = std::filesystem::weakly_canonical(_validParams->getReturns().second);
+		_statusCode = local.first;
+		if (local.second.string().front() == '/')
+		{
+			targetFile = std::filesystem::weakly_canonical(local.second.filename());
+			targetDir = std::filesystem::weakly_canonical(local.second.parent_path());
+		}
+		else
+		{
+			targetFile = std::filesystem::weakly_canonical(local.second);
+		}
 		if (_handleFile())
 			return (true);
 		return (_handleStatus(), true);
@@ -255,11 +264,19 @@ bool	RequestValidate::_handleReturns(void)
 
 bool	RequestValidate::_handleErrorCode(void)
 {
-	std::map<size_t, std::string>::const_iterator it;
+	std::map<size_t, t_path>::const_iterator it;
 	it = _validParams->getErrorPages().find(_statusCode);
 	if (it == _validParams->getErrorPages().end())
 		return (false);
-	targetFile = std::filesystem::weakly_canonical((*it).second);
+	if ((*it).second.string().front() == '/')
+	{
+		targetFile = std::filesystem::weakly_canonical((*it).second.filename());
+		targetDir = std::filesystem::weakly_canonical((*it).second.parent_path());
+	}
+	else
+	{
+		targetFile = std::filesystem::weakly_canonical((*it).second);
+	}
 	return (_handleFile());
 }
 
@@ -302,8 +319,6 @@ void	RequestValidate::solvePath(void)
 		throw(RequestException({"No config given. Request validation can not continue."}, 500));
 	if (_requestPath.empty())
 		throw(RequestException({"No Path given. Request validation can not continue."}, 500));
-	std::cout << "Requested path: " << _requestPath << "\n";
-	std::cout << "Request Method: " << _requestMethod << "\n";
 	_setStatusCode(200);
 	_validParams = &(_requestConfig->getParams());
 	_initTargetElements();

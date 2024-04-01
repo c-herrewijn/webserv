@@ -1,5 +1,5 @@
-#ifndef CONFIGSERVER_HPP
-# define CONFIGSERVER_HPP
+#ifndef CONFIG_HPP
+# define CONFIG_HPP
 # include <map>
 # include <unordered_map>
 # include <unordered_set>

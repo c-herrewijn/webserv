@@ -1,5 +1,5 @@
-#ifndef CONFIG_HPP
-# define CONFIG_HPP
+#ifndef TOKENIZER_HPP
+# define TOKENIZER_HPP
 # include <iostream>
 # include <fstream>
 # include <sstream>
@@ -8,7 +8,6 @@
 # include <cctype>
 # include <stack>
 # include "Config.hpp"
-# include "Exceptions.hpp"
 
 class Tokenizer
 {

@@ -21,8 +21,8 @@
 # define DEF_CGI_ALLOWED false
 # define DEF_CGI_EXTENTION ".cgi"
 
-typedef std::map<size_t, std::string> t_string_map;
 typedef	std::filesystem::path	t_path;
+typedef std::map<size_t, t_path> t_string_map;
 
 class Parameters
 {
@@ -37,9 +37,8 @@ class Parameters
 		void	setSize(uintmax_t val, char *c);
 		void	setAutoindex(bool status);
 
+		void						inherit(Parameters const&);
 		const std::pair<size_t, t_path>& getReturns(void) const;
-		void 						setBlockIndex(size_t ref);
-		const size_t& 				getBlockIndex(void) const;
 		const t_path&	 			getIndex(void) const;
 		std::uintmax_t				getMaxSize(void) const;
 		const t_string_map& 		getErrorPages(void) const;
@@ -50,7 +49,7 @@ class Parameters
 		const bool& 				getCgiAllowed(void) const;
 
 	private:
-		size_t 				block_index;
+		bool				new_error_page;
 		std::uintmax_t		max_size;	// Will be overwriten by last found
 		bool				autoindex;	// FALSE in default, will be overwriten.
 		t_path				index;	// Will be searched in given order
@@ -67,7 +66,8 @@ class Parameters
 		void	_parseIndex(std::vector<std::string>& block);
 		void	_parseErrorPage(std::vector<std::string>& block);
 		void	_parseReturn(std::vector<std::string>& block);
-		void	_parseAllowedMethod(std::vector<std::string>& block);
+		void	_parseAllowMethod(std::vector<std::string>& block);
+		void	_parseDenyMethod(std::vector<std::string>& block);
 		void	_parseCgiExtension(std::vector<std::string>& block);
 		void	_parseCgiAllowed(std::vector<std::string>& block);
 };

@@ -2,6 +2,7 @@
 
 Parameters::Parameters(void)
 {
+	new_error_page = false;
 	this->root = DEF_ROOT;
 	this->cgi_allowed = DEF_CGI_ALLOWED;
 	this->cgi_extension = DEF_CGI_EXTENTION;
@@ -17,7 +18,7 @@ Parameters::~Parameters(void)
 }
 
 Parameters::Parameters(const Parameters& copy) :
-	block_index(copy.block_index),
+	new_error_page(copy.new_error_page),
 	max_size(copy.max_size),
 	autoindex(copy.autoindex),
 	index(copy.index),
@@ -36,8 +37,8 @@ Parameters&	Parameters::operator=(const Parameters& assign)
 	if (this != &assign)
 	{
 		error_pages.clear();
+		new_error_page = assign.new_error_page;
 		allowedMethods = assign.allowedMethods;
-		block_index = assign.block_index;
 		max_size = assign.max_size;
 		autoindex = assign.autoindex;
 		index = assign.index;
@@ -48,6 +49,19 @@ Parameters&	Parameters::operator=(const Parameters& assign)
 		cgi_allowed = assign.cgi_allowed;
 	}
 	return (*this);
+}
+
+void	Parameters::inherit(Parameters const& old)
+{
+	new_error_page = false;
+	max_size = old.getMaxSize();
+	autoindex = old.getAutoindex();
+	index = old.getIndex();
+	root = old.getRoot();
+	error_pages = old.getErrorPages();
+	allowedMethods = old.getAllowedMethods();
+	cgi_extension = old.getCgiExtension();
+	cgi_allowed = old.getCgiAllowed();
 }
 
 void	Parameters::_parseCgiExtension(std::vector<std::string>& block)
@@ -77,7 +91,35 @@ void	Parameters::_parseCgiAllowed(std::vector<std::string>& block)
 	block.erase(block.begin());
 }
 
-void	Parameters::_parseAllowedMethod(std::vector<std::string>& block)
+void	Parameters::_parseDenyMethod(std::vector<std::string>& block)
+{
+	block.erase(block.begin());
+	while (1)
+	{
+		if (block.front() == "GET")
+		{
+			allowedMethods[HTTP_GET] = 0;
+			block.erase(block.begin());
+		}
+		else if (block.front() == "POST")
+		{
+			allowedMethods[HTTP_POST] = 0;
+			block.erase(block.begin());
+		}
+		else if (block.front() == "DELETE")
+		{
+			allowedMethods[HTTP_DELETE] = 0;
+			block.erase(block.begin());
+		}
+		else if (block.front() == ";")
+			break ;
+		else
+			throw ParserException({"'" + block.front() + "' is not a valid element in allowMethods parameters"});
+	}
+	block.erase(block.begin());
+}
+
+void	Parameters::_parseAllowMethod(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	while (1)
@@ -198,11 +240,14 @@ void	Parameters::_parseIndex(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
 	if (block.front() == ";")
-		throw ParserException({"After index expected a file"});
-	if (block.front().find_first_of('/') != std::string::npos)
-		throw ParserException({"'index' must be file '" + block.front() + "'"});
-	this->index = block.front();
-	block.erase(block.begin());
+		this->index.clear();
+	else
+	{
+		if (block.front().find_first_of('/') != std::string::npos)
+			throw ParserException({"'index' must be file '" + block.front() + "'"});
+		this->index = block.front();
+		block.erase(block.begin());
+	}
 	if (block.front() != ";")
 		throw ParserException({"After 'index' file a ';' expected '" + block.front() + "'"});
 	block.erase(block.begin());
@@ -210,6 +255,11 @@ void	Parameters::_parseIndex(std::vector<std::string>& block)
 
 void	Parameters::_parseErrorPage(std::vector<std::string>& block)
 {
+	if (!new_error_page)
+	{
+		new_error_page = true;
+		error_pages.clear();
+	}
 	block.erase(block.begin());
 	if (block.front() == ";")
 		throw ParserException({"'error_page' can't have an empty parameter"});
@@ -225,11 +275,7 @@ void	Parameters::_parseErrorPage(std::vector<std::string>& block)
 		throw ParserException({"error_page code is out of range: '" + block.front() + "'"});
 	}
 	if (block.front() == ";")
-		throw ParserException({"After error_page code expected a file '" + block.front() + "'"});
-	if (block.front().front() != '/')
-		throw ParserException({"File name for error_page must start with a '/': " + block.front()});
-	if (block.front().find_first_of('/') != block.front().find_last_of('/'))
-		throw ParserException({"'error_page' must be file '" + block.front() + "'"});
+		throw ParserException({"After error_page code expected a path '" + block.front() + "'"});
 	error_pages[code] = block.front();
 	block.erase(block.begin());
 	if (block.front() != ";")
@@ -252,9 +298,7 @@ void	Parameters::_parseReturn(std::vector<std::string>& block)
 		throw ParserException({"given value is out of range: " + block.front()});
 	}
 	if (block.front() == ";")
-		throw ParserException({"After return code expected a file '" + block.front() + "'"});
-	if (block.front().find_first_of('/') != std::string::npos)
-		throw ParserException({"'return' must be file '" + block.front() + "'"});
+		throw ParserException({"After return code expected a path '" + block.front() + "'"});
 	returns = {(size_t)code, block.front()};
 	block.erase(block.begin());
 	if (block.front() != ";")
@@ -351,21 +395,13 @@ void	Parameters::fill(std::vector<std::string>& block)
 	else if (block.front() == "return")
 		_parseReturn(block);
 	else if (block.front() == "allowMethods")
-		_parseAllowedMethod(block);
+		_parseAllowMethod(block);
+	else if (block.front() == "denyMethods")
+		_parseDenyMethod(block);
 	else if (block.front() == "cgi_extension")
 		_parseCgiExtension(block);
 	else if (block.front() == "cgi_allowed")
 		_parseCgiAllowed(block);
 	else
 		throw ParserException({"'" + block.front() + "' is not a valid parameter"});
-}
-
-void Parameters::setBlockIndex(size_t ref)
-{
-	this->block_index = ref + 1;
-}
-
-const size_t& Parameters::getBlockIndex(void) const
-{
-	return (this->block_index);
 }
