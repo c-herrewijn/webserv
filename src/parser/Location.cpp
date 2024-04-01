@@ -43,8 +43,7 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 	uint64_t size = 0;
 	URL = DEF_URL;
 	filesystem = std::filesystem::weakly_canonical(URL);
-	params = param;
-	params.setBlockIndex(-1);
+	params.inherit(param);
 	block.erase(block.begin());
 	if (block.front()[0] != '/')
 		throw ParserException({"after 'location' expected a /URL"});

@@ -282,13 +282,19 @@ bool	RequestValidate::_handleFile(void)
 // ╰───────────────────────────╯
 bool	RequestValidate::_handleReturns(void)
 {
-	if (_validParams->getReturns().first)
+	auto const& local = _validParams->getReturns();
+	if (local.first)
 	{
-		if (_validParams->getReturns().second == "")	// file redirect name not provided in return directive, usually an error 40X
+		_statusCode = local.first;
+		if (local.second.string().front() == '/')
 		{
-			_setStatusCode(_validParams->getReturns().first);
-			return (true);
+			targetFile = std::filesystem::weakly_canonical(local.second.filename());
+			targetDir = std::filesystem::weakly_canonical(local.second.parent_path());
 		}
+		else
+			targetFile = std::filesystem::weakly_canonical(local.second);
+		if (_handleFile())
+			return (true);
 		else
 		{
 			_redirectStatusCode = _validParams->getReturns().first;
@@ -305,11 +311,19 @@ bool	RequestValidate::_handleReturns(void)
 
 // bool	RequestValidate::_handleErrorCode(void)
 // {
-// 	std::map<size_t, std::string>::const_iterator it;
+// 	std::map<size_t, t_path>::const_iterator it;
 // 	it = _validParams->getErrorPages().find(_statusCode);
 // 	if (it == _validParams->getErrorPages().end())
 // 		return (false);
-// 	targetFile = std::filesystem::weakly_canonical((*it).second);
+// 	if ((*it).second.string().front() == '/')
+// 	{
+// 		targetFile = std::filesystem::weakly_canonical((*it).second.filename());
+// 		targetDir = std::filesystem::weakly_canonical((*it).second.parent_path());
+// 	}
+// 	else
+// 	{
+// 		targetFile = std::filesystem::weakly_canonical((*it).second);
+// 	}
 // 	return (_handleFile());
 // }
 
