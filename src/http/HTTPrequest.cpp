@@ -191,7 +191,7 @@ t_path const&	HTTPrequest::getRealPath( void ) const noexcept
 	return (this->_validator.getRealPath());
 }
 
-t_string_map const&	HTTPrequest::getErrorPages( void ) const noexcept
+t_path_map const&	HTTPrequest::getErrorPages( void ) const noexcept
 {
 	return (this->_validator.getErrorPages());
 }

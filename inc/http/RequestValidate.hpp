@@ -65,7 +65,7 @@ class RequestValidate
 		std::uintmax_t		getMaxBodySize( void ) const;
 		int					getStatusCode( void ) const;
 		t_path const&		getRoot( void ) const;
-		t_string_map const&	getErrorPages( void ) const;
+		t_path_map const&	getErrorPages( void ) const;
 		bool				isAutoIndex( void ) const;
 		bool				isFile( void ) const;
 		bool				isCGI( void ) const;

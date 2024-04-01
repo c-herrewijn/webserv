@@ -22,7 +22,7 @@
 # define DEF_CGI_EXTENTION ".cgi"
 
 typedef	std::filesystem::path	t_path;
-typedef std::map<size_t, t_path> t_string_map;
+typedef std::map<size_t, t_path> t_path_map;
 
 class Parameters
 {
@@ -41,7 +41,7 @@ class Parameters
 		const std::pair<size_t, t_path>& getReturns(void) const;
 		const t_path&	 			getIndex(void) const;
 		std::uintmax_t				getMaxSize(void) const;
-		const t_string_map& 		getErrorPages(void) const;
+		const t_path_map& 		getErrorPages(void) const;
 		const bool& 				getAutoindex(void) const;
 		const t_path& 				getRoot(void) const;
 		const std::bitset<METHOD_AMOUNT>&	getAllowedMethods(void) const;
@@ -54,7 +54,7 @@ class Parameters
 		bool				autoindex;	// FALSE in default, will be overwriten.
 		t_path				index;	// Will be searched in given order
 		t_path				root;		// Last found will be used.
-		t_string_map		error_pages;	// Same status codes will be overwriten
+		t_path_map		error_pages;	// Same status codes will be overwriten
 		std::pair<size_t, t_path>	returns;	// Overwritten by the last
 		std::bitset<METHOD_AMOUNT> allowedMethods;	// Allowed methods
 		std::string			cgi_extension;	// extention .py .sh
