@@ -89,7 +89,6 @@ class HTTPrequest : public HTTPstruct
 		void	_readHead( void );
 		void	_readPlainBody( void );
 		void	_readChunkedBody( void );
-		void	_validate( void );
 		void	_setHead( std::string const& );
 		void	_setHeaders(std::string const& ) override;
 		void	_checkConfig( void );

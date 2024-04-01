@@ -385,7 +385,8 @@ void	RequestValidate::_handleErrCode( int statusCode )
 	try {
 		std::cout << "code " << statusCode << " - checking location with size " << this->_validParams->getMaxSize() << '\n';
 		errorPage = this->_validParams->getErrorPages().at(statusCode);
-		std::cout << "err page " << errorPage << '\n';
+		if (this->_validLocation == nullptr)
+			throw(std::out_of_range(""));
 		this->_requestPath = t_path(this->_validLocation->getURL()) / std::string(errorPage).substr(1);
 		std::cout << "found (not good) " << this->_requestPath << "\n";
 	}

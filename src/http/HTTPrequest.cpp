@@ -2,12 +2,27 @@
 
 void	HTTPrequest::parseHead( void )
 {
+	std::string strHead, strHeaders;
+	size_t		endHead=0, endReq=0;
+
 	if (this->_state != HTTP_REQ_HEAD_READING)
 		throw(RequestException({"instance in wrong state to perfom action"}, 500));
-
 	_readHead();
 	if (isDoneReadingHead())
-		_validate();
+	{
+		endReq = this->_tmpHead.find(HTTP_DEF_TERM);
+		endHead = this->_tmpHead.find(HTTP_DEF_NL);		// look for headers
+		if (endHead >= endReq)
+			throw(RequestException({"no headers"}, 400));
+		strHead = this->_tmpHead.substr(0, endHead);
+		strHeaders = this->_tmpHead.substr(endHead + HTTP_DEF_NL.size(), endReq + HTTP_DEF_NL.size() - endHead - 1);
+		endReq += HTTP_DEF_TERM.size();
+		if ((endReq + 1) < this->_tmpHead.size())		// if there's the beginning of the body
+			this->_tmpBody = this->_tmpHead.substr(endReq);
+		_setHead(strHead);
+		_setHeaders(strHeaders);
+		_checkConfig();
+	}
 }
 
 void	HTTPrequest::parseBody( void )
@@ -290,25 +305,6 @@ void	HTTPrequest::_readChunkedBody( void )
 		this->_contentLengthRead += charsRead;
 		this->_tmpBody += std::string(buffer, buffer + charsRead);
 	}
-}
-
-void	HTTPrequest::_validate( void )
-{
-	std::string strHead, strHeaders;
-	size_t		endHead=0, endReq=0;
-
-	endReq = this->_tmpHead.find(HTTP_DEF_TERM);
-	endHead = this->_tmpHead.find(HTTP_DEF_NL);		// look for headers
-	if (endHead >= endReq)
-		throw(RequestException({"no headers"}, 400));
-	strHead = this->_tmpHead.substr(0, endHead);
-	strHeaders = this->_tmpHead.substr(endHead + HTTP_DEF_NL.size(), endReq + HTTP_DEF_NL.size() - endHead - 1);
-	endReq += HTTP_DEF_TERM.size();
-	if ((endReq + 1) < this->_tmpHead.size())		// if there's the beginning of the body
-		this->_tmpBody = this->_tmpHead.substr(endReq);
-	_setHead(strHead);
-	_setHeaders(strHeaders);
-	_checkConfig();
 }
 
 void	HTTPrequest::_checkConfig( void )
