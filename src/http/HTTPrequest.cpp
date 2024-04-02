@@ -21,8 +21,12 @@ void	HTTPrequest::parseHead( void )
 			this->_tmpBody = this->_tmpHead.substr(endReq);
 		_setHead(strHead);
 		_setHeaders(strHeaders);
-		std::cout << toString();
-		_checkConfig();
+		this->_validator.solvePath(this->_method, this->_url.path, getHost());
+		this->_statusCode = this->_validator.getStatusCode();
+		_updateTypeAndState();
+		if (this->_validator.getStatusCode() >= 400)
+			throw(RequestException({"validation of config file failed"}, this->_validator.getStatusCode()));
+		_checkMaxBodySize(this->_validator.getMaxBodySize());
 	}
 }
 
@@ -308,22 +312,6 @@ void	HTTPrequest::_readChunkedBody( void )
 	}
 }
 
-void	HTTPrequest::_checkConfig( void )
-{
-	this->_validator.solvePath(this->_method, this->_url.path, getHost());
-	if (this->_validator.isRedirection() == true)
-	{
-		this->_statusCode = this->_validator.getRedirectStatusCode();
-		this->_validator.solvePath(HTTP_GET, getRealPath(), getHost());		// NB: check it with redirections
-	}
-	else
-		this->_statusCode = this->_validator.getStatusCode();
-	_updateTypeAndState();
-	if (this->_validator.getStatusCode() >= 400)
-		throw(RequestException({"validation of config file failed"}, this->_statusCode));
-	_checkMaxBodySize(this->_validator.getMaxBodySize());
-}
-
 void	HTTPrequest::_setHead( std::string const& header )
 {
 	std::istringstream	stream(header);
@@ -381,10 +369,10 @@ void	HTTPrequest::_updateTypeAndState( void )
 	if (this->_statusCode >= 300)
 	{
 		this->_state = HTTP_REQ_DONE;
-		if (this->_statusCode >= 400)
-			this->_type = HTTP_STATIC;
-		else
+		if (this->_validator.isRedirection() == true)
 			this->_type = HTTP_REDIRECTION;
+		else
+			this->_type = HTTP_STATIC;
 	}
 	else if (this->_headers[HEADER_TRANS_ENCODING] == "chunked")
 	{

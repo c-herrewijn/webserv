@@ -90,7 +90,6 @@ class HTTPrequest : public HTTPstruct
 		void	_readChunkedBody( void );
 		void	_setHead( std::string const& );
 		void	_setHeaders(std::string const& ) override;
-		void	_checkConfig( void );
 		void	_updateTypeAndState( void );
 		void	_checkMaxBodySize( size_t );
 

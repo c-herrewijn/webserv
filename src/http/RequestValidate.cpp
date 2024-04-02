@@ -42,11 +42,6 @@ int	RequestValidate::getStatusCode( void ) const
 	return (_statusCode);
 }
 
-int	RequestValidate::getRedirectStatusCode( void ) const
-{
-	return (_redirectStatusCode);
-}
-
 std::uintmax_t	RequestValidate::getMaxBodySize( void ) const
 {
 	return (_validParams->getMaxSize());
@@ -91,7 +86,6 @@ void	RequestValidate::_resetValues( void )
 	this->_realPath = "/IAMEMPTY";
 	this->_requestMethod = HTTP_GET;
 	this->_statusCode = 200;
-	this->_redirectStatusCode = 200;
 	this->_realPath.clear();
 	this->_redirectRealPath.clear();
 }
@@ -292,27 +286,37 @@ bool	RequestValidate::_handleReturns(void)
 	auto const& local = _validParams->getReturns();
 	if (local.first)
 	{
-		_statusCode = local.first;
-		_redirectRealPath = local.second;
-		if (local.second.string().front() == '/')
+		_setStatusCode(local.first);
+		if (local.second != "")	// file redirect name not provided in return directive, usually an error 40X
 		{
-			targetFile = std::filesystem::weakly_canonical(local.second.filename());
-			targetDir = std::filesystem::weakly_canonical(local.second.parent_path());
+			_realPath = local.second;
+			_isRedirection = true;
 		}
-		else
-			targetFile = std::filesystem::weakly_canonical(local.second);
-		if (_handleFile())
-			return (true);
-		else
-		{
-			_redirectStatusCode = _validParams->getReturns().first;
-			targetFile = std::filesystem::weakly_canonical(_validParams->getReturns().second);
-			if (_handleFile())
-			{
-				_isRedirection = true;
-				return (true);
-			}
-		}
+		return (true);
+		// if (local.second == "")
+		// 	return (true);
+		// _redirectRealPath = local.second;
+		// if (local.second.string().front() == '/')		// NB: why this double check?
+		// {
+		// 	targetFile = std::filesystem::weakly_canonical(local.second.filename());
+		// 	targetDir = std::filesystem::weakly_canonical(local.second.parent_path());
+		// }
+		// else
+		// 	targetFile = std::filesystem::weakly_canonical(local.second);
+		// if (_handleFile())
+		// {
+		// 	_isRedirection = true;
+		// 	return (true);
+		// }
+		// else
+		// {
+		// 	targetFile = std::filesystem::weakly_canonical(_validParams->getReturns().second);
+		// 	if (_handleFile())
+		// 	{
+		// 		_isRedirection = true;
+		// 		return (true);
+		// 	}
+		// }
 	}
 	return (false);
 }
@@ -420,21 +424,6 @@ void	RequestValidate::solvePath( HTTPmethod method, t_path const& path, std::str
 
 void	RequestValidate::solveErrorPath( int statusCode )
 {
-	_handleErrCode(statusCode);
-	_initTargetElements();	
-	// if (!targetDir.empty() || targetDir == "/")	// if directory is not root check for location
-	// {
-	// 	_initValidLocation();
-	// 	if (_validLocation == nullptr)
-	// 		return (_setStatusCode(404));
-	// 	_validParams = &(_validLocation->getParams());
-	// }
-	// targetFile = std::filesystem::weakly_canonical(targetFile);	// Normalization for the case user gives sth random
-	_handleFile();
-}
-
-void	RequestValidate::_handleErrCode( int statusCode )
-{
 	t_path	errorPage;
 	try {
 		errorPage = this->_validParams->getErrorPages().at(statusCode);
@@ -442,7 +431,6 @@ void	RequestValidate::_handleErrCode( int statusCode )
 			this->_requestPath = std::string(errorPage);
 		else
 			this->_requestPath = t_path(this->_validLocation->getURL()) / std::string(errorPage).substr(1);
-		_setStatusCode(200);
 	}
 	catch(const std::out_of_range& e1) {
 		try {
@@ -459,4 +447,7 @@ void	RequestValidate::_handleErrCode( int statusCode )
 			}
 		}
 	}
+	_setStatusCode(200);
+	_initTargetElements();	
+	_handleFile();
 }

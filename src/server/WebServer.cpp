@@ -389,10 +389,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 		return;
 	response = new HTTPresponse(request->getSocket(), request->getStatusCode(), request->getType());
 	this->_responses[clientSocket] = response;
-	if (request->isRedirection())
-		response->setTargetFile(request->getRedirectPath());
-	else
-		response->setTargetFile(request->getRealPath());
+	response->setTargetFile(request->getRealPath());
 	if (request->isCGI())
 	{
 		cgi = new CGI(*request);
@@ -503,7 +500,6 @@ void	WebServer::writeToClients( int clientSocket )
 				response->listContentDirectory(request->getRealPath());
 			response->parseFromStatic(request->getServName());
 		}
-		std::cout << response->toString();
 	}
 	response->writeContent();
 	if (response->isDoneWriting() == false)
@@ -537,7 +533,6 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 	catch(const RequestException& e1) {
 		std::cerr << C_RED << e1.what() << '\n' << C_RESET;
 		HTMLerrPage = _getDefErrorPage(e1.getStatus());
-		std::cout << "using std pages: " << HTMLerrPage << '\n';
 		if (HTMLerrPage == "/")
 		{
 			std::cerr << C_RED << "no error page found for code: "<< e1.getStatus() << '\n' << C_RESET;

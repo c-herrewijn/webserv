@@ -31,7 +31,6 @@ class RequestValidate
 		std::string const&	getServName( void ) const;
 		std::uintmax_t		getMaxBodySize( void ) const;
 		int					getStatusCode( void ) const;
-		int					getRedirectStatusCode( void ) const;
 		t_path const&		getRoot( void ) const;
 		bool				isAutoIndex( void ) const;
 		bool				isFile( void ) const;
@@ -44,7 +43,7 @@ class RequestValidate
 		HTTPmethod		_requestMethod;
 		t_path			_requestPath;
 
-		size_t	_statusCode , _redirectStatusCode;
+		size_t	_statusCode;
 		t_path	_realPath, _redirectRealPath;
 		bool	_autoIndex;
 		bool	_isCGI;
@@ -71,7 +70,6 @@ class RequestValidate
 		bool	_handleFolder( void );
 		bool	_handleFile( void );
 		bool	_handleReturns( void );
-		void	_handleErrCode( int );
 
 		void	_setStatusCode(const size_t& code);
 };

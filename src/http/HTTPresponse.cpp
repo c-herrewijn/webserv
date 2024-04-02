@@ -34,7 +34,7 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 
 void	HTTPresponse::parseFromStatic( std::string const& servName )
 {
-	if ((isStatic() == false) or (isParsingNeeded() == false))
+	if ((isCGI() == true) or (isParsingNeeded() == false))
 		throw(ResponseException({"instance in wrong state or type to perfom action"}, 500));
 	_setVersion(HTTP_DEF_VERSION);
 	_addHeader("Date", _getDateTime());
