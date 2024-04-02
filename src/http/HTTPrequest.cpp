@@ -311,7 +311,7 @@ void	HTTPrequest::_readChunkedBody( void )
 void	HTTPrequest::_checkConfig( void )
 {
 	this->_validator.solvePath(this->_method, this->_url.path, getHost());
-	if (isRedirection() == true)
+	if (this->_validator.isRedirection() == true)
 	{
 		this->_statusCode = this->_validator.getRedirectStatusCode();
 		this->_validator.solvePath(HTTP_GET, getRealPath(), getHost());		// NB: check it with redirections
