@@ -503,6 +503,7 @@ void	WebServer::writeToClients( int clientSocket )
 			if (response->isAutoIndex())
 				response->listContentDirectory(request->getRealPath());
 			response->parseFromStatic(request->getServName());
+			std::cout << response->toString();
 		}
 	}
 	response->writeContent();
