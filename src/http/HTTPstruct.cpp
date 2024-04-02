@@ -25,6 +25,16 @@ void	HTTPstruct::setTmpBody( std::string const& tmpBody ) noexcept
     this->_tmpBody = tmpBody;
 }
 
+t_path const&		HTTPstruct::getRoot( void ) const noexcept
+{
+	return (this->_root);
+}
+
+void		HTTPstruct::setRoot( t_path const& newRoot ) noexcept
+{
+	this->_root = newRoot;
+}
+
 bool	HTTPstruct::isStatic( void ) const noexcept
 {
 	return (this->_type == HTTP_STATIC);

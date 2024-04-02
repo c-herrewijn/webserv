@@ -19,7 +19,7 @@
 #include "CGI.hpp"
 
 #define BACKLOG 			10		// max pending connection queued up
-#define SERVER_DEF_PAGES	std::filesystem::path("var/www/errors")
+#define SERVER_DEF_PAGES	std::filesystem::path("default/errors")
 
 using namespace std::chrono;
 

@@ -163,17 +163,17 @@ void	WebServer::_readData( int readFd )	// POLLIN
 	switch (this->_pollitems[readFd]->pollState)
 	{
 		case WAITING_FOR_CONNECTION:
-			std::cout << C_GREEN << "NEW_CONNECTION - " << readFd << C_RESET << std::endl;
+			// std::cout << C_GREEN << "NEW_CONNECTION - " << readFd << C_RESET << std::endl;
 			handleNewConnections(readFd);
 			break;
 
 		case READ_REQ_HEADER:
-			std::cout << C_GREEN << "READ_REQ_HEADER - " << readFd << C_RESET << std::endl;
+			// std::cout << C_GREEN << "READ_REQ_HEADER - " << readFd << C_RESET << std::endl;
 			readRequestHeaders(readFd);
 			break;
 
 		case READ_REQ_BODY:
-			std::cout << C_GREEN << "READ_REQ_BODY - " << readFd << C_RESET << std::endl;
+			// std::cout << C_GREEN << "READ_REQ_BODY - " << readFd << C_RESET << std::endl;
 			readRequestBody(readFd);
 			break;
 
@@ -182,17 +182,17 @@ void	WebServer::_readData( int readFd )	// POLLIN
 			break;
 
 		case READ_CGI_RESPONSE:
-			std::cout << C_GREEN << "READ_CGI_RESPONSE " << readFd << C_RESET << std::endl;
+			// std::cout << C_GREEN << "READ_CGI_RESPONSE " << readFd << C_RESET << std::endl;
 			readCGIResponses(readFd);
 			break;
 
 		case READ_STATIC_FILE:
-			std::cout << C_GREEN << "READ_STATIC_FILE - " << readFd << C_RESET << std::endl;
+			// std::cout << C_GREEN << "READ_STATIC_FILE - " << readFd << C_RESET << std::endl;
 			readStaticFiles(readFd);
 			break;
 
 		default:
-			std::cout << C_RED << "UNEXPECTED POLLIN - " << readFd << " - STATE: " << this->_pollitems[readFd]->pollState << C_RESET << std::endl;
+			// std::cout << C_RED << "UNEXPECTED POLLIN - " << readFd << " - STATE: " << this->_pollitems[readFd]->pollState << C_RESET << std::endl;
 			break;
 	}
 }
@@ -202,12 +202,12 @@ void	WebServer::_writeData( int writeFd )	// POLLOUT
 	switch (this->_pollitems[writeFd]->pollState)
 	{
 		case WRITE_TO_CGI:
-			std::cout << C_GREEN << "WRITE_TO_CGI - " << writeFd << C_RESET << std::endl;
+			// std::cout << C_GREEN << "WRITE_TO_CGI - " << writeFd << C_RESET << std::endl;
 			writeToCGI(writeFd);
 			break;
 
 		case WRITE_TO_CLIENT:
-			std::cout << C_GREEN << "WRITE_TO_CLIENT - " << writeFd << C_RESET << std::endl;
+			// std::cout << C_GREEN << "WRITE_TO_CLIENT - " << writeFd << C_RESET << std::endl;
 			writeToClients(writeFd);
 			break;
 
@@ -349,12 +349,18 @@ t_serv_list	WebServer::_getServersFromIP( std::string const& ip, std::string con
 
 t_path	WebServer::_getDefErrorPage( int statusCode ) const
 {
-	for (auto const& dir_entry : std::filesystem::directory_iterator{SERVER_DEF_PAGES})
+	try
 	{
-		if (dir_entry.path().stem() == std::to_string(statusCode))
-			return (dir_entry.path());
+		for (auto const& dir_entry : std::filesystem::directory_iterator{SERVER_DEF_PAGES})
+		{
+			if (dir_entry.path().stem() == std::to_string(statusCode))
+				return (dir_entry.path());
+		}
 	}
-	return ("/");
+	catch(const std::exception& e) {
+		throw(ServerException({"path", SERVER_DEF_PAGES,"is not valid -", e.what()}));
+	}
+	throw(ServerException({"no default error found [seerver corruption], code:", std::to_string(statusCode)}));
 }
 
 void	WebServer::handleNewConnections( int listenerFd )
@@ -368,9 +374,9 @@ void	WebServer::handleNewConnections( int listenerFd )
 		std::cerr << C_RED  << "connection with: " << this->_getAddress(&client) << " failed" << C_RESET << '\n';
 	else
 	{
+		std::cout << C_GREEN << "connected to " << this->_getAddress(&client) << C_RESET << '\n';
 		fcntl(connFd, F_SETFL, O_NONBLOCK);
 		this->_addConn(connFd, CLIENT_CONNECTION, READ_REQ_HEADER, this->_pollitems[listenerFd]->IPaddr, this->_pollitems[listenerFd]->port);
-		std::cout << C_GREEN << "connected to " << this->_getAddress(&client) << C_RESET << '\n';
 	}
 }
 
@@ -390,6 +396,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	response = new HTTPresponse(request->getSocket(), request->getStatusCode(), request->getType());
 	this->_responses[clientSocket] = response;
 	response->setTargetFile(request->getRealPath());
+	response->setRoot(request->getRoot());
 	if (request->isCGI())
 	{
 		cgi = new CGI(*request);
@@ -529,10 +536,11 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 	catch(const RequestException& e1) {
 		std::cerr << C_RED << e1.what() << '\n' << C_RESET;
 		statusCode = e1.getStatus();
-		HTMLerrPage = _getDefErrorPage(statusCode);
-		if (HTMLerrPage == "/")
-		{
-			std::cerr << C_RED << "no error page found for code: "<< statusCode << '\n' << C_RESET;
+		try {
+			HTMLerrPage = _getDefErrorPage(statusCode);
+		}
+		catch(const std::exception& e) {
+			std::cerr<< C_RED << e.what() << '\n' << C_RESET;
 			response->errorReset(500, true);
 			this->_pollitems[clientSocket]->pollState = WRITE_TO_CLIENT;
 			return ;

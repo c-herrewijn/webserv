@@ -21,12 +21,13 @@ void	HTTPrequest::parseHead( void )
 			this->_tmpBody = this->_tmpHead.substr(endReq);
 		_setHead(strHead);
 		_setHeaders(strHeaders);
-		this->_validator.solvePath(getMethod, this->_url.path, getHost());
+		this->_validator.solvePath(this->_method, this->_url.path, getHost());
 		this->_statusCode = this->_validator.getStatusCode();
+		this->_root = this->_validator.getRoot();
 		_updateTypeAndState();
 		if (this->_validator.getStatusCode() >= 400)
 			throw(RequestException({"validation of config file failed"}, this->_validator.getStatusCode()));
-		_checkMaxBodySize(this->_validator.getMaxBodySize());
+		_checkMaxBodySize();
 	}
 }
 
@@ -407,21 +408,21 @@ void	HTTPrequest::_updateTypeAndState( void )
 
 void	HTTPrequest::_checkMaxBodySize( void )
 {
-	if (this->_validator.getMaxSize() == 0)
+	if (this->_validator.getMaxBodySize() == 0)
 		return;
 	if (isChunked() == true)
 	{
-		if (this->_validator.getMaxSize() < this->_tmpBody.size())
+		if (this->_validator.getMaxBodySize() < this->_tmpBody.size())
 			throw(RequestException({"Content-Length longer than config max body length"}, 413));
 	}
 	else if (isFileUpload() == true)
 	{
-		if (this->_validator.getMaxSize() < this->_contentLength)
+		if (this->_validator.getMaxBodySize() < this->_contentLength)
 			throw(RequestException({"Content-Length longer than config max body length"}, 413));
 		else if (this->_body.size() > this->_contentLength)
 			this->_tmpBody = this->_tmpBody.substr(0, this->_contentLength);
 	}
-	this->_maxBodySize = this->_validator.getMaxSize();
+	this->_maxBodySize = this->_validator.getMaxBodySize();
 }
 
 void    HTTPrequest::_setMethod( std::string const& strMethod )

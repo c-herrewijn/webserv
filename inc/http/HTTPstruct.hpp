@@ -63,7 +63,9 @@ class HTTPstruct
 		int					getSocket( void ) const noexcept;
 		int					getStatusCode( void ) const noexcept;
 		std::string const&	getTmpBody( void ) const noexcept;
-		virtual void		setTmpBody( std::string const& ) noexcept;
+		void				setTmpBody( std::string const& ) noexcept;
+		t_path const&		getRoot( void ) const noexcept;
+		void				setRoot( t_path const& ) noexcept;
 
 		bool				isStatic( void ) const noexcept;
 		bool				isRedirection( void ) const noexcept;
@@ -80,6 +82,7 @@ class HTTPstruct
 		t_dict 		_headers;
 		std::string	_tmpBody, _body;
     	HTTPversion	_version;
+		t_path		_root;
 
 		steady_clock::time_point	_lastActivity;
 

@@ -189,6 +189,12 @@ static void	capSize(uintmax_t& value, char* type)
                 value = MAX_SIZE * 1024 * 1024;
             }
             break;
+		case 'B':
+			if (value > static_cast<uintmax_t>(1024 * 1024 * 1024) * MAX_SIZE)
+			{
+                std::cerr << "Warning: Size '" + std::to_string(value) + *type + "' is capped to 20G" << std::endl;
+				value = MAX_SIZE * static_cast<uintmax_t>(1024 * 1024 * 1024);
+			}
         default:
             std::cerr << "Error: Invalid size type." << std::endl;
             break;
@@ -206,11 +212,11 @@ void	Parameters::_parseBodySize(std::vector<std::string>& block)
 	char*	endPtr = NULL;
 	uintmax_t convertedValue = std::strtoul(block.front().c_str(), &endPtr, 10);
 	if (errno == ERANGE)
-		throw ParserException({"'" + block.front() + "' resulted in overflow or underflow\n'client_max_body_size' must be formated as '(unsigned int)(type=K|M|G)'"});
+		throw ParserException({"'" + block.front() + "' resulted in overflow or underflow\n'client_max_body_size' must be formated as '(unsigned int)(type=B|K|M|G)'"});
 	else if (endPtr == NULL || *endPtr == '\0')
-		throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)(type=K||M||G)': " + block.front()});
-	if (!endPtr || (*endPtr != 'K' && *endPtr != 'M' && *endPtr != 'G'))
-		throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)(type=K||M||G)': " + block.front()});
+		throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)(type=B|K||M||G)': " + block.front()});
+	if (!endPtr || (*endPtr != 'B' && *endPtr != 'K' && *endPtr != 'M' && *endPtr != 'G'))
+		throw ParserException({"'client_max_body_size' must be formated as '(unsigned int)(type=B|K||M||G)': " + block.front()});
 	capSize(convertedValue, endPtr);
 	setSize(convertedValue, endPtr);
 	block.erase(block.begin());
@@ -262,7 +268,11 @@ void	Parameters::_parseErrorPage(std::vector<std::string>& block)
 	}
 	block.erase(block.begin());
 	if (block.front() == ";")
-		throw ParserException({"'error_page' can't have an empty parameter"});
+	{
+		error_pages.clear();
+		block.erase(block.begin());
+		return ;
+	}
 	int code;
 	while (true)
 	{

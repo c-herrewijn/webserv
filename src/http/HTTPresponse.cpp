@@ -42,6 +42,8 @@ void	HTTPresponse::parseFromStatic( std::string const& servName )
 	_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
 	if (this->_targetFile.extension() == ".ico")
 		_addHeader("Content-Type", ICO_CONTENT_TYPE);
+	else if (this->_targetFile.extension() == ".css")
+		_addHeader("Content-Type", CSS_CONTENT_TYPE);
 	else
 		_addHeader("Content-Type", HTML_CONTENT_TYPE);
 	if (isRedirection() == true)

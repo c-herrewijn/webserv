@@ -81,8 +81,8 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 		else if (block.front() == "root" || block.front() == "client_max_body_size" ||
 				block.front() == "autoindex" || block.front() == "index" ||
 				block.front() == "error_page" || block.front() == "return" ||
-				block.front() == "allowMethods" || block.front() == "cgi_extension" ||
-				block.front() == "cgi_allowed")
+				block.front() == "allowMethods" || block.front() == "denyMethods" ||
+				block.front() == "cgi_extension" || block.front() == "cgi_allowed")
 			params.fill(block);
 		else
 			throw ParserException({"'" + block.front() + "' is not a valid parameter in 'location' context"});

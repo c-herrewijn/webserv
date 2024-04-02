@@ -11,6 +11,7 @@
 #include "HTTPstruct.hpp"
 
 #define HTML_CONTENT_TYPE	"text/html; charset=utf-8"
+#define CSS_CONTENT_TYPE	"text/css"
 #define ICO_CONTENT_TYPE	"image/vnd.microsoft.icon"
 #define ERROR_500_CONTENT	"<!DOCTYPE html>\r\n<html>\r\n\t<head>\r\n\t\t<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">\r\n\t\t<title>500 - Internal Server Error</title>\r\n\t</head>\r\n\r\n\t<body>\r\n\t\t<div id=\"app\">\r\n\t\t\t<div>500</div>\r\n\t\t\t<div class=\"txt\">\r\n\t\t\t\tInternal Server Error<span class=\"blink\"></span>\r\n\t\t\t</div>\r\n\t\t\t<a href=\"/\">go home</a>\r\n\t\t</div>\r\n\t</body>\r\n</html>"
 
@@ -44,7 +45,7 @@ class HTTPresponse : public HTTPstruct
 
 	protected:
 		HTTPrespState	_state;
-		t_path			_root, _targetFile;
+		t_path			_targetFile;
 		int				_HTMLfd;
 		size_t			_contentLengthWrite;
 		std::string		_contentType, _strSelf;

@@ -20,6 +20,7 @@
 # define MAX_SIZE 20
 # define DEF_CGI_ALLOWED false
 # define DEF_CGI_EXTENTION ".cgi"
+# define DEF_SIZE_VALUE 'B'
 
 typedef	std::filesystem::path	t_path;
 typedef std::map<size_t, t_path> t_path_map;

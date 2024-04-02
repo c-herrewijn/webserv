@@ -48,13 +48,21 @@
         .link:hover {
             color: #0056b3; /* Darker color on hover */
         }
+        
+        img {
+            max-width: 100%;
+            max-height: 50%;
+            height: auto; /* Ensure that the image maintains its aspect ratio */
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <img src="/img/403.avif" alt="403 err">
+        <!-- <div class="pic">403</div> -->
         <div class="error-code">403</div>
         <div class="message" style="font-size: 4rem; font-weight: bold;">Forbidden</div>
-        <a class="link" href="/">home</a>
+        <a class="link" href="/">go home</a>
     </div>
 </body>
 </html>

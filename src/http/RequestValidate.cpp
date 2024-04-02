@@ -372,7 +372,7 @@ bool	RequestValidate::_handleReturns(void)
 // ╭───────────────────────────╮
 // │   MAIN FUNCTION TO START  │
 // ╰───────────────────────────╯
-void	RequestValidate::solvePath( HTTPmethod method, t_path const& path, std::string const& hostName)
+void	RequestValidate::solvePath( HTTPmethod method, t_path const& path, std::string const& hostName )
 {
 	_resetValues();
 	_setMethod(method);
