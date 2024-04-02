@@ -21,7 +21,7 @@ void	HTTPrequest::parseHead( void )
 			this->_tmpBody = this->_tmpHead.substr(endReq);
 		_setHead(strHead);
 		_setHeaders(strHeaders);
-		this->_validator.solvePath(this->_method, this->_url.path, getHost());
+		this->_validator.solvePath(getMethod, this->_url.path, getHost());
 		this->_statusCode = this->_validator.getStatusCode();
 		_updateTypeAndState();
 		if (this->_validator.getStatusCode() >= 400)
@@ -94,15 +94,12 @@ void	HTTPrequest::updateErrorCode( int errorCode )
 {
 	this->_validator.solveErrorPath(errorCode);
 	_updateTypeAndState();
-	if (this->_validator.getStatusCode() < 400)
-		this->_statusCode = errorCode;
-	else
+	this->_statusCode = this->_validator.getStatusCode();
+	if (this->_statusCode >= 400)
 	{
-		this->_statusCode = this->_validator.getStatusCode();
 		if (errorCode == this->_statusCode)
 			throw(RequestException({"endless loop with code:", std::to_string(this->_statusCode)}, errorCode));	// error 404 and lacks 404.html (or same for 403)
-		else
-			this->_validator.solveErrorPath(this->_statusCode);
+		this->_validator.solveErrorPath(this->_statusCode);
 		if (this->_statusCode == this->_validator.getStatusCode())
 			throw(RequestException({"endless loop with code:", std::to_string(this->_statusCode)}, errorCode));
 		else if (this->_validator.getStatusCode() >= 400)
@@ -396,7 +393,7 @@ void	HTTPrequest::_updateTypeAndState( void )
 			this->_state = HTTP_REQ_DONE;
 		}
 	}
-	else
+	else	// NB: what about normal body?
 	{
 		if (this->_validator.isAutoIndex() == true)
 			this->_type = HTTP_AUTOINDEX_STATIC;
@@ -408,23 +405,23 @@ void	HTTPrequest::_updateTypeAndState( void )
 	}
 }
 
-void	HTTPrequest::_checkMaxBodySize( size_t maxSize )
+void	HTTPrequest::_checkMaxBodySize( void )
 {
-	if (maxSize == 0)
+	if (this->_validator.getMaxSize() == 0)
 		return;
 	if (isChunked() == true)
 	{
-		if (maxSize < this->_tmpBody.size())
+		if (this->_validator.getMaxSize() < this->_tmpBody.size())
 			throw(RequestException({"Content-Length longer than config max body length"}, 413));
 	}
 	else if (isFileUpload() == true)
 	{
-		if (maxSize < this->_contentLength)
+		if (this->_validator.getMaxSize() < this->_contentLength)
 			throw(RequestException({"Content-Length longer than config max body length"}, 413));
 		else if (this->_body.size() > this->_contentLength)
 			this->_tmpBody = this->_tmpBody.substr(0, this->_contentLength);
 	}
-	this->_maxBodySize = maxSize;
+	this->_maxBodySize = this->_validator.getMaxSize();
 }
 
 void    HTTPrequest::_setMethod( std::string const& strMethod )

@@ -91,7 +91,7 @@ class HTTPrequest : public HTTPstruct
 		void	_setHead( std::string const& );
 		void	_setHeaders(std::string const& ) override;
 		void	_updateTypeAndState( void );
-		void	_checkMaxBodySize( size_t );
+		void	_checkMaxBodySize( void );
 
 		void	_setMethod( std::string const& );
 		void	_setURL( std::string const& );

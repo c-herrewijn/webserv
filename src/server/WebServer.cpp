@@ -490,10 +490,7 @@ void	WebServer::writeToClients( int clientSocket )
 	if (response->isParsingNeeded() == true)
 	{
 		if (response->isCGI())
-		{
-			CGI *cgi = this->_cgi.at(clientSocket);
-			response->parseFromCGI(cgi->getResponse());
-		}
+			response->parseFromCGI(this->_cgi.at(clientSocket)->getResponse());
 		else
 		{
 			if (response->isAutoIndex())
@@ -527,15 +524,15 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 	response = this->_responses[clientSocket];
 	try {
 		request->updateErrorCode(statusCode);
-		response->errorReset(request->getStatusCode(), false);
 		HTMLerrPage = request->getRealPath();
 	}
 	catch(const RequestException& e1) {
 		std::cerr << C_RED << e1.what() << '\n' << C_RESET;
-		HTMLerrPage = _getDefErrorPage(e1.getStatus());
+		statusCode = e1.getStatus();
+		HTMLerrPage = _getDefErrorPage(statusCode);
 		if (HTMLerrPage == "/")
 		{
-			std::cerr << C_RED << "no error page found for code: "<< e1.getStatus() << '\n' << C_RESET;
+			std::cerr << C_RED << "no error page found for code: "<< statusCode << '\n' << C_RESET;
 			response->errorReset(500, true);
 			this->_pollitems[clientSocket]->pollState = WRITE_TO_CLIENT;
 			return ;
