@@ -44,11 +44,11 @@ void	HTTPresponse::parseFromStatic( std::string const& servName )
 		_addHeader("Content-Type", ICO_CONTENT_TYPE);
 	else
 		_addHeader("Content-Type", HTML_CONTENT_TYPE);
-	if ((this->_statusCode >= 300) and (this->_statusCode < 400))
+	if (isRedirection() == true)
 	{
 		if (this->_targetFile.empty() == true)
-			throw(ResponseException({"redirect file target not set"}, 500));
-		_addHeader("Location", this->_targetFile.c_str());
+			throw(ResponseException({"redirect file target not given"}, 500));
+		_addHeader("Location", this->_targetFile);
 	}
 	HTTPstruct::_setBody();
 	this->_state = HTTP_RESP_WRITING;
@@ -330,7 +330,6 @@ void	HTTPresponse::setTargetFile( t_path const& targetFile)
 			throw(ResponseException({"invalid file descriptor"}, 500));
 	}
 	this->_targetFile = targetFile;
-
 }
 
 bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept

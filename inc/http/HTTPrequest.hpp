@@ -66,9 +66,9 @@ class HTTPrequest : public HTTPstruct
 		std::string			getContentTypeBoundary( void ) const noexcept;
 		std::string const&	getServName( void ) const noexcept;
 		t_path const&		getRealPath( void ) const noexcept;
+		t_path const&		getRedirectPath( void ) const noexcept;
 		t_path const&		getRoot( void ) const noexcept;
 
-		bool	isRedirection( void ) const noexcept;
 		bool	isEndConn( void ) noexcept;
 		bool	isDoneReadingHead( void ) const noexcept;
 		bool	isDoneParsingHead( void ) const noexcept;

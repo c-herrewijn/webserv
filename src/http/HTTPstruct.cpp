@@ -30,6 +30,11 @@ bool	HTTPstruct::isStatic( void ) const noexcept
 	return (this->_type == HTTP_STATIC);
 }
 
+bool	HTTPstruct::isRedirection( void ) const noexcept
+{
+	return (this->_type == HTTP_REDIRECTION);
+}
+
 bool	HTTPstruct::isAutoIndex( void ) const noexcept
 {
 	return (this->_type == HTTP_AUTOINDEX_STATIC);

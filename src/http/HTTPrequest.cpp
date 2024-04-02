@@ -8,7 +8,7 @@ void	HTTPrequest::parseHead( void )
 	if (this->_state != HTTP_REQ_HEAD_READING)
 		throw(RequestException({"instance in wrong state to perfom action"}, 500));
 	_readHead();
-	if (isDoneReadingHead())
+	if (isDoneReadingHead() == true)
 	{
 		endReq = this->_tmpHead.find(HTTP_DEF_TERM);
 		endHead = this->_tmpHead.find(HTTP_DEF_NL);		// look for headers
@@ -21,6 +21,7 @@ void	HTTPrequest::parseHead( void )
 			this->_tmpBody = this->_tmpHead.substr(endReq);
 		_setHead(strHead);
 		_setHeaders(strHeaders);
+		std::cout << toString();
 		_checkConfig();
 	}
 }
@@ -95,16 +96,16 @@ void	HTTPrequest::updateErrorCode( int errorCode )
 	{
 		this->_statusCode = this->_validator.getStatusCode();
 		if (errorCode == this->_statusCode)
-			this->_validator.solveErrorPath(500);	// error 404 and lacks 404.html (or same for 403)
+			throw(RequestException({"endless loop with code:", std::to_string(this->_statusCode)}, errorCode));	// error 404 and lacks 404.html (or same for 403)
 		else
 			this->_validator.solveErrorPath(this->_statusCode);
 		if (this->_statusCode == this->_validator.getStatusCode())
-			throw(RequestException({"endless loop with code:", std::to_string(this->_statusCode)}, this->_statusCode));
-		else if (this->_validator.getStatusCode() > 0)
+			throw(RequestException({"endless loop with code:", std::to_string(this->_statusCode)}, errorCode));
+		else if (this->_validator.getStatusCode() >= 400)
 		{
 			this->_statusCode = this->_validator.getStatusCode();
 			this->_validator.solveErrorPath(this->_statusCode);
-			if (this->_validator.getStatusCode() > 0)
+			if (this->_validator.getStatusCode() >= 400)
 				throw(RequestException({"endless cross loop with code:", std::to_string(this->_statusCode)}, this->_statusCode));
 		}
 	}
@@ -187,14 +188,14 @@ t_path const&	HTTPrequest::getRealPath( void ) const noexcept
 	return (this->_validator.getRealPath());
 }
 
+t_path const&	HTTPrequest::getRedirectPath( void ) const noexcept
+{
+	return (this->_validator.getRedirectRealPath());
+}
+
 t_path const&	HTTPrequest::getRoot( void ) const noexcept
 {
 	return (this->_validator.getRoot());
-}
-
-bool	HTTPrequest::isRedirection( void ) const noexcept
-{
-	return (this->_validator.isRedirection());
 }
 
 bool	HTTPrequest::isEndConn( void ) noexcept
@@ -318,7 +319,7 @@ void	HTTPrequest::_checkConfig( void )
 	else
 		this->_statusCode = this->_validator.getStatusCode();
 	_updateTypeAndState();
-	if (this->_statusCode >= 400)
+	if (this->_validator.getStatusCode() >= 400)
 		throw(RequestException({"validation of config file failed"}, this->_statusCode));
 	_checkMaxBodySize(this->_validator.getMaxBodySize());
 }
@@ -377,10 +378,13 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 
 void	HTTPrequest::_updateTypeAndState( void )
 {
-	if (this->_statusCode >= 400)
+	if (this->_statusCode >= 300)
 	{
-		this->_type = HTTP_STATIC;
 		this->_state = HTTP_REQ_DONE;
+		if (this->_statusCode >= 400)
+			this->_type = HTTP_STATIC;
+		else
+			this->_type = HTTP_REDIRECTION;
 	}
 	else if (this->_headers[HEADER_TRANS_ENCODING] == "chunked")
 	{
@@ -507,7 +511,7 @@ void	HTTPrequest::_setHostPort( std::string const& strURL )
 			return ;
 		}
 		try {
-			this->_url.port = std::stoi(port);
+			this->_url.port = port;
 		}
 		catch(const std::exception& e ) {
 			throw(RequestException({"invalid port format:", strURL.substr(delimiter + 1)}, 400));

@@ -312,8 +312,8 @@ void	Parameters::_parseReturn(std::vector<std::string>& block)
 	{
 		if (block.front().front() != '/')
 			throw ParserException({"File name for return must start with a '/': " + block.front()});
-		if (block.front().find_first_of('/') != block.front().find_last_of('/'))
-			throw ParserException({"'return' must be file '" + block.front() + "'"});
+		// if (block.front().find_first_of('/') != block.front().find_last_of('/'))
+		// 	throw ParserException({"'return' must be file '" + block.front() + "'"});
 		returns = {(size_t)code, block.front()};
 		block.erase(block.begin());
 	}

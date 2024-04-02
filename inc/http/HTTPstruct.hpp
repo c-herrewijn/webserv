@@ -34,6 +34,7 @@ typedef enum HTTPmethod_s
 typedef enum HTTPtype_s
 {
 	HTTP_STATIC,
+	HTTP_REDIRECTION,
 	HTTP_AUTOINDEX_STATIC,
 	HTTP_CHUNKED,
 	HTTP_FAST_CGI,
@@ -65,6 +66,7 @@ class HTTPstruct
 		virtual void		setTmpBody( std::string const& ) noexcept;
 
 		bool				isStatic( void ) const noexcept;
+		bool				isRedirection( void ) const noexcept;
 		bool				isAutoIndex( void ) const noexcept;
 		bool				isChunked( void ) const noexcept;
 		bool				isFastCGI( void ) const noexcept;

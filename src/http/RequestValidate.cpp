@@ -27,6 +27,11 @@ t_path const&	RequestValidate::getRealPath( void ) const
 	return (_realPath);
 }
 
+t_path const&	RequestValidate::getRedirectRealPath( void ) const
+{
+	return (_redirectRealPath);
+}
+
 std::string const&	RequestValidate::getServName( void ) const
 {
 	return(this->_handlerServer->getPrimaryName());
@@ -87,6 +92,8 @@ void	RequestValidate::_resetValues( void )
 	this->_requestMethod = HTTP_GET;
 	this->_statusCode = 200;
 	this->_redirectStatusCode = 200;
+	this->_realPath.clear();
+	this->_redirectRealPath.clear();
 }
 
 void	RequestValidate::_setMethod( HTTPmethod method )
@@ -286,6 +293,7 @@ bool	RequestValidate::_handleReturns(void)
 	if (local.first)
 	{
 		_statusCode = local.first;
+		_redirectRealPath = local.second;
 		if (local.second.string().front() == '/')
 		{
 			targetFile = std::filesystem::weakly_canonical(local.second.filename());
@@ -413,16 +421,15 @@ void	RequestValidate::solvePath( HTTPmethod method, t_path const& path, std::str
 void	RequestValidate::solveErrorPath( int statusCode )
 {
 	_handleErrCode(statusCode);
-	_resetValues();
 	_initTargetElements();	
-	if (!targetDir.empty() || targetDir == "/")	// if directory is not root check for location
-	{
-		_initValidLocation();
-		if (_validLocation == nullptr)
-			return (_setStatusCode(404));
-		_validParams = &(_validLocation->getParams());
-	}
-	targetFile = std::filesystem::weakly_canonical(targetFile);	// Normalization for the case user gives sth random
+	// if (!targetDir.empty() || targetDir == "/")	// if directory is not root check for location
+	// {
+	// 	_initValidLocation();
+	// 	if (_validLocation == nullptr)
+	// 		return (_setStatusCode(404));
+	// 	_validParams = &(_validLocation->getParams());
+	// }
+	// targetFile = std::filesystem::weakly_canonical(targetFile);	// Normalization for the case user gives sth random
 	_handleFile();
 }
 
@@ -430,18 +437,17 @@ void	RequestValidate::_handleErrCode( int statusCode )
 {
 	t_path	errorPage;
 	try {
-		std::cout << "code " << statusCode << " - checking location with size " << this->_validParams->getMaxSize() << '\n';
 		errorPage = this->_validParams->getErrorPages().at(statusCode);
 		if (this->_validLocation == nullptr)
-			throw(std::out_of_range(""));
-		this->_requestPath = t_path(this->_validLocation->getURL()) / std::string(errorPage).substr(1);
-		std::cout << "found (not good) " << this->_requestPath << "\n";
+			this->_requestPath = std::string(errorPage);
+		else
+			this->_requestPath = t_path(this->_validLocation->getURL()) / std::string(errorPage).substr(1);
+		_setStatusCode(200);
 	}
 	catch(const std::out_of_range& e1) {
 		try {
-			std::cout << "should be going here\n";
+			_resetValues();
 			this->_requestPath = this->_handlerServer->getParams().getErrorPages().at(statusCode);
-			std::cout << "found " << this->_requestPath << "\n";
 		}
 		catch(const std::out_of_range& e2) {
 			try {

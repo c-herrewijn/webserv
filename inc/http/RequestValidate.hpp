@@ -27,6 +27,7 @@ class RequestValidate
 		void	solveErrorPath( int );
 
 		t_path const&		getRealPath( void ) const;
+		t_path const&		getRedirectRealPath( void ) const;
 		std::string const&	getServName( void ) const;
 		std::uintmax_t		getMaxBodySize( void ) const;
 		int					getStatusCode( void ) const;
@@ -44,7 +45,7 @@ class RequestValidate
 		t_path			_requestPath;
 
 		size_t	_statusCode , _redirectStatusCode;
-		t_path	_realPath;
+		t_path	_realPath, _redirectRealPath;
 		bool	_autoIndex;
 		bool	_isCGI;
 		bool	_isRedirection;
