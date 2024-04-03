@@ -478,8 +478,12 @@ std::string	HTTPresponse::_getContTypeFromFile( t_path const& fileName) const no
 		return (HTML_CONTENT_TYPE);
 	else if (fileName.extension() == ".css")
 		return (CSS_CONTENT_TYPE);
+	else if (fileName.extension() == ".js")
+		return (JS_CONTENT_TYPE);
 	else if ((fileName.extension() == ".jpg") or (fileName.extension() == ".jpeg"))
 		return (JPG_CONTENT_TYPE);
+	else if (fileName.extension() == ".png")
+		return (PNG_CONTENT_TYPE);
 	else if (fileName.extension() == ".ico")
 		return (ICO_CONTENT_TYPE);
 	else
