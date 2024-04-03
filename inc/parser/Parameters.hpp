@@ -38,28 +38,28 @@ class Parameters
 		void	setSize(uintmax_t val, char *c);
 		void	setAutoindex(bool status);
 
-		void						inherit(Parameters const&);
-		const std::pair<size_t, t_path>& getReturns(void) const;
-		const t_path&	 			getIndex(void) const;
-		std::uintmax_t				getMaxSize(void) const;
-		const t_path_map& 		getErrorPages(void) const;
-		const bool& 				getAutoindex(void) const;
-		const t_path& 				getRoot(void) const;
+		void								inherit(Parameters const&);
+		const std::pair<size_t, t_path>& 	getReturns(void) const;
+		const std::vector<t_path>&	 		getIndex(void) const;
+		std::uintmax_t						getMaxSize(void) const;
+		const t_path_map& 					getErrorPages(void) const;
+		const bool& 						getAutoindex(void) const;
+		const t_path& 						getRoot(void) const;
 		const std::bitset<METHOD_AMOUNT>&	getAllowedMethods(void) const;
-		const std::string& 			getCgiExtension(void) const;
-		const bool& 				getCgiAllowed(void) const;
+		const std::string& 					getCgiExtension(void) const;
+		const bool& 						getCgiAllowed(void) const;
 
 	private:
-		bool				new_error_page;
-		std::uintmax_t		max_size;	// Will be overwriten by last found
-		bool				autoindex;	// FALSE in default, will be overwriten.
-		t_path				index;	// Will be searched in given order
-		t_path				root;		// Last found will be used.
-		t_path_map		error_pages;	// Same status codes will be overwriten
+		bool						new_error_page;
+		std::uintmax_t				max_size;	// Will be overwriten by last found
+		bool						autoindex;	// FALSE in default, will be overwriten.
+		std::vector<t_path>			index;	// Will be searched in given order
+		t_path						root;		// Last found will be used.
+		t_path_map					error_pages;	// Same status codes will be overwriten
 		std::pair<size_t, t_path>	returns;	// Overwritten by the last
-		std::bitset<METHOD_AMOUNT> allowedMethods;	// Allowed methods
-		std::string			cgi_extension;	// extention .py .sh
-		bool				cgi_allowed;	// Check for permissions
+		std::bitset<METHOD_AMOUNT>	allowedMethods;	// Allowed methods
+		std::string					cgi_extension;	// extention .py .sh
+		bool						cgi_allowed;	// Check for permissions
 
 		void	_parseRoot(std::vector<std::string>& block);
 		void	_parseBodySize(std::vector<std::string>& block);

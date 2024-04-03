@@ -195,6 +195,7 @@ static void	capSize(uintmax_t& value, char* type)
                 std::cerr << "Warning: Size '" + std::to_string(value) + *type + "' is capped to 20G" << std::endl;
 				value = MAX_SIZE * static_cast<uintmax_t>(1024 * 1024 * 1024);
 			}
+			break;
         default:
             std::cerr << "Error: Invalid size type." << std::endl;
             break;
@@ -247,15 +248,17 @@ void	Parameters::_parseIndex(std::vector<std::string>& block)
 	block.erase(block.begin());
 	if (block.front() == ";")
 		this->index.clear();
-	else
+	while ((block.empty() == false) and (block.front() != ";"))
 	{
-		if (block.front().find_first_of('/') != std::string::npos)
-			throw ParserException({"'index' must be file '" + block.front() + "'"});
-		this->index = block.front();
+		// if (block.front().find_first_of('/') != std::string::npos)
+		// 	throw ParserException({"'index' must be file '" + block.front() + "'"});
+		this->index.push_back(block.front());
 		block.erase(block.begin());
 	}
-	if (block.front() != ";")
-		throw ParserException({"After 'index' file a ';' expected '" + block.front() + "'"});
+	if (block.empty() == true)
+		throw ParserException({"no ';' terminator after index files"});
+	else if (block.front() != ";")
+		throw ParserException({"after 'index' file(s) a ';' is expected, instead got:", block.front()});
 	block.erase(block.begin());
 }
 
@@ -347,7 +350,7 @@ const std::bitset<METHOD_AMOUNT>&	Parameters::getAllowedMethods(void) const
 	return (allowedMethods);
 }
 
-const t_path& Parameters::getIndex(void) const
+const std::vector<t_path>& Parameters::getIndex(void) const
 {
 	return (this->index);
 }

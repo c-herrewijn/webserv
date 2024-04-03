@@ -36,6 +36,7 @@ class RequestValidate
 		bool				isFile( void ) const;
 		bool				isCGI( void ) const;
 		bool				isRedirection( void ) const;
+		bool				solvePathFailed( void ) const;
 
 	private:
 		t_serv_list		_servers;
@@ -70,6 +71,7 @@ class RequestValidate
 		bool	_handleFolder( void );
 		bool	_handleFile( void );
 		bool	_handleReturns( void );
+		void	_handleIndex( void );
 
 		void	_setStatusCode(const size_t& code);
 };

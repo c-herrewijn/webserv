@@ -67,6 +67,11 @@ bool	RequestValidate::isRedirection( void ) const
 	return (_isRedirection);
 }
 
+bool	RequestValidate::solvePathFailed( void ) const
+{
+	return (this->_statusCode >= 400);
+}
+
 t_path	const& RequestValidate::getRoot( void ) const
 {
 	return (this->_validParams->getRoot());
@@ -166,10 +171,6 @@ void	RequestValidate::_initValidLocation(void)
 	std::vector<std::string>::iterator	it;
 
 	_separateFolders(targetDir.string(), folders);
-	// std::cout << "Prepares for diving: ";
-	// for (auto folder : folders)
-		// std::cout << folder << " ";
-	// std::cout << "\n";
 	for (auto& location : _handlerServer->getLocations())
 	{
 		it = folders.begin();
@@ -278,6 +279,24 @@ bool	RequestValidate::_handleFile(void)
 	return (true);
 }
 
+void	RequestValidate::_handleIndex( void )
+{
+	Parameters const indexParam = *_validParams;
+	t_path	indexFilePath;
+	for (auto indexFile : indexParam.getIndex())
+	{
+		indexFilePath = _validLocation->getURL();
+		if (*indexFile.begin() == "/")
+			indexFilePath += indexFile;
+		else
+			indexFilePath /= indexFile;
+		indexFilePath = std::filesystem::weakly_canonical(indexFilePath);
+		solvePath(HTTP_GET, indexFilePath, this->_handlerServer->getPrimaryName());
+		if (solvePathFailed() == false)
+			return ;
+	}
+}
+
 // ╭───────────────────────────╮
 // │  STATUS CODE REDIRECTION  │
 // ╰───────────────────────────╯
@@ -293,81 +312,9 @@ bool	RequestValidate::_handleReturns(void)
 			_isRedirection = true;
 		}
 		return (true);
-		// if (local.second == "")
-		// 	return (true);
-		// _redirectRealPath = local.second;
-		// if (local.second.string().front() == '/')		// NB: why this double check?
-		// {
-		// 	targetFile = std::filesystem::weakly_canonical(local.second.filename());
-		// 	targetDir = std::filesystem::weakly_canonical(local.second.parent_path());
-		// }
-		// else
-		// 	targetFile = std::filesystem::weakly_canonical(local.second);
-		// if (_handleFile())
-		// {
-		// 	_isRedirection = true;
-		// 	return (true);
-		// }
-		// else
-		// {
-		// 	targetFile = std::filesystem::weakly_canonical(_validParams->getReturns().second);
-		// 	if (_handleFile())
-		// 	{
-		// 		_isRedirection = true;
-		// 		return (true);
-		// 	}
-		// }
 	}
 	return (false);
 }
-
-// bool	RequestValidate::_handleErrorCode(void)
-// {
-// 	std::map<size_t, t_path>::const_iterator it;
-// 	it = _validParams->getErrorPages().find(_statusCode);
-// 	if (it == _validParams->getErrorPages().end())
-// 		return (false);
-// 	if ((*it).second.string().front() == '/')
-// 	{
-// 		targetFile = std::filesystem::weakly_canonical((*it).second.filename());
-// 		targetDir = std::filesystem::weakly_canonical((*it).second.parent_path());
-// 	}
-// 	else
-// 	{
-// 		targetFile = std::filesystem::weakly_canonical((*it).second);
-// 	}
-// 	return (_handleFile());
-// }
-
-// bool	RequestValidate::_handleServerPages(void)
-// {
-// 	t_path lastChance = std::filesystem::current_path();
-// 	lastChance += SERVER_DEF_PAGES;
-// 	lastChance += (std::to_string(_statusCode) + ".html");
-// 	if (!std::filesystem::is_regular_file(lastChance))
-// 		return (false);
-// 	if (!_checkPerm(lastChance, PERM_READ))
-// 		return (false);
-// 	_realPath = std::filesystem::weakly_canonical(lastChance);
-// 	return (true);
-// }
-
-// void	RequestValidate::_handleStatus(void)
-// {
-// 	if (_statusCode < 400)
-// 		return ;
-// 	if (_handleErrorCode())
-// 		return ;
-// 	_validParams = &(_requestConfig->getParams());
-// 	if (_handleErrorCode())
-// 		return ;
-// 	if (_handleServerPages())
-// 		return ;
-// 	_realPath = "/";
-// 	targetDir.clear();
-// 	targetFile.clear();
-// 	_setStatusCode(500);
-// }
 
 // ╭───────────────────────────╮
 // │   MAIN FUNCTION TO START  │
@@ -391,31 +338,8 @@ void	RequestValidate::solvePath( HTTPmethod method, t_path const& path, std::str
 	if (_handleReturns())	// handle return
 		return ;
 	if (targetFile.empty() || targetFile == "/")	// set indexfile if necessarry
-		targetFile = _validParams->getIndex();
-	targetFile = std::filesystem::weakly_canonical(targetFile);	// Normalization for the case user gives sth random
-	// if (!_requestConfig)
-	// 	throw(RequestException({"No config given. Request validation can not continue."}, 500));
-	// if (_requestPath.empty())
-	// 	throw(RequestException({"No Path given. Request validation can not continue."}, 500));
-	// std::cout << "Requested path: " << _requestPath << "\n";
-	// std::cout << "Request Method: " << _requestMethod << "\n";
-	// _setStatusCode(200);
-	// _validParams = &(_requestConfig->getParams());
-	// _initTargetElements();
-	// if (!targetDir.empty() || targetDir == "/")
-	// {
-	// 	_initValidLocation();
-	// 	if (_validLocation == nullptr)
-	// 		return (_setStatusCode(404), _handleStatus());
-	// 	_validParams = &(_validLocation->getParams());
-	// }
-	// if (!_validParams->getAllowedMethods()[_requestMethod])
-	// 	return (_setStatusCode(405), _handleStatus());
-	// if (_handleReturns())
-	// 	return ;
-	// if (targetFile.empty() || targetFile == "/")
-	// 	targetFile = _validParams->getIndex();
-	// targetFile = std::filesystem::weakly_canonical(targetFile);
+		return (_handleIndex());
+	targetFile = std::filesystem::weakly_canonical(targetFile);
 	if (targetFile.empty() || targetFile.string() == "/")
 		_handleFolder();
 	else
@@ -451,3 +375,4 @@ void	RequestValidate::solveErrorPath( int statusCode )
 	_initTargetElements();	
 	_handleFile();
 }
+

@@ -1,5 +1,5 @@
-#include "parser/Tokenizer.hpp"
-#include "server/WebServer.hpp"
+#include "Tokenizer.hpp"
+#include "WebServer.hpp"
 
 std::vector<Config>	parseServers(std::string const& fileName)
 {

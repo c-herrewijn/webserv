@@ -25,7 +25,7 @@ void	HTTPrequest::parseHead( void )
 		this->_statusCode = this->_validator.getStatusCode();
 		this->_root = this->_validator.getRoot();
 		_updateTypeAndState();
-		if (this->_validator.getStatusCode() >= 400)
+		if (this->_validator.solvePathFailed() == true)
 			throw(RequestException({"validation of config file failed"}, this->_validator.getStatusCode()));
 		_checkMaxBodySize();
 	}
@@ -93,21 +93,22 @@ std::string	HTTPrequest::toString( void ) const noexcept
 
 void	HTTPrequest::updateErrorCode( int errorCode ) 
 {
-	this->_validator.solveErrorPath(errorCode);
+	this->_statusCode = errorCode;
+	this->_validator.solveErrorPath( errorCode );
 	_updateTypeAndState();
-	this->_statusCode = this->_validator.getStatusCode();
-	if (this->_statusCode >= 400)
+	if (this->_validator.solvePathFailed() == true)
 	{
+		this->_statusCode = this->_validator.getStatusCode();
 		if (errorCode == this->_statusCode)
 			throw(RequestException({"endless loop with code:", std::to_string(this->_statusCode)}, errorCode));	// error 404 and lacks 404.html (or same for 403)
 		this->_validator.solveErrorPath(this->_statusCode);
 		if (this->_statusCode == this->_validator.getStatusCode())
 			throw(RequestException({"endless loop with code:", std::to_string(this->_statusCode)}, errorCode));
-		else if (this->_validator.getStatusCode() >= 400)
+		else if (this->_validator.solvePathFailed() == true)
 		{
 			this->_statusCode = this->_validator.getStatusCode();
 			this->_validator.solveErrorPath(this->_statusCode);
-			if (this->_validator.getStatusCode() >= 400)
+			if (this->_validator.solvePathFailed() == true)
 				throw(RequestException({"endless cross loop with code:", std::to_string(this->_statusCode)}, this->_statusCode));
 		}
 	}

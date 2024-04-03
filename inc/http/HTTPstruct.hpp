@@ -16,7 +16,7 @@
 #define HTTP_DEF_NL			std::string("\r\n")			// http delimiter
 #define HTTP_DEF_SP			' '							// shortcut for space
 #define HTTP_DEF_VERSION	HTTP_DEF_SCHEME + std::string("/1.1")
-#define HTTP_BUF_SIZE 		1024
+#define HTTP_BUF_SIZE 		8192						// 8K
 #define HTTP_MAX_TIMEOUT	5
 
 using namespace std::chrono;
