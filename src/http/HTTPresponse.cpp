@@ -40,12 +40,7 @@ void	HTTPresponse::parseFromStatic( std::string const& servName )
 	_addHeader("Date", _getDateTime());
 	_addHeader("Server", servName);
 	_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
-	if (this->_targetFile.extension() == ".ico")
-		_addHeader("Content-Type", ICO_CONTENT_TYPE);
-	else if (this->_targetFile.extension() == ".css")
-		_addHeader("Content-Type", CSS_CONTENT_TYPE);
-	else
-		_addHeader("Content-Type", HTML_CONTENT_TYPE);
+	_addHeader("Content-Type", _getContTypeFromFile(this->_targetFile));
 	if (isRedirection() == true)
 	{
 		if (this->_targetFile.empty() == true)
@@ -475,4 +470,18 @@ std::string	HTTPresponse::_getDateTime( void ) const noexcept
 	timeinfo = std::gmtime(&rawtime);
 	std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
 	return (std::string(buffer));
+}
+
+std::string	HTTPresponse::_getContTypeFromFile( t_path const& fileName) const noexcept
+{
+	if (fileName.extension() == ".html")
+		return (HTML_CONTENT_TYPE);
+	else if (fileName.extension() == ".css")
+		return (CSS_CONTENT_TYPE);
+	else if ((fileName.extension() == ".jpg") or (fileName.extension() == ".jpeg"))
+		return (JPG_CONTENT_TYPE);
+	else if (fileName.extension() == ".ico")
+		return (ICO_CONTENT_TYPE);
+	else
+		return (PLAIN_CONTENT_TYPE);
 }
