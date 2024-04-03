@@ -17,7 +17,7 @@ void	HTTPrequest::parseHead( void )
 		strHead = this->_tmpHead.substr(0, endHead);
 		strHeaders = this->_tmpHead.substr(endHead + HTTP_DEF_NL.size(), endReq + HTTP_DEF_NL.size() - endHead - 1);
 		endReq += HTTP_DEF_TERM.size();
-		if ((endReq + 1) < this->_tmpHead.size())		// if there's the beginning of the body
+		if ((endReq + 1) < this->_tmpHead.size())		// look for the beginning of the body
 			this->_tmpBody = this->_tmpHead.substr(endReq);
 		_setHead(strHead);
 		_setHeaders(strHeaders);
@@ -28,18 +28,19 @@ void	HTTPrequest::parseHead( void )
 		if (this->_validator.solvePathFailed() == true)
 			throw(RequestException({"validation of config file failed"}, this->_validator.getStatusCode()));
 		_checkMaxBodySize();
+		if (isDoneReadingBody())
+			_setBody();
 	}
 }
 
 void	HTTPrequest::parseBody( void )
 {
-	if (((isChunked() == false) and (isFileUpload() == false)) or
-		(theresBodyToRead() == false))
+	if (isDoneReadingBody())
 		throw(RequestException({"instance in wrong state or type"}, 500));
-	
-	if (isChunked() == true)
+
+	if (isChunked())
 		_readChunkedBody();
-	else if (isFileUpload() == true)
+	else if (isFileUpload())
 		_readPlainBody();
 	if (isDoneReadingBody())
 		_setBody();
@@ -112,6 +113,18 @@ void	HTTPrequest::updateErrorCode( int errorCode )
 				throw(RequestException({"endless cross loop with code:", std::to_string(this->_statusCode)}, this->_statusCode));
 		}
 	}
+}
+
+bool	HTTPrequest::hasBodyToRead( void ) const noexcept
+{
+	try {
+		if (isChunked() and ((this->_tmpBody.find(HTTP_DEF_TERM) == std::string::npos)))
+			return (true);
+		else if (isFileUpload() and (this->_body.size() < this->_contentLength))
+			return (true);
+	}
+	catch(const std::exception& e) {}
+	return (false);
 }
 
 std::string 	HTTPrequest::getMethod( void ) const noexcept
@@ -211,19 +224,10 @@ bool	HTTPrequest::isDoneReadingHead( void ) const noexcept
 	return (this->_state > HTTP_REQ_HEAD_READING);
 }
 
-bool	HTTPrequest::isDoneParsingHead( void ) const noexcept
-{
-	return (this->_state > HTTP_REQ_HEAD_PARSING);
-}
-
 bool	HTTPrequest::isDoneReadingBody( void ) const noexcept
 {
-	return(this->_state > HTTP_REQ_BODY_READING);
-}
-
-bool	HTTPrequest::theresBodyToRead( void ) const noexcept
-{
-	return (this->_state == HTTP_REQ_BODY_READING);
+	return((isChunked() or isFileUpload()) and 
+		(this->_state > HTTP_REQ_BODY_READING));
 }
 
 void	HTTPrequest::_readHead( void )
@@ -335,14 +339,12 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 	catch (const HTTPexception& e) {
 		throw(RequestException(e));
 	}
-	// check host
 	if (this->_headers[HEADER_HOST] == "")		// missing Host header
 		throw(RequestException({"no Host header"}, 444));
 	else if (this->_url.host == "")
 		_setHostPort(this->_headers[HEADER_HOST]);
 	else if (this->_headers[HEADER_HOST].find(this->_url.host) == std::string::npos)
 		throw(RequestException({"hosts do not match"}, 412));
-	// check CL
 	if (this->_headers[HEADER_CONT_LEN] == "")
 	{
 		if (this->_headers[HEADER_TRANS_ENCODING] == "")		// no body
@@ -365,42 +367,31 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 
 void	HTTPrequest::_updateTypeAndState( void )
 {
-	if (this->_statusCode >= 300)
+	if (this->_statusCode >= 300)		
 	{
-		this->_state = HTTP_REQ_DONE;
-		if (this->_validator.isRedirection() == true)
+		if (this->_validator.isRedirection() == true)		// redirection
 			this->_type = HTTP_REDIRECTION;
-		else
+		else									// request failed, read errorPage
 			this->_type = HTTP_STATIC;
+		this->_state = HTTP_REQ_DONE;
 	}
-	else if (this->_headers[HEADER_TRANS_ENCODING] == "chunked")
+	else if (this->_headers[HEADER_CONT_TYPE] != "")		// request with body
 	{
-		this->_type = HTTP_CHUNKED;
-		if (this->_tmpBody.find(HTTP_DEF_TERM) == std::string::npos)
+		if (this->_headers[HEADER_TRANS_ENCODING] == "chunked")
+			this->_type = HTTP_CHUNKED;
+		else // if (this->_headers[HEADER_CONT_TYPE].find("multipart/form-data; boundary=-") == 0) 
+			this->_type = HTTP_CGI_FILE_UPL;
+		if (hasBodyToRead())
 			this->_state = HTTP_REQ_BODY_READING;
 		else
-		{
-			_setBody();
 			this->_state = HTTP_REQ_DONE;
-		}
 	}
-	else if (this->_headers[HEADER_CONT_TYPE].find("multipart/form-data; boundary=-") == 0)
-	{
-		this->_type = HTTP_FILE_UPL_CGI;
-		if (this->_body.size() < this->_contentLength)
-			this->_state = HTTP_REQ_BODY_READING;
-		else
-		{
-			_setBody();
-			this->_state = HTTP_REQ_DONE;
-		}
-	}
-	else	// NB: what about normal body?
+	else		// autoindex, bodyless CGI, GET reqs
 	{
 		if (this->_validator.isAutoIndex() == true)
-			this->_type = HTTP_AUTOINDEX_STATIC;
+			this->_type = HTTP_AUTOINDEX;
 		else if (this->_validator.isCGI() == true)
-			this->_type = HTTP_FAST_CGI;
+			this->_type = HTTP_CGI_STATIC;
 		else
 			this->_type = HTTP_STATIC;
 		this->_state = HTTP_REQ_DONE;

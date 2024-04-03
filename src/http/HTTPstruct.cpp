@@ -47,7 +47,7 @@ bool	HTTPstruct::isRedirection( void ) const noexcept
 
 bool	HTTPstruct::isAutoIndex( void ) const noexcept
 {
-	return (this->_type == HTTP_AUTOINDEX_STATIC);
+	return (this->_type == HTTP_AUTOINDEX);
 }
 
 bool	HTTPstruct::isChunked( void ) const noexcept
@@ -57,12 +57,12 @@ bool	HTTPstruct::isChunked( void ) const noexcept
 
 bool	HTTPstruct::isFastCGI( void ) const noexcept
 {
-	return (this->_type == HTTP_FAST_CGI);
+	return (this->_type == HTTP_CGI_STATIC);
 }
 
 bool	HTTPstruct::isFileUpload( void ) const noexcept
 {
-	return (this->_type == HTTP_FILE_UPL_CGI);
+	return (this->_type == HTTP_CGI_FILE_UPL);
 }
 
 bool	HTTPstruct::isCGI( void ) const noexcept

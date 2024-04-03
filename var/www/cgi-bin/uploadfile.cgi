@@ -7,7 +7,7 @@ import sys
 
 now = datetime.now()
 now_str = now.strftime('%H:%M:%S')
-
+addLocation = false
 form = cgi.FieldStorage()
 
 message = ""
@@ -25,9 +25,11 @@ if fileitem.filename:
     else:
         if not os.path.exists(upload_dir):
             os.makedirs(upload_dir)
-        open(file_path, 'wb').write(fileitem.file.read())
+        with open(file_path, 'wb') as fd:
+            fd.write(fileitem.file.read())
         message = 'The file "' + file_name + '" was uploaded successfully'
         status_code = '201 Created'
+        addLocation = true
 else:
     message = 'No file found in request!'
     status_code = '400 Bad Request'
@@ -49,7 +51,7 @@ html_content = f'''<html><body>
 print(f"Status: {status_code}", end='\r\n')
 print("Content-type: text/html", end='\r\n')
 print(f"Content-Length: {len(html_content)}", end='\r\n')
-if (status_code == '201 Created'):
+if (addLocation):
     print(f"Location: {os.path.join('/uploads', file_name)}", end='\r\n')
 print(f"Server: {environ['SERVER_NAME']}", end='\r\n\r\n')
 print(html_content)

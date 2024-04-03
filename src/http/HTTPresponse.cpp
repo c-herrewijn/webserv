@@ -365,7 +365,7 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 		this->_headers.at("Server");
 		this->_headers.at("Content-type");
 		this->_headers.at("Content-Length");
-		if (this->_type == HTTP_FILE_UPL_CGI)
+		if (this->_type == HTTP_CGI_FILE_UPL)
 		{
 			if (this->_statusCode != 201)
 				throw(ResponseException({"file upload needs status code 201, given:", std::to_string(this->_statusCode)}, 500));

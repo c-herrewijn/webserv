@@ -416,7 +416,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 		nextStatus = WRITE_TO_CLIENT;
 	else if (request->isFastCGI())
 		nextStatus = WAIT_FOR_CGI;
-	else if (request->theresBodyToRead())
+	else if (request->hasBodyToRead())
 		nextStatus = READ_REQ_BODY;
 	else if (request->isStatic())
 		nextStatus = READ_STATIC_FILE;		

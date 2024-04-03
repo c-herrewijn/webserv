@@ -53,10 +53,11 @@ class HTTPrequest : public HTTPstruct
 			_maxBodySize(-1) {};
 		virtual ~HTTPrequest( void ) override {};
 
-		void			parseHead( void );
-		void			parseBody( void );
-		std::string		toString( void ) const noexcept override;
-		void			updateErrorCode( int ) ;
+		void		parseHead( void );
+		void		parseBody( void );
+		std::string	toString( void ) const noexcept override;
+		void		updateErrorCode( int ) ;
+		bool		hasBodyToRead( void ) const noexcept;
 
 		std::string		 	getMethod( void ) const noexcept;
 		std::string			getHost( void ) const noexcept;
@@ -71,9 +72,7 @@ class HTTPrequest : public HTTPstruct
 
 		bool	isEndConn( void ) noexcept;
 		bool	isDoneReadingHead( void ) const noexcept;
-		bool	isDoneParsingHead( void ) const noexcept;
 		bool	isDoneReadingBody( void ) const noexcept;
-		bool	theresBodyToRead( void ) const noexcept;
 
 	protected:
 		HTTPreqState	_state;
