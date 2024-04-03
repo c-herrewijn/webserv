@@ -141,7 +141,7 @@ Location const*	RequestValidate::_diveLocation(Location const& cur, std::vector<
 	std::vector<std::string>::iterator itFolders;
 	Location const*	valid;
 
-	_separateFolders(cur.getFilesystem().string(), curURL);
+	_separateFolders(std::filesystem::weakly_canonical(cur.getURL()).string(), curURL);
 	itFolders = curURL.begin();
 	while (itFolders != curURL.end() && itDirectory != folders.end())
 	{

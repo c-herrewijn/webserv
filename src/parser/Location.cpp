@@ -2,9 +2,8 @@
 
 Location::Location(void)
 {
-	block_index = 0;
 	URL = DEF_URL;
-	filesystem = std::filesystem::weakly_canonical(URL);
+	fullpath = URL;
 }
 
 Location::~Location(void)
@@ -13,8 +12,7 @@ Location::~Location(void)
 }
 
 Location::Location(const Location& copy) :
-	block_index(copy.block_index),
-	filesystem(copy.filesystem),
+	fullpath(copy.URL),
 	URL(copy.URL),
 	params(copy.params),
 	nested(copy.nested)
@@ -26,8 +24,7 @@ Location&	Location::operator=(const Location& assign)
 {
 	if (this != &assign)
 	{
-		block_index = assign.block_index;
-		this->filesystem = assign.filesystem;
+		fullpath = assign.fullpath;
 		URL = assign.URL;
 		params = assign.params;
 		nested.clear();
@@ -36,19 +33,21 @@ Location&	Location::operator=(const Location& assign)
 	return (*this);
 }
 
-Location::Location(std::vector<std::string>& block, const Parameters& param)
+Location::Location(std::vector<std::string>& block, const Parameters& param, std::filesystem::path const& prevPath)
 {
 	std::vector<std::vector<std::string>> locationHolder;
 	std::vector<std::string>::iterator index;
 	uint64_t size = 0;
 	URL = DEF_URL;
-	filesystem = std::filesystem::weakly_canonical(URL);
 	params.inherit(param);
 	block.erase(block.begin());
 	if (block.front()[0] != '/')
 		throw ParserException({"after 'location' expected a /URL"});
 	URL = block.front();
-	filesystem = std::filesystem::weakly_canonical(URL);
+	// it is not perfect but does the job :))
+	fullpath = std::filesystem::weakly_canonical(prevPath.string() + "/");
+	fullpath += std::filesystem::weakly_canonical(URL);
+	fullpath = std::filesystem::weakly_canonical(fullpath);
 	block.erase(block.begin());
 	if (block.front() != "{")
 		throw ParserException({"after '/URL' expected a '{'"});
@@ -90,8 +89,7 @@ Location::Location(std::vector<std::string>& block, const Parameters& param)
 	block.erase(block.begin());
 	for (std::vector<std::vector<std::string>>::iterator it = locationHolder.begin(); it != locationHolder.end(); it++)
 	{
-		Location local(*it, params);
-		local.setBlockIndex(this->block_index);
+		Location local(*it, params, std::filesystem::weakly_canonical(fullpath));
 		nested.push_back(local);
 	}
 }
@@ -106,22 +104,12 @@ const Parameters&	Location::getParams(void) const
 	return (params);
 }
 
-const std::filesystem::path& Location::getFilesystem(void) const
-{
-	return (this->filesystem);
-}
-
 const std::string& Location::getURL(void) const
 {
 	return (URL);
 }
 
-void Location::setBlockIndex(const size_t& ref)
+const std::filesystem::path&	Location::getFullPath(void) const
 {
-	this->block_index = ref + 1;
-}
-
-const size_t& Location::getBlockIndex(void) const
-{
-	return (this->block_index);
+	return (fullpath);
 }

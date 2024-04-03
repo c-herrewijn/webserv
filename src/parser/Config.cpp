@@ -71,7 +71,7 @@ void	Config::_parseServerName(std::vector<std::string>& block)
 
 void	Config::_parseLocation(std::vector<std::string>& block)
 {
-	Location	local(block, params);
+	Location	local(block, params, "/");
 	locations.push_back(local);
 }
 
