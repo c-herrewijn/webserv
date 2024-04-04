@@ -7,7 +7,7 @@ import sys
 
 now = datetime.now()
 now_str = now.strftime('%H:%M:%S')
-addLocation = false
+addLocation = False
 form = cgi.FieldStorage()
 
 message = ""
@@ -29,7 +29,7 @@ if fileitem.filename:
             fd.write(fileitem.file.read())
         message = 'The file "' + file_name + '" was uploaded successfully'
         status_code = '201 Created'
-        addLocation = true
+        addLocation = True
 else:
     message = 'No file found in request!'
     status_code = '400 Bad Request'
