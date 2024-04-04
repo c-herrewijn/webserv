@@ -1,4 +1,6 @@
 #include "HTTPrequest.hpp"
+#include <unistd.h>
+
 
 void	HTTPrequest::parseHead( void )
 {
@@ -390,8 +392,11 @@ void	HTTPrequest::_updateTypeAndState( void )
 	}
 	else if (this->_headers.count(HEADER_CONT_TYPE) > 0)		// request with body
 	{
-		if (this->_headers.find(HEADER_TRANS_ENCODING)->second == "chunked")
+		if (this->_headers.count(HEADER_TRANS_ENCODING) > 0
+			&& this->_headers.find(HEADER_TRANS_ENCODING)->second == "chunked")
+		{
 			this->_type = HTTP_CHUNKED;
+		}
 		else // if (this->_headers.find(HEADER_CONT_TYPE)->second.find("multipart/form-data; boundary=-") == 0)
 			this->_type = HTTP_CGI_FILE_UPL;
 		if (hasBodyToRead())
