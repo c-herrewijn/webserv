@@ -26,7 +26,7 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 	this->_tmpBody = CGIresp.substr(delimiter);
 	_setVersion(HTTP_DEF_VERSION);
 	_setHeaders(headers);
-	_addHeader("Date", _getDateTime());
+	_addHeader(HEADER_DATE, _getDateTime());
 	HTTPstruct::_setBody();
 	this->_state = HTTP_RESP_WRITING;
 	this->_strSelf = toString();
@@ -37,15 +37,15 @@ void	HTTPresponse::parseFromStatic( std::string const& servName )
 	if ((isCGI() == true) or (isParsingNeeded() == false))
 		throw(ResponseException({"instance in wrong state or type to perfom action"}, 500));
 	_setVersion(HTTP_DEF_VERSION);
-	_addHeader("Date", _getDateTime());
-	_addHeader("Server", servName);
-	_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
-	_addHeader("Content-Type", _getContTypeFromFile(this->_targetFile));
+	_addHeader(HEADER_DATE, _getDateTime());
+	_addHeader(HEADER_SERVER, servName);
+	_addHeader(HEADER_CONT_LEN, std::to_string(this->_tmpBody.size()));
+	_addHeader(HEADER_CONT_TYPE, _getContTypeFromFile(this->_targetFile));
 	if (isRedirection() == true)
 	{
 		if (this->_targetFile.empty() == true)
 			throw(ResponseException({"redirect file target not given"}, 500));
-		_addHeader("Location", this->_targetFile);
+		_addHeader(HEADER_LOC, this->_targetFile);
 	}
 	HTTPstruct::_setBody();
 	this->_state = HTTP_RESP_WRITING;
@@ -351,31 +351,31 @@ void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 	int		statusCode = -1;
 
 	HTTPstruct::_setHeaders(strHeaders);
-	if (this->_headers.count("Status") == 0)
-		throw(ResponseException({"missing mandatory Status header in CGI response"}, 500));
-	delimiter = this->_headers.find("Status")->second.find(HTTP_DEF_SP);
+	if (this->_headers.count(HEADER_STATUS) == 0)
+		throw(ResponseException({"missing Status header in CGI response"}, 500));
+	delimiter = this->_headers.find(HEADER_STATUS)->second.find(HTTP_DEF_SP);
 	try {
-		statusCode = std::stoi(this->_headers.find("Status")->second.substr(0, delimiter));
+		statusCode = std::stoi(this->_headers.find(HEADER_STATUS)->second.substr(0, delimiter));
 	}
 	catch (const std::exception& e) {
-		throw(ResponseException({"invalid status code:", this->_headers.find("Status")->second}, 500));
+		throw(ResponseException({"invalid status code:", this->_headers.find(HEADER_STATUS)->second}, 500));
 	}
 	if (statusCode >= 400)
 		throw(ResponseException({"error while running CGI"}, statusCode));
-	if (this->_headers.find("Server") == this->_headers.end()
-		|| this->_headers.find("Content-type") == this->_headers.end()
-		|| this->_headers.find("Content-Length") == this->_headers.end())
+	if (this->_headers.find(HEADER_SERVER) == this->_headers.end()
+		|| this->_headers.find(HEADER_CONT_TYPE) == this->_headers.end()
+		|| this->_headers.find(HEADER_CONT_LEN) == this->_headers.end())
 	{
 		throw(ResponseException({"missing mandatory header(s) in CGI response"}, 500));
 	}
 
 	if (this->_type == HTTP_CGI_FILE_UPL)
 	{
-		if (this->_headers.count("Location") == 0)
-			throw(ResponseException({"missing mandatory Location header in CGI response"}, 500));
+		if (this->_headers.count(HEADER_LOC) == 0)
+			throw(ResponseException({"missing Location header in CGI response"}, 500));
 		if (statusCode != 201)
 			throw(ResponseException({"file upload needs status code 201, given:", std::to_string(this->_statusCode)}, 500));
-		this->_targetFile = this->_headers.find("Location")->second;
+		this->_targetFile = this->_headers.find(HEADER_LOC)->second;
 	}
 	this->_statusCode = statusCode;
 }

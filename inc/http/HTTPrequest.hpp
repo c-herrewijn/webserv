@@ -12,13 +12,6 @@
 #define LOCALHOST		std::string("localhost")
 #define MAX_HEADER_SIZE	8192
 
-#define	HEADER_CONT_LEN			"Content-Length"
-#define	HEADER_CONT_TYPE		"Content-Type"
-#define	HEADER_HOST				"Host"
-#define	HEADER_CONN				"Connection"
-#define	HEADER_TRANS_ENCODING	"Transfer-Encoding"
-#define	HEADER_COOKIE			"Cookie"
-
 typedef enum HTTPreqState_f
 {
 	HTTP_REQ_HEAD_READING,

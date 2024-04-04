@@ -49,7 +49,7 @@ html_content = f'''<html><body>
 # #     print("{0}: {1}".format(name, value), file=sys.stderr)
 
 print(f"Status: {status_code}", end='\r\n')
-print("Content-type: text/html", end='\r\n')
+print("Content-Type: text/html", end='\r\n')
 print(f"Content-Length: {len(html_content)}", end='\r\n')
 if (addLocation):
     print(f"Location: {os.path.join('/uploads', file_name)}", end='\r\n')

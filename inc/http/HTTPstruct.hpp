@@ -10,7 +10,7 @@
 
 #include "Exceptions.hpp"
 
-#define HTTP_DEF_PORT		std::string("8000")			// default port, 80 if is
+#define HTTP_DEF_PORT		std::string("8080")			// default port, 80 if is
 #define HTTP_DEF_SCHEME		std::string("HTTP")			// http scheme
 #define HTTP_DEF_TERM		std::string("\r\n\r\n")		// http terminator
 #define HTTP_DEF_NL			std::string("\r\n")			// http delimiter
@@ -18,6 +18,19 @@
 #define HTTP_DEF_VERSION	HTTP_DEF_SCHEME + std::string("/1.1")
 #define HTTP_BUF_SIZE 		8192						// 8K
 #define HTTP_MAX_TIMEOUT	5
+
+// request headers
+#define	HEADER_CONT_LEN			"Content-Length"
+#define	HEADER_CONT_TYPE		"Content-Type"
+#define	HEADER_HOST				"Host"
+#define	HEADER_CONN				"Connection"
+#define	HEADER_TRANS_ENCODING	"Transfer-Encoding"
+#define	HEADER_COOKIE			"Cookie"
+// response headers
+#define HEADER_STATUS			"Status"
+#define HEADER_DATE				"Date"
+#define HEADER_SERVER			"Server"
+#define HEADER_LOC				"Location"
 
 using namespace std::chrono;
 
