@@ -346,7 +346,6 @@ void	HTTPrequest::_setHead( std::string const& header )
 
 void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 {
-	std::cout << strHeaders << '\n';
 	try {
 		HTTPstruct::_setHeaders(strHeaders);
 	}
