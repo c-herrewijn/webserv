@@ -1,6 +1,4 @@
 #include "HTTPrequest.hpp"
-#include <unistd.h>
-
 
 void	HTTPrequest::parseHead( void )
 {
@@ -280,6 +278,7 @@ void	HTTPrequest::_readPlainBody( void )
 		_resetTimeout();
 		this->_contentLengthRead += this->_tmpBody.size();
 	}
+	// usleep(8000000);
 	bzero(buffer, HTTP_BUF_SIZE);
 	charsRead = recv(this->_socket, buffer, HTTP_BUF_SIZE, 0);
 	if (charsRead < 0 )

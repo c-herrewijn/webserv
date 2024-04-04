@@ -174,6 +174,11 @@ void	WebServer::_readData( int readFd )	// POLLIN
 			readRequestHeaders(readFd);
 			break;
 
+		case READ_STATIC_FILE:
+			// std::cout << C_GREEN << "READ_STATIC_FILE - " << readFd << C_RESET << std::endl;
+			readStaticFiles(readFd);
+			break;
+
 		case READ_REQ_BODY:
 			// std::cout << C_GREEN << "READ_REQ_BODY - " << readFd << C_RESET << std::endl;
 			readRequestBody(readFd);
@@ -188,14 +193,13 @@ void	WebServer::_readData( int readFd )	// POLLIN
 			readCGIResponses(readFd);
 			break;
 
-		case READ_STATIC_FILE:
-			// std::cout << C_GREEN << "READ_STATIC_FILE - " << readFd << C_RESET << std::endl;
-			readStaticFiles(readFd);
+		case WRITE_TO_CLIENT:
+			// don't read yet, first finish writing the response to the previous request on this socket
 			break;
 
 		default:
-			// std::cout << C_RED << "UNEXPECTED POLLIN - " << readFd << " - STATE: " << this->_pollitems[readFd]->pollState << C_RESET << std::endl;
-			break;
+			// std::cout << C_RED << "UNEXPECTED POLLIN - " << readFd << " poll state = " << this->_pollitems[readFd]->pollState << C_RESET << std::endl;
+			break;		// NB: or throw exception?
 	}
 }
 
