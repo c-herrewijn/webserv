@@ -235,6 +235,7 @@ void	WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePoll
 
 void	WebServer::_dropConn(int toDrop) noexcept
 {
+	std::cout << "closing fd: " << toDrop << '\n';
 	shutdown(toDrop, SHUT_RDWR);
 	close(toDrop);
 	for (auto curr=this->_pollfds.begin(); curr != this->_pollfds.end(); curr++)
@@ -248,6 +249,7 @@ void	WebServer::_dropConn(int toDrop) noexcept
 	delete this->_pollitems[toDrop];
 	this->_pollitems.erase(toDrop);
 	_dropStructs(toDrop);
+	std::cout << "remaining fd: " << this->_pollitems.size() << '\n';
 }
 
 void	WebServer::_dropStructs( int toDrop ) noexcept
@@ -433,10 +435,11 @@ void	WebServer::readStaticFiles( int staticFileFd )
 	if (this->_pollitems[staticFileFd]->pollType != STATIC_FILE)
 		return ;
 	response->readHTML();
-	if (response->isDoneReadingHTML() == false)
-		return ;
-	this->_emptyConns.push_back(staticFileFd);
-	this->_pollitems[socket]->pollState = WRITE_TO_CLIENT;
+	if (response->isDoneReadingHTML() == true)
+	{
+		this->_emptyConns.push_back(staticFileFd);
+		this->_pollitems[socket]->pollState = WRITE_TO_CLIENT;
+	}
 }
 
 void	WebServer::readRequestBody( int clientSocket )

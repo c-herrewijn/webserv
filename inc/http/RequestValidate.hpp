@@ -60,6 +60,7 @@ class RequestValidate
 		void			_setConfig( std::string const& );
 		void			_setMethod( HTTPmethod );
 		void			_setPath( t_path const& );
+		bool			_hasValidIndex( void ) const;
 
 		bool			_checkPerm(t_path const& path, PermType type);
 		void			_separateFolders(std::string const& input, std::vector<std::string>& output);

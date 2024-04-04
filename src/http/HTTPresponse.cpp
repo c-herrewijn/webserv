@@ -63,10 +63,12 @@ void	HTTPresponse::readHTML( void )
 	readChar = read(this->_HTMLfd, buffer, HTTP_BUF_SIZE);
 	if (readChar < 0)
 	{
+		std::cout << "error on fd: " << this->_HTMLfd << '\n';
+		close(this->_HTMLfd);
 		if (this->_targetFile.empty() == true)
-			throw(ServerException({"targetFile not set"}));
+			throw(ResponseException({"targetFile not set"}, 500));
 		else
-			throw(ServerException({"file", this->_targetFile, "not available"}));
+			throw(ResponseException({"file", this->_targetFile, "not available"}, 500));
 	}
 	this->_tmpBody += std::string(buffer, buffer + readChar);
 	if (readChar < HTTP_BUF_SIZE)
@@ -325,6 +327,7 @@ void	HTTPresponse::setTargetFile( t_path const& targetFile)
 		this->_HTMLfd = open(targetFile.c_str(), O_RDONLY);
 		if (this->_HTMLfd == -1)
 			throw(ResponseException({"invalid file descriptor"}, 500));
+		std::cout << "reading file: " << targetFile << " fd: " << this->_HTMLfd << '\n';
 	}
 	this->_targetFile = targetFile;
 }
@@ -474,7 +477,7 @@ std::string	HTTPresponse::_getDateTime( void ) const noexcept
 
 std::string	HTTPresponse::_getContTypeFromFile( t_path const& fileName) const noexcept
 {
-	if (fileName.extension() == ".html")
+	if ((fileName.extension() == ".html") or isAutoIndex())
 		return (HTML_CONTENT_TYPE);
 	else if (fileName.extension() == ".css")
 		return (CSS_CONTENT_TYPE);

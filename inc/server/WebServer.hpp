@@ -41,7 +41,8 @@ enum fdState
 	WAIT_FOR_CGI,					// CLIENT_CONNECTION (no action)
 	READ_CGI_RESPONSE,				// CGI_RESPONSE_PIPE (read)
 	WRITE_TO_CLIENT,				// CLIENT_CONNECTION (write)
-	WRITE_TO_CGI					// CGI_REQUEST_PIPE (write)
+	WRITE_TO_CGI,					// CGI_REQUEST_PIPE (write)
+	IO_ERROR
 };
 
 typedef struct PollItem
@@ -51,6 +52,7 @@ typedef struct PollItem
     fdState 	pollState;
 	std::string	IPaddr;
 	std::string	port;
+	int			errorCode;
 } t_PollItem;
 
 

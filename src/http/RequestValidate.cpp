@@ -124,6 +124,11 @@ void	RequestValidate::_setPath( t_path const& newPath )
 	this->_requestPath = std::filesystem::weakly_canonical(newPath);
 }
 
+bool	RequestValidate::_hasValidIndex( void ) const
+{
+	return (_validParams->getIndex().empty() == false);
+}
+
 void	RequestValidate::_setStatusCode(const size_t& code)
 {
 	_statusCode = code;
@@ -252,6 +257,9 @@ bool	RequestValidate::_handleFolder(void)
 	return(true);
 }
 
+// NB1: if index is inherited the indexes need to use the root of Location where they belong
+// NB2: indexes in sublocation are added the ones of the outer one, they should replace
+// NB3: request 'http://localhost:8080/test_index/ciao/' throws 405
 bool	RequestValidate::_handleFile(void)
 {
 	t_path dirPath = _validParams->getRoot().string() + "/" + targetDir.string() + "/";
@@ -260,11 +268,11 @@ bool	RequestValidate::_handleFile(void)
 	if (!std::filesystem::exists(filePath))
 		return (_setStatusCode(404), false);
 	if (std::filesystem::is_directory(filePath))
-	{
-		_realPath = std::filesystem::weakly_canonical(dirPath);
-		return (_handleFolder());
-	}
-
+		return (_setStatusCode(404), false);
+	// {
+	// 	_realPath = std::filesystem::weakly_canonical(dirPath);
+	// 	return (_handleFolder());
+	// }
 	_realPath = std::filesystem::weakly_canonical(filePath);
 	if (_validParams->getCgiAllowed() &&
 		filePath.has_extension() &&
@@ -281,11 +289,13 @@ bool	RequestValidate::_handleFile(void)
 
 void	RequestValidate::_handleIndex( void )
 {
-	Parameters const indexParam = *_validParams;
-	t_path	indexFilePath;
-	std::cout << "index situation\n";
+	Parameters const	indexParam = *_validParams;
+	t_path				indexFilePath;
+	
+	std::cout << "index situation " << indexParam.getIndex().size() << "\n";
 	for (auto indexFile : indexParam.getIndex())
 	{
+		indexFilePath = "";
 		if (_validLocation != nullptr)
 			indexFilePath = _validLocation->getFullPath();
 		if (*indexFile.begin() == "/")
@@ -340,10 +350,12 @@ void	RequestValidate::solvePath( HTTPmethod method, t_path const& path, std::str
 		return (_setStatusCode(405));	// 405 error, method not allowed
 	if (_handleReturns())	// handle return
 		return ;
-	if (targetFile.empty() || targetFile == "/")	// set indexfile if necessarry
+
+	if ((targetFile.empty() || targetFile == "/") and _hasValidIndex())	// set indexfile if necessarry
 		return (_handleIndex());
 	targetFile = std::filesystem::weakly_canonical(targetFile);
-	if (targetFile.empty() || targetFile.string() == "/")
+	std::cout << "targetFile: " << targetFile << '\n';
+	if (targetFile.empty() || targetFile == "/")
 		_handleFolder();
 	else
 		_handleFile();
