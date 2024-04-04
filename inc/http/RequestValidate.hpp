@@ -40,7 +40,7 @@ class RequestValidate
 
 	private:
 		t_serv_list		_servers;
-		Config	*_defaultServer, *_handlerServer;
+		Config			*_defaultServer, *_handlerServer;
 		HTTPmethod		_requestMethod;
 		t_path			_requestPath;
 
