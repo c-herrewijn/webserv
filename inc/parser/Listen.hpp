@@ -6,7 +6,7 @@
 
 # include "Exceptions.hpp"
 
-# define DEF_PORT "80"
+# define DEF_PORT "8080"
 # define DEF_HOST "127.0.0.1"
 # define MAX_PORT 65535
 

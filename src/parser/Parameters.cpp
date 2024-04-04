@@ -246,8 +246,7 @@ void	Parameters::_parseAutoindex(std::vector<std::string>& block)
 void	Parameters::_parseIndex(std::vector<std::string>& block)
 {
 	block.erase(block.begin());
-	if (block.front() == ";")
-		this->index.clear();
+	this->index.clear();
 	while ((block.empty() == false) and (block.front() != ";"))
 	{
 		// if (block.front().find_first_of('/') != std::string::npos)

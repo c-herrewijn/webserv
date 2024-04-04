@@ -118,6 +118,7 @@ void	RequestValidate::_setConfig( std::string const& hostName )
 			if ((servName == tmpHostName))
 			{
 				this->_handlerServer = &server;
+				this->_validParams = &(this->_handlerServer->getParams());
 				return ;
 			}
 		}
@@ -262,9 +263,6 @@ bool	RequestValidate::_handleFolder(void)
 	return(true);
 }
 
-// NB1: if index is inherited the indexes need to use the root of Location where they belong
-// NB2: indexes in sublocation are added the ones of the outer one, they should replace
-// NB3: request 'http://localhost:8080/test_index/ciao/' throws 405
 bool	RequestValidate::_handleFile(void)
 {
 	t_path dirPath = _validParams->getRoot().string() + "/" + targetDir.string() + "/";
