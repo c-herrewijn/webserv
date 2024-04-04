@@ -1,18 +1,5 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        ::::::::            */
-/*   HTTPrequest.cpp                                    :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: fra <fra@student.codam.nl>                   +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2024/02/08 21:40:04 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/26 15:41:17 by faru          ########   odam.nl         */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "HTTPrequest.hpp"
 
-// throws: ServerException , RequestException
 void	HTTPrequest::parseHead( void )
 {
 	std::string strHead, strHeaders;
@@ -20,9 +7,8 @@ void	HTTPrequest::parseHead( void )
 
 	if (this->_state != HTTP_REQ_HEAD_READING)
 		throw(RequestException({"instance in wrong state to perfom action"}, 500));
-
 	_readHead();
-	if (this->_state == HTTP_REQ_PARSING)
+	if (isDoneReadingHead() == true)
 	{
 		endReq = this->_tmpHead.find(HTTP_DEF_TERM);
 		endHead = this->_tmpHead.find(HTTP_DEF_NL);		// look for headers
@@ -31,55 +17,33 @@ void	HTTPrequest::parseHead( void )
 		strHead = this->_tmpHead.substr(0, endHead);
 		strHeaders = this->_tmpHead.substr(endHead + HTTP_DEF_NL.size(), endReq + HTTP_DEF_NL.size() - endHead - 1);
 		endReq += HTTP_DEF_TERM.size();
-		if ((endReq + 1) < this->_tmpHead.size())		// if there's the beginning of the body
+		if ((endReq + 1) < this->_tmpHead.size())		// look for the beginning of the body
 			this->_tmpBody = this->_tmpHead.substr(endReq);
 		_setHead(strHead);
 		_setHeaders(strHeaders);
-		this->_state = HTTP_REQ_VALIDATING;
-	}
-}
-
-// NB: fix after validation is ok
-void		HTTPrequest::validate( ConfigServer const& configServer )
-{
-	if (this->_state != HTTP_REQ_VALIDATING)
-		throw(RequestException({"instance in wrong state to perfom action"}, 500));
- 	this->_servName = configServer.getPrimaryName();
-	this->_validator.setConfig(configServer);
-	this->_validator.setMethod(this->_method);
-	this->_validator.setPath(this->_url.path);
-	this->_validator.solvePath();
-	if (this->_validator.getStatusCode() >= 400)
-		throw RequestException({"validation from config file failed"}, this->_validator.getStatusCode());
-	_checkMaxBodySize(this->_validator.getMaxBodySize());
-	_setType();
-	if (((this->_type == HTTP_FILE_UPL_CGI) and (this->_body.size() < this->_contentLength))
-		or ((this->_type == HTTP_CHUNKED) and (this->_tmpBody.find(HTTP_DEF_TERM) == std::string::npos)))
-			this->_state = HTTP_REQ_BODY_READING;
-	else
-	{
-		this->_state = HTTP_REQ_RESP_WAITING;
-		if (this->_type == HTTP_CHUNKED)
-			_unchunkBody();
-		HTTPstruct::_setBody(this->_tmpBody);
+		this->_validator.solvePath(this->_method, this->_url.path, getHost());
+		this->_statusCode = this->_validator.getStatusCode();
+		this->_root = this->_validator.getRoot();
+		_updateTypeAndState();
+		if (this->_validator.solvePathFailed() == true)
+			throw(RequestException({"validation of config file failed"}, this->_validator.getStatusCode()));
+		_checkMaxBodySize();
+		if (isDoneReadingBody())
+			_setBody();
 	}
 }
 
 void	HTTPrequest::parseBody( void )
 {
-	if (this->_state != HTTP_REQ_BODY_READING)
-		throw(RequestException({"instance in (wrong) state:", std::to_string(this->_state), "unable to perfom read body"}, 500));
+	if (isDoneReadingBody())
+		throw(RequestException({"instance in wrong state or type"}, 500));
 
-	if (this->_type == HTTP_CHUNKED)
+	if (isChunked())
 		_readChunkedBody();
-	else
+	else if (isFileUpload())
 		_readPlainBody();
-	if (this->_state == HTTP_REQ_RESP_WAITING)
-	{
-		if (this->_type == HTTP_CHUNKED)
-			_unchunkBody();
-		HTTPstruct::_setBody(this->_tmpBody);
-	}
+	if (isDoneReadingBody())
+		_setBody();
 }
 
 std::string	HTTPrequest::toString( void ) const noexcept
@@ -92,7 +56,7 @@ std::string	HTTPrequest::toString( void ) const noexcept
 	strReq += "://";
 	strReq += this->_url.host;
 	strReq += ":";
-	strReq += std::to_string(this->_url.port);
+	strReq += this->_url.port;
 	strReq += this->_url.path.generic_string();
 	if (!this->_url.queryRaw.empty())
 	{
@@ -128,6 +92,41 @@ std::string	HTTPrequest::toString( void ) const noexcept
 	return (strReq);
 }
 
+void	HTTPrequest::updateErrorCode( int errorCode )
+{
+	this->_statusCode = errorCode;
+	this->_validator.solveErrorPath( errorCode );
+	_updateTypeAndState();
+	if (this->_validator.solvePathFailed() == true)
+	{
+		this->_statusCode = this->_validator.getStatusCode();
+		if (errorCode == this->_statusCode)
+			throw(RequestException({"endless loop with code:", std::to_string(this->_statusCode)}, errorCode));	// error 404 and lacks 404.html (or same for 403)
+		this->_validator.solveErrorPath(this->_statusCode);
+		if (this->_statusCode == this->_validator.getStatusCode())
+			throw(RequestException({"endless loop with code:", std::to_string(this->_statusCode)}, errorCode));
+		else if (this->_validator.solvePathFailed() == true)
+		{
+			this->_statusCode = this->_validator.getStatusCode();
+			this->_validator.solveErrorPath(this->_statusCode);
+			if (this->_validator.solvePathFailed() == true)
+				throw(RequestException({"endless cross loop with code:", std::to_string(this->_statusCode)}, this->_statusCode));
+		}
+	}
+}
+
+bool	HTTPrequest::hasBodyToRead( void ) const noexcept
+{
+	try {
+		if (isChunked() and ((this->_tmpBody.find(HTTP_DEF_TERM) == std::string::npos)))
+			return (true);
+		else if (isFileUpload() and (this->_body.size() < this->_contentLength))
+			return (true);
+	}
+	catch(const std::exception& e) {}
+	return (false);
+}
+
 std::string 	HTTPrequest::getMethod( void ) const noexcept
 {
 	switch (this->_method)
@@ -143,14 +142,33 @@ std::string 	HTTPrequest::getMethod( void ) const noexcept
 	}
 }
 
-std::string const&	HTTPrequest::getHost( void ) const noexcept
+std::string		HTTPrequest::getHost( void ) const noexcept
 {
-	return (this->_url.host);
+	try
+	{
+		std::string	hostPort = this->_headers.find(HEADER_HOST)->second;
+		size_t	semiColPos = hostPort.find(':');
+		return (hostPort.substr(0, semiColPos));
+	}
+	catch(const std::out_of_range& e) {
+		return ("");
+	}
 }
 
 std::string		HTTPrequest::getPort( void ) const noexcept
 {
-	return (std::to_string(this->_url.port));
+	try
+	{
+		std::string	hostPort = this->_headers.find(HEADER_HOST)->second;
+		size_t	semiColPos = hostPort.find(':');
+		if (semiColPos == std::string::npos)
+			return (HTTP_DEF_PORT);
+		else
+			return (hostPort.substr(semiColPos + 1));
+	}
+	catch(const std::out_of_range& e) {
+		return ("");
+	}
 }
 
 size_t	HTTPrequest::getContentLength( void ) const noexcept
@@ -183,18 +201,14 @@ std::string		HTTPrequest::getContentTypeBoundary( void ) const noexcept
 	return (boundary);
 }
 
-// NB: fix after validation is ok
-// t_path HTTPrequest::getRealPath( void ) const noexcept
+std::string const&	HTTPrequest::getServName( void ) const noexcept
+{
+	return(this->_validator.getServName());
+}
+
 t_path const&	HTTPrequest::getRealPath( void ) const noexcept
 {
-	// t_path cwd = std::filesystem::current_path() / "var/www/";
-	// if (this->_url.path == "/")		// NB: should be done by validation
-	// 	cwd = MAIN_PAGE_PATH;
-	// else if (this->_url.path.extension() == ".ico")	// NB: should be done by validation, update content-type of response
-	// 	cwd = FAVICON_PATH;
-	// else
-	// cwd /= this->_url.path.string().substr(1);
-	// return (cwd);
+
 	return (this->_validator.getRealPath());
 }
 
@@ -203,34 +217,30 @@ void	HTTPrequest::setRealPath( t_path const& newRealPath ) noexcept
 	this->_validator.setRealPath(newRealPath);
 }
 
+t_path const&	HTTPrequest::getRedirectPath( void ) const noexcept
+{
+	return (this->_validator.getRedirectRealPath());
+}
+
 t_path const&	HTTPrequest::getRoot( void ) const noexcept
 {
 	return (this->_validator.getRoot());
 }
 
-t_string_map const&	HTTPrequest::getErrorPages( void ) const noexcept
+bool	HTTPrequest::isEndConn( void ) noexcept
 {
-	return (this->_validator.getErrorPages());
-}
-
-bool	HTTPrequest::isEndConn( void ) const noexcept
-{
-	return (this->_endConn);
-}
-
-bool	HTTPrequest::theresBodyToRead( void ) const noexcept
-{
-	return (this->_state == HTTP_REQ_BODY_READING);
+	return (this->_headers.find(HEADER_CONN)->second == "close");
 }
 
 bool	HTTPrequest::isDoneReadingHead( void ) const noexcept
 {
-	return (this->_state > HTTP_REQ_PARSING);
+	return (this->_state > HTTP_REQ_HEAD_READING);
 }
 
 bool	HTTPrequest::isDoneReadingBody( void ) const noexcept
 {
-	return(this->_state > HTTP_REQ_BODY_READING);
+	return((isChunked() or isFileUpload()) and
+		(this->_state > HTTP_REQ_BODY_READING));
 }
 
 void	HTTPrequest::_readHead( void )
@@ -254,7 +264,7 @@ void	HTTPrequest::_readHead( void )
 	{
 		this->_tmpHead += std::string(buffer, buffer + charsRead);
 		if (this->_tmpHead.find(HTTP_DEF_TERM) != std::string::npos)	// look for terminator in request
-			this->_state = HTTP_REQ_PARSING;
+			this->_state = HTTP_REQ_HEAD_PARSING;
 	}
 }
 
@@ -279,7 +289,7 @@ void	HTTPrequest::_readPlainBody( void )
 		if ((this->_contentLengthRead + charsRead) > this->_contentLength)
 		{
 			charsRead -= this->_contentLength - this->_contentLengthRead;
-			this->_state = HTTP_REQ_RESP_WAITING;
+			this->_state = HTTP_REQ_DONE;
 		}
 		this->_contentLengthRead += charsRead;
 		this->_tmpBody += std::string(buffer, buffer + charsRead);
@@ -309,13 +319,12 @@ void	HTTPrequest::_readChunkedBody( void )
 		if (delimiter != std::string::npos)
 		{
 			charsRead = delimiter + HTTP_DEF_TERM.size();
-			this->_state = HTTP_REQ_RESP_WAITING;
+			this->_state = HTTP_REQ_DONE;
 		}
 		if ((this->_contentLengthRead + charsRead)> this->_maxBodySize)
 			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
 		this->_contentLengthRead += charsRead;
 		this->_tmpBody += std::string(buffer, buffer + charsRead);
-		// _unchunkChunk() ...
 	}
 }
 
@@ -333,6 +342,93 @@ void	HTTPrequest::_setHead( std::string const& header )
 	if (! std::getline(stream, version, HTTP_DEF_SP))
 		throw(RequestException({"invalid header:", header}, 400));
 	_setVersion(version);
+}
+
+void	HTTPrequest::_setHeaders( std::string const& strHeaders )
+{
+	std::cout << strHeaders << '\n';
+	try {
+		HTTPstruct::_setHeaders(strHeaders);
+	}
+	catch (const HTTPexception& e) {
+		throw(RequestException(e));
+	}
+	if (this->_headers.count(HEADER_HOST) == 0)		// missing Host header
+		throw(RequestException({"no Host header"}, 444));
+	else if (this->_url.host == "")
+		_setHostPort(this->_headers.find(HEADER_HOST)->second);
+	else if (this->_headers.find(HEADER_HOST)->second.find(this->_url.host) == std::string::npos)
+		throw(RequestException({"hosts do not match"}, 412));
+	if (this->_headers.count(HEADER_CONT_LEN) == 0)
+	{
+		if (this->_headers.count(HEADER_TRANS_ENCODING) == 0)		// no body
+			return ;
+		else if (this->_headers.find(HEADER_TRANS_ENCODING)->second != "chunked")
+			throw(RequestException({HEADER_TRANS_ENCODING, "required"}, 411));
+	}
+	else
+	{
+		try {
+			this->_contentLength = std::stoull(this->_headers.find(HEADER_CONT_LEN)->second);
+		}
+		catch (const std::exception& e) {
+			throw(RequestException({"invalid Content-Length"}, 400));
+		}
+		if (this->_tmpHead.size() > this->_contentLength)
+			this->_tmpBody = this->_tmpBody.substr(0, this->_contentLength);
+	}
+}
+
+void	HTTPrequest::_updateTypeAndState( void )
+{
+	if (this->_statusCode >= 300)
+	{
+		if (this->_validator.isRedirection() == true)		// redirection
+			this->_type = HTTP_REDIRECTION;
+		else									// request failed, read errorPage
+			this->_type = HTTP_STATIC;
+		this->_state = HTTP_REQ_DONE;
+	}
+	else if (this->_headers.count(HEADER_CONT_TYPE) > 0)		// request with body
+	{
+		if (this->_headers.find(HEADER_TRANS_ENCODING)->second == "chunked")
+			this->_type = HTTP_CHUNKED;
+		else // if (this->_headers.find(HEADER_CONT_TYPE)->second.find("multipart/form-data; boundary=-") == 0)
+			this->_type = HTTP_CGI_FILE_UPL;
+		if (hasBodyToRead())
+			this->_state = HTTP_REQ_BODY_READING;
+		else
+			this->_state = HTTP_REQ_DONE;
+	}
+	else		// autoindex, bodyless CGI, GET reqs
+	{
+		if (this->_validator.isAutoIndex() == true)
+			this->_type = HTTP_AUTOINDEX;
+		else if (this->_validator.isCGI() == true)
+			this->_type = HTTP_CGI_STATIC;
+		else
+			this->_type = HTTP_STATIC;
+		this->_state = HTTP_REQ_DONE;
+	}
+}
+
+void	HTTPrequest::_checkMaxBodySize( void )
+{
+	if (this->_validator.getMaxBodySize() == 0)
+		return;
+	if (isChunked() == true)
+	{
+		if (this->_validator.getMaxBodySize() < this->_tmpBody.size())
+			throw(RequestException({"Content-Length longer than config max body length"}, 413));
+	}
+	else if (isFileUpload() == true)
+	{
+		if (this->_validator.getMaxBodySize() < this->_contentLength)
+			throw(RequestException({"Content-Length longer than config max body length"}, 413));
+		else if (this->_body.size() > this->_contentLength)
+			this->_tmpBody = this->_tmpBody.substr(0, this->_contentLength);
+	}
+	this->_maxBodySize = this->_validator.getMaxBodySize();
 }
 
 void    HTTPrequest::_setMethod( std::string const& strMethod )
@@ -374,7 +470,7 @@ void	HTTPrequest::_setURL( std::string const& strURL )
 		tmpURL = tmpURL.substr(2);
 		delimiter = tmpURL.find("/");
 		if (delimiter == 0)
-			_setHostPort(DEF_NAME);
+			_setHostPort(LOCALHOST);
 		else
 			_setHostPort(tmpURL.substr(0, delimiter));
 		tmpURL = tmpURL.substr(delimiter);
@@ -407,7 +503,7 @@ void	HTTPrequest::_setHostPort( std::string const& strURL )
 			return ;
 		}
 		try {
-			this->_url.port = std::stoi(port);
+			this->_url.port = port;
 		}
 		catch(const std::exception& e ) {
 			throw(RequestException({"invalid port format:", strURL.substr(delimiter + 1)}, 400));
@@ -470,121 +566,12 @@ void	HTTPrequest::_setFragment( std::string const& strFragment)
 
 void	HTTPrequest::_setVersion( std::string const& strVersion )
 {
-	size_t	del1, del2;
-
-	del1 = strVersion.find('/');
-	if (del1 == std::string::npos)
-		throw(RequestException({"invalid version:", strVersion}, 400));
-	this->_version.scheme = strVersion.substr(0, del1);
-	std::transform(this->_version.scheme.begin(), this->_version.scheme.end(), this->_version.scheme.begin(), ::toupper);
-	if (this->_version.scheme != HTTP_DEF_SCHEME)
-		throw(RequestException({"invalid scheme:", strVersion}, 400));
-	del2 = strVersion.find('.');
-	if (del2 == std::string::npos)
-		throw(RequestException({"invalid version:", strVersion}, 400));
 	try {
-		this->_version.major = std::stoi(strVersion.substr(del1 + 1, del2 - del1 - 1));
-		this->_version.minor = std::stoi(strVersion.substr(del2 + 1));
+		HTTPstruct::_setVersion(strVersion);
 	}
-	catch (std::exception const& e) {
-		throw(RequestException({"invalid version numbers:", strVersion}, 400));
+	catch(const HTTPexception& e) {
+		throw(RequestException(e));
 	}
-	if (this->_version.major + this->_version.minor != 2)
-		throw(RequestException({"unsupported HTTP version:", strVersion}, 505));
-}
-
-void	HTTPrequest::_checkMaxBodySize( size_t maxSize )
-{
-	if (maxSize == 0)
-		return;
-	if (this->_type == HTTP_CHUNKED)
-	{
-		if (maxSize < this->_tmpBody.size())
-			throw(RequestException({"Content-Length longer than config max body length"}, 413));
-	}
-	else if (this->_type == HTTP_FILE_UPL_CGI)
-	{
-		if (maxSize < this->_contentLength)
-			throw(RequestException({"Content-Length longer than config max body length"}, 413));
-		else if (this->_body.size() > this->_contentLength)
-			this->_tmpBody = this->_tmpBody.substr(0, this->_contentLength);
-	}
-	this->_maxBodySize = maxSize;
-}
-
-void	HTTPrequest::_setHeaders( std::string const& strHeaders )
-{
-	try {
-		HTTPstruct::_setHeaders(strHeaders);
-	}
-	catch (const HTTPexception& e) {
-		throw(RequestException({"invalid header"}, e.getStatus()));
-	}
-
-	if (this->_headers.count(HEADER_HOST) == 0)		// missing Host header, NGINX custom error Code
-		throw(RequestException({"no Host header"}, 444));
-	else if (this->_url.host == "")
-		_setHostPort(this->_headers.find(HEADER_HOST)->second);
-	else if (this->_headers.find(HEADER_HOST)->second.find(this->_url.host) == std::string::npos)
-		throw(RequestException({"hosts do not match"}, 412));
-
-	if (this->_headers.count(HEADER_CONN) != 0)
-		this->_endConn = this->_headers.find(HEADER_CONN)->second == "close";
-	if (this->_headers.count(HEADER_CONT_LEN) == 0)
-	{
-		if (this->_headers.count(HEADER_TRANS_ENCODING) == 0)		// no body
-			return ;
-		else if (this->_headers.find(HEADER_TRANS_ENCODING)->second != "chunked")
-			throw(RequestException({HEADER_TRANS_ENCODING, "required"}, 411));
-	}
-	else
-	{
-		try {
-			this->_contentLength = std::stoull(this->_headers.find(HEADER_CONT_LEN)->second);
-		}
-		catch (const std::exception& e) {
-			throw(RequestException({"invalid Content-Length"}, 400));
-		}
-		if (this->_tmpHead.size() > this->_contentLength)
-			this->_tmpBody = this->_tmpBody.substr(0, this->_contentLength);
-	}
-}
-
-void	HTTPrequest::_setType( void )
-{
-	if (this->_headers.count(HEADER_TRANS_ENCODING) && this->_headers.find(HEADER_TRANS_ENCODING)->second == "chunked")
-		this->_type = HTTP_CHUNKED;
-	else if (this->_headers.count(HEADER_CONT_TYPE) && this->_headers.find(HEADER_CONT_TYPE)->second.find("multipart/form-data; boundary=-") == 0)
-		this->_type = HTTP_FILE_UPL_CGI;
-	else if (this->_validator.isAutoIndex() == true)
-		this->_type = HTTP_AUTOINDEX_STATIC;
-	else if (this->_validator.isCGI() == true)
-		this->_type = HTTP_FAST_CGI;
-}
-
-void	HTTPrequest::_unchunkBody( void )
-{
-	size_t		sizeChunk=0, delimiter=0;
-	std::string	tmpChunkedBody;
-
-	if (this->_tmpBody.find(HTTP_DEF_TERM) == std::string::npos)
-		throw(RequestException({"no body terminator"}, 400));
-	tmpChunkedBody = this->_tmpBody;
-	this->_tmpBody.clear();
-	do
-	{
-		delimiter = tmpChunkedBody.find(HTTP_DEF_NL);
-		if (delimiter == std::string::npos)
-			throw(RequestException({"bad chunking"}, 400));
-		try {
-			sizeChunk = std::stoul(tmpChunkedBody.substr(0, delimiter), nullptr, 16);
-			this->_tmpBody += tmpChunkedBody.substr(delimiter + HTTP_DEF_NL.size(), sizeChunk);
-			tmpChunkedBody = tmpChunkedBody.substr(delimiter + sizeChunk + HTTP_DEF_NL.size() * 2);
-		}
-		catch(const std::exception& e){
-			throw(RequestException({"bad chunking"}, 400));
-		}
-	} while (sizeChunk != 0);
 }
 
 // std::string	HTTPrequest::_unchunkChunk( std::string const& chunkedChunk, std::string& remainder)

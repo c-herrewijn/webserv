@@ -1,30 +1,20 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        ::::::::            */
-/*   RequestValidate.hpp                                :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: itopchu <itopchu@student.codam.nl>           +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2023/11/25 11:44:46 by itopchu       #+#    #+#                 */
-/*   Updated: 2023/11/25 11:44:46 by itopchu       ########   odam.nl         */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "RequestValidate.hpp"
 
 // ╔════════════════════════════════╗
 // ║		CONSTRUCTION PART		║
 // ╚════════════════════════════════╝
-RequestValidate::RequestValidate(void)
+RequestValidate::RequestValidate(t_serv_list const& servers) : _servers(servers)
 {
-	_requestConfig = nullptr;
-	_validLocation = nullptr;
-	_validParams = nullptr;
-
-	_autoIndex = false;
-	_isCGI = false;
-	_realPath = "/IAMEMPTY";
-	_requestMethod = HTTP_GET;
+	for (auto& server : this->_servers)
+	{
+		for (auto const& address : server.getListens())
+		{
+			if (address.getDef() == true)
+				this->_defaultServer = &server;
+		}
+	}
+	this->_handlerServer = this->_defaultServer;
+	_resetValues();
 }
 
 RequestValidate::~RequestValidate( void ) {}
@@ -32,11 +22,6 @@ RequestValidate::~RequestValidate( void ) {}
 // ╔════════════════════════════════╗
 // ║			GETTER PART			║
 // ╚════════════════════════════════╝
-// Parameters*	RequestValidate::getValidParams( void ) const
-// {
-// 	return (_validParams);
-// }
-
 t_path const&	RequestValidate::getRealPath( void ) const
 {
 	return (_realPath);
@@ -45,6 +30,16 @@ t_path const&	RequestValidate::getRealPath( void ) const
 void	RequestValidate::setRealPath( t_path const& newRealPath ) noexcept
 {
 	this->_realPath = newRealPath;
+}
+
+t_path const&	RequestValidate::getRedirectRealPath( void ) const
+{
+	return (_redirectRealPath);
+}
+
+std::string const&	RequestValidate::getServName( void ) const
+{
+	return(this->_handlerServer->getPrimaryName());
 }
 
 int	RequestValidate::getStatusCode( void ) const
@@ -72,32 +67,71 @@ bool	RequestValidate::isCGI( void ) const
 	return (_isCGI);
 }
 
+bool	RequestValidate::isRedirection( void ) const
+{
+	return (_isRedirection);
+}
+
+bool	RequestValidate::solvePathFailed( void ) const
+{
+	return (this->_statusCode >= 400);
+}
+
 t_path	const& RequestValidate::getRoot( void ) const
 {
 	return (this->_validParams->getRoot());
 }
 
-t_string_map const&	RequestValidate::getErrorPages( void ) const
-{
-	return (this->_validParams->getErrorPages());
-}
-
 // ╔════════════════════════════════╗
 // ║			SETTER PART			║
 // ╚════════════════════════════════╝
-void	RequestValidate::setConfig( ConfigServer const& configServ)
+void	RequestValidate::_resetValues( void )
 {
-	this->_requestConfig = &configServ;
+	this->_validLocation = nullptr;
+	this->_validParams = &this->_handlerServer->getParams();
+
+	this->_autoIndex = false;
+	this->_isCGI = false;
+	this->_isRedirection = false;
+	this->_realPath = "/IAMEMPTY";
+	this->_requestMethod = HTTP_GET;
+	this->_statusCode = 200;
+	this->_realPath.clear();
+	this->_redirectRealPath.clear();
 }
 
-void	RequestValidate::setMethod( HTTPmethod method )
+void	RequestValidate::_setMethod( HTTPmethod method )
 {
 	this->_requestMethod = method;
 }
 
-void	RequestValidate::setPath( t_path const& newPath )
+void	RequestValidate::_setConfig( std::string const& hostName )
+{
+	std::string tmpHostName = hostName;
+
+	std::transform(tmpHostName.begin(), tmpHostName.end(), tmpHostName.begin(), ::tolower);
+	for (auto& server : this->_servers)
+	{
+		for (std::string servName : server.getNames())
+		{
+			std::transform(servName.begin(), servName.end(), servName.begin(), ::tolower);
+			if ((servName == tmpHostName))
+			{
+				this->_handlerServer = &server;
+				return ;
+			}
+		}
+	}
+}
+
+void	RequestValidate::_setPath( t_path const& newPath )
 {
 	this->_requestPath = std::filesystem::weakly_canonical(newPath);
+}
+
+bool	RequestValidate::_hasValidIndex( void ) const
+{
+	return (_validParams->getIndex().empty() == false);
 }
 
 void	RequestValidate::_setStatusCode(const size_t& code)
@@ -117,9 +151,8 @@ Location const*	RequestValidate::_diveLocation(Location const& cur, std::vector<
 	std::vector<std::string>::iterator itFolders;
 	Location const*	valid;
 
-	_separateFolders(cur.getFilesystem().string(), curURL);
+	_separateFolders(std::filesystem::weakly_canonical(cur.getURL()).string(), curURL);
 	itFolders = curURL.begin();
-	// std::cout << "Diving inner scope\n";
 	while (itFolders != curURL.end() && itDirectory != folders.end())
 	{
 		if (*itFolders != *itDirectory)
@@ -128,13 +161,9 @@ Location const*	RequestValidate::_diveLocation(Location const& cur, std::vector<
 		itDirectory++;
 	}
 	if (itFolders == curURL.end() && itDirectory == folders.end())
-	{
-		// std::cout << "Matching location found\n";
 		return (&cur);
-	}
 	else if (itFolders == curURL.end())
 	{
-		// std::cout << "Dives into nested\n";
 		for (auto& nest : cur.getNested())
 		{
 			valid = _diveLocation(nest, itDirectory, folders);
@@ -152,24 +181,15 @@ void	RequestValidate::_initValidLocation(void)
 	std::vector<std::string>::iterator	it;
 
 	_separateFolders(targetDir.string(), folders);
-	// std::cout << "Prepares for diving: ";
-	// for (auto folder : folders)
-		// std::cout << folder << " ";
-	// std::cout << "\n";
-	for (auto& location : _requestConfig->getLocations())
+	for (auto& location : _handlerServer->getLocations())
 	{
 		it = folders.begin();
 		valid = _diveLocation(location, it, folders);
 		if (valid)
 			break ;
 	}
-	// std::cout << "End of diving\n";
 	if (!valid)
-	{
-		// std::cout << "Not found\n";
 		return ;
-	}
-	// std::cout << "Found in: " << valid->getURL() << "\n";
 	_validLocation = valid;
 }
 
@@ -183,6 +203,7 @@ void	RequestValidate::_separateFolders(std::string const& input, std::vector<std
 			output.push_back(folder);
 	}
 }
+
 // ╭───────────────────────────╮
 // │     FILE/FOLDER PERMS     │
 // ╰───────────────────────────╯
@@ -232,43 +253,36 @@ bool	RequestValidate::_handleFolder(void)
 	_autoIndex = false;
 	if (!std::filesystem::exists(dirPath) ||
 	!std::filesystem::is_directory(dirPath))
-		return (_setStatusCode(404), false); // 404 error, not found
-	// check autoindex
+		return (_setStatusCode(404), false);
 	if (!_validParams->getAutoindex())
-		return (_setStatusCode(404), false); // 404 error, not found
+		return (_setStatusCode(404), false);
 	if (!_checkPerm(dirPath, PERM_READ))
 		return (_setStatusCode(403), false);
 	_autoIndex = true;
 	return(true);
 }
 
+// NB1: if index is inherited the indexes need to use the root of Location where they belong
+// NB2: indexes in sublocation are added the ones of the outer one, they should replace
+// NB3: request 'http://localhost:8080/test_index/ciao/' throws 405
 bool	RequestValidate::_handleFile(void)
 {
-	t_path dirPath = _validParams->getRoot();
-	dirPath += "/";
-	dirPath += targetDir;
-	dirPath += "/";
-	t_path filePath = dirPath;
-	filePath += "/";
-	filePath += targetFile;
+	t_path dirPath = _validParams->getRoot().string() + "/" + targetDir.string() + "/";
+	t_path filePath = dirPath.string() + "/" + targetFile.string();
 	_isCGI = false;
-	// check filePath
-	// std::cout << "Checked paths: " << dirPath << " : " << filePath << "\n";
 	if (!std::filesystem::exists(filePath))
 		return (_setStatusCode(404), false);
 	if (std::filesystem::is_directory(filePath))
-	{
-		_realPath = std::filesystem::weakly_canonical(dirPath);
-		return (_handleFolder());
-	}
-
+		return (_setStatusCode(404), false);
+	// {
+	// 	_realPath = std::filesystem::weakly_canonical(dirPath);
+	// 	return (_handleFolder());
+	// }
 	_realPath = std::filesystem::weakly_canonical(filePath);
-	// Check request type for permission check
 	if (_validParams->getCgiAllowed() &&
 		filePath.has_extension() &&
 		filePath.extension() == _validParams->getCgiExtension())
 	{
-		// check permission
 		if (!_checkPerm(filePath, PERM_EXEC))
 			return (_setStatusCode(403), false);
 		_isCGI = true;
@@ -278,120 +292,106 @@ bool	RequestValidate::_handleFile(void)
 	return (true);
 }
 
+void	RequestValidate::_handleIndex( void )
+{
+	Parameters const	indexParam = *_validParams;
+	t_path				indexFilePath;
+
+	std::cout << "index situation " << indexParam.getIndex().size() << "\n";
+	for (auto indexFile : indexParam.getIndex())
+	{
+		indexFilePath = "";
+		if (_validLocation != nullptr)
+			indexFilePath = _validLocation->getFullPath();
+		if (*indexFile.begin() == "/")
+			indexFilePath += indexFile;
+		else
+			indexFilePath /= indexFile;
+		indexFilePath = std::filesystem::weakly_canonical(indexFilePath);
+		solvePath(HTTP_GET, indexFilePath, this->_handlerServer->getPrimaryName());
+		if (solvePathFailed() == false)
+			return ;
+	}
+}
+
 // ╭───────────────────────────╮
 // │  STATUS CODE REDIRECTION  │
 // ╰───────────────────────────╯
 bool	RequestValidate::_handleReturns(void)
 {
-	if (_validParams->getReturns().first)
+	auto const& local = _validParams->getReturns();
+	if (local.first)
 	{
-		_statusCode = _validParams->getReturns().first;
-		targetFile = std::filesystem::weakly_canonical(_validParams->getReturns().second);
-		if (_handleFile())
-			return (true);
-		return (_handleStatus(), true);
+		_setStatusCode(local.first);
+		if (local.second != "")	// file redirect name not provided in return directive, usually an error 40X
+		{
+			_realPath = local.second;
+			_isRedirection = true;
+		}
+		return (true);
 	}
 	return (false);
-}
-
-bool	RequestValidate::_handleErrorCode(void)
-{
-	std::map<size_t, std::string>::const_iterator it;
-	it = _validParams->getErrorPages().find(_statusCode);
-	if (it == _validParams->getErrorPages().end())
-		return (false);
-	targetFile = std::filesystem::weakly_canonical((*it).second);
-	return (_handleFile());
-}
-
-bool	RequestValidate::_handleServerPages(void)
-{
-	// This is a temp solution. NEEDS TO BE REPLACED WITH A MACRO
-	t_path lastChance = std::filesystem::current_path();
-	lastChance += SERVER_DEF_PAGES;
-	lastChance += (std::to_string(_statusCode) + ".html");
-	// std::cout << "lastChance: " << lastChance << "\n";
-	if (!std::filesystem::is_regular_file(lastChance))
-		return (false);
-	if (!_checkPerm(lastChance, PERM_READ))
-		return (false);
-	_realPath = std::filesystem::weakly_canonical(lastChance);
-	return (true);
-}
-
-void	RequestValidate::_handleStatus(void)
-{
-	if (_statusCode < 400)
-		return ;
-	// handle error_pages
-	if (_handleErrorCode())
-		return ;
-	// use server scope error pages
-	_validParams = &(_requestConfig->getParams());
-	if (_handleErrorCode())
-		return ;
-	// use servers error page
-	if (_handleServerPages())
-		return ;
-	// final solution the case: internal server error 500
-	_realPath = "/";
-	targetDir.clear();
-	targetFile.clear();
-	_setStatusCode(500);
 }
 
 // ╭───────────────────────────╮
 // │   MAIN FUNCTION TO START  │
 // ╰───────────────────────────╯
-void	RequestValidate::solvePath(void)
+void	RequestValidate::solvePath( HTTPmethod method, t_path const& path, std::string const& hostName )
 {
-	// std::cout << "Enters solving\n";
-	// given NULL is not valid
-	if (!_requestConfig)
-		throw(RequestException({"No config given. Request validation can not continue."}, 500));
-	if (_requestPath.empty())
-		throw(RequestException({"No Path given. Request validation can not continue."}, 500));
-	// std::cout << "Requested params are set\n";
-	_setStatusCode(200);
-	// default params
-	_validParams = &(_requestConfig->getParams());
-	// Clean up the _requestPath, Set targetDir and targetFile based on _requestPath
-	_initTargetElements();
-	// std::cout << "Target params are set\n";
-	// std::cout << targetDir << " - " << targetFile << "\n";
-	// if directory is not root check for location
-	// std::cout << "location check entrence\n";
-	if (!targetDir.empty() || targetDir == "/")
+	_resetValues();
+	_setMethod(method);
+	_setPath(path);
+	_setConfig(hostName);
+	_initTargetElements();		// Clean up the _requestPath, Set targetDir and targetFile based on _requestPath
+	std::cout << "path: " << path << '\n';
+	if (!targetDir.empty() || targetDir == "/")	// if directory is not root check for location
 	{
-		// std::cout << "Dives into locations\n";
 		_initValidLocation();
 		if (_validLocation == nullptr)
-		{
-			// std::cout << "No location found: exit\n";
-			return (_setStatusCode(404), _handleStatus());// 404 error, not found
-		}
-		// std::cout << "URL: " << _validLocation->getURL() << "\n";
-		// std::cout << "found location filesystem: " << _validLocation->getFilesystem().c_str() << "\n";
+			return (_setStatusCode(404));
 		_validParams = &(_validLocation->getParams());
 	}
-	// std::cout << "Check allowed methods: " << _validParams->getAllowedMethods() << "\n";
 	if (!_validParams->getAllowedMethods()[_requestMethod])
-		return (_setStatusCode(405), _handleStatus());// 405 error, method not allowed
-	// std::cout << "Check return param\n";
-	// handle return
-	if (_handleReturns())
+		return (_setStatusCode(405));	// 405 error, method not allowed
+	if (_handleReturns())	// handle return
 		return ;
-	// std::cout << "Update target file : " << targetFile << "\n";
-	// set indexfile if necessarry
-	if (targetFile.empty() || targetFile == "/")
-		targetFile = _validParams->getIndex();
-	// Normalization for the case user gives sth random
+
+	if ((targetFile.empty() || targetFile == "/") and _hasValidIndex())	// set indexfile if necessarry
+		return (_handleIndex());
 	targetFile = std::filesystem::weakly_canonical(targetFile);
-	// std::cout << "New target file : " << targetFile << "\n";
-	if (targetFile.empty() || targetFile.string() == "/")
+	std::cout << "targetFile: " << targetFile << '\n';
+	if (targetFile.empty() || targetFile == "/")
 		_handleFolder();
 	else
 		_handleFile();
-	_handleStatus();
-	// std::cout << "Realpath: " << _realPath << " : " << _statusCode << "\n";
+}
+
+void	RequestValidate::solveErrorPath( int statusCode )
+{
+	t_path	errorPage;
+	try {
+		errorPage = this->_validParams->getErrorPages().at(statusCode);
+		if (this->_validLocation == nullptr)
+			this->_requestPath = std::string(errorPage);
+		else
+			this->_requestPath = t_path(this->_validLocation->getURL()) / std::string(errorPage).substr(1);
+	}
+	catch(const std::out_of_range& e1) {
+		try {
+			_resetValues();
+			this->_requestPath = this->_handlerServer->getParams().getErrorPages().at(statusCode);
+		}
+		catch(const std::out_of_range& e2) {
+			try {
+				this->_handlerServer = this->_defaultServer;
+				this->_requestPath = this->_handlerServer->getParams().getErrorPages().at(statusCode);
+			}
+			catch(const std::out_of_range& e3) {
+				throw(RequestException({"config doesn't provide a page for code:", std::to_string(statusCode)}, statusCode));
+			}
+		}
+	}
+	_setStatusCode(200);
+	_initTargetElements();
+	_handleFile();
 }
