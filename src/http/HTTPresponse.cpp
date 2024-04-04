@@ -63,7 +63,6 @@ void	HTTPresponse::readHTML( void )
 	readChar = read(this->_HTMLfd, buffer, HTTP_BUF_SIZE);
 	if (readChar < 0)
 	{
-		std::cout << "error on fd: " << this->_HTMLfd << '\n';
 		close(this->_HTMLfd);
 		if (this->_targetFile.empty() == true)
 			throw(ResponseException({"targetFile not set"}, 500));
@@ -327,7 +326,6 @@ void	HTTPresponse::setTargetFile( t_path const& targetFile)
 		this->_HTMLfd = open(targetFile.c_str(), O_RDONLY);
 		if (this->_HTMLfd == -1)
 			throw(ResponseException({"invalid file descriptor"}, 500));
-		std::cout << "reading file: " << targetFile << " fd: " << this->_HTMLfd << '\n';
 	}
 	this->_targetFile = targetFile;
 }

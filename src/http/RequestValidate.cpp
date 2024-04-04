@@ -297,7 +297,6 @@ void	RequestValidate::_handleIndex( void )
 	Parameters const	indexParam = *_validParams;
 	t_path				indexFilePath;
 
-	std::cout << "index situation " << indexParam.getIndex().size() << "\n";
 	for (auto indexFile : indexParam.getIndex())
 	{
 		indexFilePath = "";
@@ -343,7 +342,6 @@ void	RequestValidate::solvePath( HTTPmethod method, t_path const& path, std::str
 	_setPath(path);
 	_setConfig(hostName);
 	_initTargetElements();		// Clean up the _requestPath, Set targetDir and targetFile based on _requestPath
-	std::cout << "path: " << path << '\n';
 	if (!targetDir.empty() || targetDir == "/")	// if directory is not root check for location
 	{
 		_initValidLocation();
@@ -359,7 +357,6 @@ void	RequestValidate::solvePath( HTTPmethod method, t_path const& path, std::str
 	if ((targetFile.empty() || targetFile == "/") and _hasValidIndex())	// set indexfile if necessarry
 		return (_handleIndex());
 	targetFile = std::filesystem::weakly_canonical(targetFile);
-	std::cout << "targetFile: " << targetFile << '\n';
 	if (targetFile.empty() || targetFile == "/")
 		_handleFolder();
 	else

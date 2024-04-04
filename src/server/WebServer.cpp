@@ -237,7 +237,6 @@ void	WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePoll
 
 void	WebServer::_dropConn(int toDrop) noexcept
 {
-	std::cout << "closing fd: " << toDrop << '\n';
 	shutdown(toDrop, SHUT_RDWR);
 	close(toDrop);
 	for (auto curr=this->_pollfds.begin(); curr != this->_pollfds.end(); curr++)
@@ -251,7 +250,6 @@ void	WebServer::_dropConn(int toDrop) noexcept
 	delete this->_pollitems[toDrop];
 	this->_pollitems.erase(toDrop);
 	_dropStructs(toDrop);
-	std::cout << "remaining fd: " << this->_pollitems.size() << '\n';
 }
 
 void	WebServer::_dropStructs( int toDrop ) noexcept
@@ -403,7 +401,6 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	response->setRoot(request->getRoot());
 	if (request->getMethod() == "DELETE")
 	{
-		std::cout << "deleting file:\n" << request->getRealPath() << std::endl;
 		std::remove(request->getRealPath().c_str());
 		request->setRealPath("default/200_upload.html");
 		nextStatus = WRITE_TO_CLIENT;
