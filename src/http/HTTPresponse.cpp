@@ -1,23 +1,11 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        ::::::::            */
-/*   HTTPresponse.cpp                                   :+:    :+:            */
-/*                                                     +:+                    */
-/*   By: fra <fra@student.codam.nl>                   +#+                     */
-/*                                                   +#+                      */
-/*   Created: 2024/02/08 22:57:35 by fra           #+#    #+#                 */
-/*   Updated: 2024/03/26 15:57:40 by faru          ########   odam.nl         */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "HTTPresponse.hpp"
 
-HTTPresponse::HTTPresponse( int socket, HTTPtype type ) : HTTPstruct(socket, type) ,
-	_statusCode(200),
+HTTPresponse::HTTPresponse( int socket, int statusCode, HTTPtype type ) :
+	HTTPstruct(socket, statusCode, type) ,
 	_HTMLfd(-1),
 	_contentLengthWrite(0)
 {
-	if (type == HTTP_STATIC)
+	if (isStatic() == true)
 		this->_state = HTTP_RESP_HTML_READING;
 	else
 		this->_state = HTTP_RESP_PARSING;
@@ -25,58 +13,69 @@ HTTPresponse::HTTPresponse( int socket, HTTPtype type ) : HTTPstruct(socket, typ
 
 void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 {
-	std::string headers, body;
+	std::string headers;
 	size_t		delimiter;
 
-	if ((this->_type < HTTP_FAST_CGI) or (this->_state != HTTP_RESP_PARSING))
-		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
+	if ((isCGI() == false) or (isParsingNeeded() == false))
+		throw(ResponseException({"instance in wrong state or type to perfom action"}, 500));
 	delimiter = CGIresp.find(HTTP_DEF_TERM);
 	if (delimiter == std::string::npos)
 		throw(ResponseException({"no headers terminator in CGI response"}, 500));
 	delimiter += HTTP_DEF_TERM.size();
 	headers = CGIresp.substr(0, delimiter - HTTP_DEF_NL.size());
-	body = CGIresp.substr(delimiter);
+	this->_tmpBody = CGIresp.substr(delimiter);
+	_setVersion(HTTP_DEF_VERSION);
 	_setHeaders(headers);
 	_addHeader("Date", _getDateTime());
-	HTTPstruct::_setBody(body);
+	HTTPstruct::_setBody();
 	this->_state = HTTP_RESP_WRITING;
 	this->_strSelf = toString();
 }
 
-void	HTTPresponse::parseFromStatic( void )
+void	HTTPresponse::parseFromStatic( std::string const& servName )
 {
-	if ((this->_type > HTTP_AUTOINDEX_STATIC) or (this->_state != HTTP_RESP_PARSING))
-		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
+	if ((isCGI() == true) or (isParsingNeeded() == false))
+		throw(ResponseException({"instance in wrong state or type to perfom action"}, 500));
+	_setVersion(HTTP_DEF_VERSION);
 	_addHeader("Date", _getDateTime());
-	_addHeader("Server", this->_servName);
+	_addHeader("Server", servName);
 	_addHeader("Content-Length", std::to_string(this->_tmpBody.size()));
-	_addHeader("Content-Type", STD_CONTENT_TYPE);
-	HTTPstruct::_setBody(this->_tmpBody);
-	// if ((this->_statusCode >= 300) and (this->_statusCode < 400))	// NB: do it!
-	// {
-	// 	_addHeader("Location", "something");
-	// 	...
-	// }
+	_addHeader("Content-Type", _getContTypeFromFile(this->_targetFile));
+	if (isRedirection() == true)
+	{
+		if (this->_targetFile.empty() == true)
+			throw(ResponseException({"redirect file target not given"}, 500));
+		_addHeader("Location", this->_targetFile);
+	}
+	HTTPstruct::_setBody();
 	this->_state = HTTP_RESP_WRITING;
 	this->_strSelf = toString();
 }
 
-void	HTTPresponse::readHTML( int HTMLfd )
+void	HTTPresponse::readHTML( void )
 {
     ssize_t 	readChar = -1;
     char        buffer[HTTP_BUF_SIZE];
 
-	if ((this->_type != HTTP_STATIC) or (this->_state != HTTP_RESP_HTML_READING))
-		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
-	if (this->_HTMLfd == -1)
-		this->_HTMLfd = HTMLfd;
+	if ((isStatic() == false) or (isDoneReadingHTML() == true))
+		throw(ResponseException({"instance in wrong state or type to perfom action2"}, 500));
 	bzero(buffer, HTTP_BUF_SIZE);
 	readChar = read(this->_HTMLfd, buffer, HTTP_BUF_SIZE);
 	if (readChar < 0)
-		throw(ServerException({"fd unavailable"}));
+	{
+		close(this->_HTMLfd);
+		if (this->_targetFile.empty() == true)
+			throw(ResponseException({"targetFile not set"}, 500));
+		else
+			throw(ResponseException({"file", this->_targetFile, "not available"}, 500));
+	}
 	this->_tmpBody += std::string(buffer, buffer + readChar);
 	if (readChar < HTTP_BUF_SIZE)
+	{
+		close(this->_HTMLfd);
+		this->_HTMLfd = -1;
 		this->_state = HTTP_RESP_PARSING;
+	}
 }
 
 // Function to convert file_time_type to string
@@ -176,7 +175,7 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 				}
 
 				tr:nth-child(even) {
-					background-color: #333; 
+					background-color: #333;
 				}
 
 				tr:hover {
@@ -195,16 +194,14 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 		</head>
 		<body>
 		<div class="container">
-		<h1>Index of )" + pathDir.string().substr(_root.string().length()) + "/" + R"(</h1>
-		<hr>)";
-
+		<h1>Index of )" + pathDir.string().substr(_root.string().length()) + "/" + "</h1><hr>";
 	std::string parentDir = pathDir.parent_path().string() + "/";
 	std::string tmpRoot = _root.string();
 	size_t i = 0;
 	while (i < tmpRoot.length() && parentDir[i] == tmpRoot[i])
 		i++;
 	if (!parentDir.empty())
-		_tmpBody += R"(<tr><td><a href=")" + parentDir.substr(i) + R"(">[Parent directory]</a></td><td></td><td></td></tr>)";
+		_tmpBody += "<tr><td><a href=\"" + parentDir.substr(i) + "\">[Parent directory]</a></td><td></td><td></td></tr>";
 	_tmpBody += "<table><thead><tr><th>Name</th><th>Size</th><th>Date Modified</th></tr></thead><tbody>";
 	// Inserting folders into HTML
 	std::string name;
@@ -213,14 +210,14 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 	{
 		name = folder.path().filename().string();
 		path = std::filesystem::weakly_canonical(folder).string().substr(_root.string().length());
-		_tmpBody += "<tr><td><a href=" + path + "/" + "\">" + name + "/" + "</a></td><td>" + "</td><td>" + fileTimeToString(std::filesystem::last_write_time(folder)) + "</td></tr>";
+		_tmpBody += "<tr><td><a href=\"" + path + "/" + "\">" + name + "/" + "</a></td><td>" + "</td><td>" + fileTimeToString(std::filesystem::last_write_time(folder)) + "</td></tr>";
 	}
 	// Inserting files into HTML
 	for (const auto& file : files)
 	{
 		name = file.path().filename().string();
 		path = std::filesystem::weakly_canonical(file).string().substr(_root.string().length());
-		_tmpBody += "<tr><td><a href=" + path + "\">" + name + "</a></td><td>" + formatSize(std::filesystem::file_size(file)) +  "</td><td>" + fileTimeToString(std::filesystem::last_write_time(file)) + "</td></tr>";
+		_tmpBody += "<tr><td><a href=\"" + path + "\">" + name + "</a></td><td>" + formatSize(std::filesystem::file_size(file)) +  "</td><td>" + fileTimeToString(std::filesystem::last_write_time(file)) + "</td></tr>";
 	}
 	_tmpBody += "</tbody></table></div></body></html>";
 }
@@ -230,8 +227,8 @@ void	HTTPresponse::writeContent( void )
     ssize_t writtenChars = -1;
 	size_t	charsToWrite = 0;
 
-	if (this->_state != HTTP_RESP_WRITING)
-		throw(RequestException({"instance in wrong state or type to perfom action"}, 500));
+	if (isDoneWriting() == true)
+		throw(ResponseException({"instance in wrong state or type to perfom action"}, 500));
 	else if (this->_contentLengthWrite == 0)
 		_resetTimeout();
 	if ((this->_strSelf.size()) < HTTP_BUF_SIZE)
@@ -255,15 +252,21 @@ void	HTTPresponse::writeContent( void )
 	}
 }
 
-void	HTTPresponse::errorReset( int errorStatus ) noexcept
+void	HTTPresponse::errorReset( int errorStatus, bool hardCode ) noexcept
 {
 	this->_statusCode = errorStatus;
-	this->_HTMLfd = -1;
-
-	this->_type = HTTP_STATIC;
-	this->_body.clear();
-	if (this->_statusCode == 500)
+	if (this->_HTMLfd != -1)
 	{
+		close(this->_HTMLfd);
+		this->_HTMLfd = -1;
+	}
+	this->_contentLengthWrite = 0;
+	this->_targetFile.clear();
+	this->_headers.clear();
+	this->_root.clear();
+	if (hardCode == true)
+	{
+		this->_targetFile = "500.html";
 		this->_tmpBody = ERROR_500_CONTENT;
 		this->_state = HTTP_RESP_PARSING;
 	}
@@ -272,6 +275,7 @@ void	HTTPresponse::errorReset( int errorStatus ) noexcept
 		this->_tmpBody.clear();
 		this->_state = HTTP_RESP_HTML_READING;
 	}
+	this->_type = HTTP_STATIC;
 }
 
 std::string	HTTPresponse::toString( void ) const noexcept
@@ -308,31 +312,22 @@ std::string	HTTPresponse::toString( void ) const noexcept
 	return (strResp);
 }
 
-int		HTTPresponse::getStatusCode( void ) const noexcept
-{
-	return (this->_statusCode);
-}
-
-void	HTTPresponse::setHTMLfd( int HTMLfd )
-{
-	if (HTMLfd == -1)
-		throw(ResponseException({"Invalid file descriptor"}, 500));
-	this->_HTMLfd = HTMLfd;
-}
-
 int		HTTPresponse::getHTMLfd( void ) const noexcept
 {
 	return (this->_HTMLfd);
 }
 
-void		HTTPresponse::setRoot( t_path root) noexcept
+void	HTTPresponse::setTargetFile( t_path const& targetFile)
 {
-	this->_root = root;
-}
-
-t_path		HTTPresponse::getRoot( void ) const noexcept
-{
-	return (this->_root);
+	if (isStatic() == true)
+	{
+		if (this->_HTMLfd != -1)
+			throw(ResponseException({"already reading file", this->_targetFile}, 500));
+		this->_HTMLfd = open(targetFile.c_str(), O_RDONLY);
+		if (this->_HTMLfd == -1)
+			throw(ResponseException({"invalid file descriptor"}, 500));
+	}
+	this->_targetFile = targetFile;
 }
 
 bool	HTTPresponse::isDoneReadingHTML( void ) const noexcept
@@ -353,35 +348,36 @@ bool	HTTPresponse::isDoneWriting( void ) const noexcept
 void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 {
 	size_t	delimiter = 0;
+	int		statusCode = -1;
 
-	try
+	HTTPstruct::_setHeaders(strHeaders);
+	if (this->_headers.count("Status") == 0)
+		throw(ResponseException({"missing mandatory Status header in CGI response"}, 500));
+	delimiter = this->_headers.find("Status")->second.find(HTTP_DEF_SP);
+	try {
+		statusCode = std::stoi(this->_headers.find("Status")->second.substr(0, delimiter));
+	}
+	catch (const std::exception& e) {
+		throw(ResponseException({"invalid status code:", this->_headers.find("Status")->second}, 500));
+	}
+	if (statusCode >= 400)
+		throw(ResponseException({"error while running CGI"}, statusCode));
+	if (this->_headers.find("Server") == this->_headers.end()
+		|| this->_headers.find("Content-type") == this->_headers.end()
+		|| this->_headers.find("Content-Length") == this->_headers.end())
 	{
-		HTTPstruct::_setHeaders(strHeaders);
-		if (this->_headers.count("Status"))
-			delimiter = this->_headers.find("Status")->second.find(HTTP_DEF_SP);
-		try {
-			this->_statusCode = std::stoi(this->_headers.find("Status")->second.substr(0, delimiter));
-		}
-		catch(const std::exception& e) {
-			throw(ResponseException({"invalid status code"}, 500));
-		}
-		if (this->_headers.find("Server") == this->_headers.end()
-			|| this->_headers.find("Content-type") == this->_headers.end()
-			|| this->_headers.find("Content-Length") == this->_headers.end())
-		{
-			throw(ResponseException({"missing mandatory header(s) in CGI response"}, 500));
-		}
+		throw(ResponseException({"missing mandatory header(s) in CGI response"}, 500));
+	}
 
-		if (this->_type == HTTP_FILE_UPL_CGI
-			&& this->_statusCode < 400
-			&& this->_headers.find("Location") == this->_headers.end())
-		{
-			throw(ResponseException({"missing mandatory header(s) in CGI response"}, 500));
-		}
+	if (this->_type == HTTP_CGI_FILE_UPL)
+	{
+		if (this->_headers.count("Location") == 0)
+			throw(ResponseException({"missing mandatory Location header in CGI response"}, 500));
+		if (statusCode != 201)
+			throw(ResponseException({"file upload needs status code 201, given:", std::to_string(this->_statusCode)}, 500));
+		this->_targetFile = this->_headers.find("Location")->second;
 	}
-	catch (const HTTPexception& e2) {
-		throw(ResponseException({"invalid header"}, e2.getStatus()));
-	}
+	this->_statusCode = statusCode;
 }
 
 std::string	HTTPresponse::_mapStatusCode( int status) const
@@ -477,4 +473,22 @@ std::string	HTTPresponse::_getDateTime( void ) const noexcept
 	timeinfo = std::gmtime(&rawtime);
 	std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", timeinfo);
 	return (std::string(buffer));
+}
+
+std::string	HTTPresponse::_getContTypeFromFile( t_path const& fileName) const noexcept
+{
+	if ((fileName.extension() == ".html") or isAutoIndex())
+		return (HTML_CONTENT_TYPE);
+	else if (fileName.extension() == ".css")
+		return (CSS_CONTENT_TYPE);
+	else if (fileName.extension() == ".js")
+		return (JS_CONTENT_TYPE);
+	else if ((fileName.extension() == ".jpg") or (fileName.extension() == ".jpeg"))
+		return (JPG_CONTENT_TYPE);
+	else if (fileName.extension() == ".png")
+		return (PNG_CONTENT_TYPE);
+	else if (fileName.extension() == ".ico")
+		return (ICO_CONTENT_TYPE);
+	else
+		return (PLAIN_CONTENT_TYPE);
 }
