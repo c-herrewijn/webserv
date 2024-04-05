@@ -47,7 +47,7 @@ else:
 #     print("{0}: {1}".format(name, value), file=sys.stderr)
 
 print(f"Status: {status}", end='\r\n')
-print("Content-type: text/html", end='\r\n')
+print("Content-Type: text/html", end='\r\n')
 print(f"Content-Length: {len(html_content)}", end='\r\n')
 if ('SERVER_NAME' in environ.keys()):
     print(f"Server: {environ['SERVER_NAME']}", end='\r\n')

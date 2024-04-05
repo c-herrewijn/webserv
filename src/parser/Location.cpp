@@ -2,8 +2,8 @@
 
 Location::Location(void)
 {
-	URL = DEF_URL;
-	fullpath = URL;
+	this->URL = DEF_URL;
+	this->fullpath = DEF_URL;
 }
 
 Location::~Location(void)
@@ -12,7 +12,7 @@ Location::~Location(void)
 }
 
 Location::Location(const Location& copy) :
-	fullpath(copy.URL),
+	fullpath(copy.getFullPath()),
 	URL(copy.URL),
 	params(copy.params),
 	nested(copy.nested)
@@ -24,7 +24,7 @@ Location&	Location::operator=(const Location& assign)
 {
 	if (this != &assign)
 	{
-		fullpath = assign.fullpath;
+		this->fullpath = assign.fullpath;
 		URL = assign.URL;
 		params = assign.params;
 		nested.clear();
@@ -33,7 +33,7 @@ Location&	Location::operator=(const Location& assign)
 	return (*this);
 }
 
-Location::Location(std::vector<std::string>& block, const Parameters& param, std::filesystem::path const& prevPath)
+Location::Location(std::vector<std::string>& block, const Parameters& param, t_path const& prevPath)
 {
 	std::vector<std::vector<std::string>> locationHolder;
 	std::vector<std::string>::iterator index;
@@ -44,10 +44,9 @@ Location::Location(std::vector<std::string>& block, const Parameters& param, std
 	if (block.front()[0] != '/')
 		throw ParserException({"after 'location' expected a /URL"});
 	URL = block.front();
-	// it is not perfect but does the job :))
-	fullpath = std::filesystem::weakly_canonical(prevPath.string() + "/");
-	fullpath += std::filesystem::weakly_canonical(URL);
-	fullpath = std::filesystem::weakly_canonical(fullpath);
+	this->fullpath = std::filesystem::weakly_canonical(prevPath.string() + "/");
+	this->fullpath += std::filesystem::weakly_canonical(URL);
+	this->fullpath = std::filesystem::weakly_canonical(this->fullpath);
 	block.erase(block.begin());
 	if (block.front() != "{")
 		throw ParserException({"after '/URL' expected a '{'"});
@@ -89,7 +88,7 @@ Location::Location(std::vector<std::string>& block, const Parameters& param, std
 	block.erase(block.begin());
 	for (std::vector<std::vector<std::string>>::iterator it = locationHolder.begin(); it != locationHolder.end(); it++)
 	{
-		Location local(*it, params, std::filesystem::weakly_canonical(fullpath));
+		Location local(*it, params, std::filesystem::weakly_canonical(this->fullpath));
 		nested.push_back(local);
 	}
 }
@@ -109,7 +108,7 @@ const std::string& Location::getURL(void) const
 	return (URL);
 }
 
-const std::filesystem::path&	Location::getFullPath(void) const
+const t_path&	Location::getFullPath(void) const
 {
-	return (fullpath);
+	return (this->fullpath);
 }
