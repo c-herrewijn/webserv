@@ -2,7 +2,6 @@
 
 Parameters::Parameters(void)
 {
-	new_error_page = false;
 	this->root = DEF_ROOT;
 	this->cgi_allowed = DEF_CGI_ALLOWED;
 	this->cgi_extension = DEF_CGI_EXTENTION;
@@ -18,7 +17,6 @@ Parameters::~Parameters(void)
 }
 
 Parameters::Parameters(const Parameters& copy) :
-	new_error_page(copy.new_error_page),
 	max_size(copy.max_size),
 	autoindex(copy.autoindex),
 	index(copy.index),
@@ -37,7 +35,6 @@ Parameters&	Parameters::operator=(const Parameters& assign)
 	if (this != &assign)
 	{
 		error_pages.clear();
-		new_error_page = assign.new_error_page;
 		allowedMethods = assign.allowedMethods;
 		max_size = assign.max_size;
 		autoindex = assign.autoindex;
@@ -53,7 +50,6 @@ Parameters&	Parameters::operator=(const Parameters& assign)
 
 void	Parameters::inherit(Parameters const& old)
 {
-	new_error_page = false;
 	max_size = old.getMaxSize();
 	autoindex = old.getAutoindex();
 	index = old.getIndex();
@@ -245,14 +241,16 @@ void	Parameters::_parseAutoindex(std::vector<std::string>& block)
 
 void	Parameters::_parseIndex(std::vector<std::string>& block)
 {
+	this->index.clear();		// override current index pages
 	block.erase(block.begin());
-	this->index.clear();
 	while ((block.empty() == false) and (block.front() != ";"))
 	{
 		// if (block.front().find_first_of('/') != std::string::npos)
 		// 	throw ParserException({"'index' must be file '" + block.front() + "'"});
 		this->index.push_back(block.front());
 		block.erase(block.begin());
+		if ((block.front() != ";") and (this->index.back().is_absolute()))
+			throw ParserException({"only the last index file can have an absolute path"});
 	}
 	if (block.empty() == true)
 		throw ParserException({"no ';' terminator after index files"});
@@ -263,19 +261,15 @@ void	Parameters::_parseIndex(std::vector<std::string>& block)
 
 void	Parameters::_parseErrorPage(std::vector<std::string>& block)
 {
-	if (!new_error_page)
-	{
-		new_error_page = true;
-		error_pages.clear();
-	}
+	int code;
+
+	this->error_pages.clear();		// override current index pages
 	block.erase(block.begin());
 	if (block.front() == ";")
 	{
-		error_pages.clear();
 		block.erase(block.begin());
 		return ;
 	}
-	int code;
 	while (true)
 	{
 		try {

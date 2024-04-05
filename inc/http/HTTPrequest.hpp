@@ -85,6 +85,7 @@ class HTTPrequest : public HTTPstruct
 		void	_readChunkedBody( void );
 		void	_setHead( std::string const& ) override;
 		void	_setHeaders(std::string const& ) override;
+		void	_setVersion( std::string const& ) override;
 		void	_updateTypeAndState( void );
 		void	_checkMaxBodySize( void );
 
@@ -95,6 +96,4 @@ class HTTPrequest : public HTTPstruct
 		void	_setPath( std::string const& );
 		void	_setQuery( std::string const& );
 		void	_setFragment( std::string const& );
-		void	_setVersion( std::string const& ) override;
-
 };

@@ -98,21 +98,20 @@ void	WebServer::run( void )
 					}
 				}
 			}
+			catch (const HTTPexception& e) {
+				std::cout << C_RED << e.what()  << C_RESET << '\n';
+				redirectToErrorPage(pollfdItem.fd, e.getStatus());
+			}
 			catch (const ServerException& e) {
 				std::cerr << C_RED << e.what() << C_RESET << '\n';
-				this->_emptyConns.push_back(pollfdItem.fd);
-			}
-			catch (const EndConnectionException& e) {
-				std::cout << C_GREEN << "CLOSED CONNECTION - " << pollfdItem.fd << C_RESET << std::endl;
 				this->_emptyConns.push_back(pollfdItem.fd);
 			}
 			catch (const std::out_of_range& e) {
 				std::cerr << C_RED << "entity not found"  << C_RESET << '\n';
 				this->_emptyConns.push_back(pollfdItem.fd);
 			}
-			catch (const HTTPexception& e) {
-				std::cout << C_RED << e.what()  << C_RESET << '\n';
-				redirectToErrorPage(pollfdItem.fd, e.getStatus());
+			catch (const EndConnectionException& e) {
+				this->_emptyConns.push_back(pollfdItem.fd);
 			}
 			_clearEmptyConns();
 		}
@@ -251,6 +250,8 @@ void	WebServer::_dropConn(int toDrop) noexcept
 			break;
 		}
 	}
+	if (this->_pollitems[toDrop]->pollType == CLIENT_CONNECTION)
+		std::cout << C_GREEN << "CLOSED CONNECTION - " << toDrop << C_RESET << std::endl;
 	delete this->_pollitems[toDrop];
 	this->_pollitems.erase(toDrop);
 	_dropStructs(toDrop);
@@ -403,7 +404,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	this->_responses[clientSocket] = response;
 	response->setTargetFile(request->getRealPath());
 	response->setRoot(request->getRoot());
-	if (request->getMethod() == "DELETE")
+	if (request->getMethod() == "DELETE")		// NB: make better
 	{
 		std::remove(request->getRealPath().c_str());
 		request->setRealPath("default/200_upload.html");
@@ -539,6 +540,12 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 
 	if (this->_pollitems[genericFd]->pollType > CLIENT_CONNECTION)	// when genericFd refers to a pipe or a static file
 		this->_emptyConns.push_back(genericFd);
+	else if (statusCode == 444)		// NGINX custom behaviour: kill the connection without response
+	{
+		this->_emptyConns.push_back(clientSocket);
+		this->_pollitems[clientSocket]->pollState = READ_REQ_HEADER;
+		return ;
+	}
 	if (this->_responses[clientSocket] == nullptr)
 		this->_responses[clientSocket] = new HTTPresponse(request->getSocket(), statusCode);
 	response = this->_responses[clientSocket];

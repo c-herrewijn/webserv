@@ -7,6 +7,7 @@ void	HTTPrequest::parseHead( void )
 
 	if (this->_state != HTTP_REQ_HEAD_READING)
 		throw(RequestException({"instance in wrong state to perfom action"}, 500));
+	// throw(RequestException({"test"}, 404));
 	_readHead();
 	if (isDoneReadingHead() == true)
 	{
@@ -229,6 +230,8 @@ t_path const&	HTTPrequest::getRoot( void ) const noexcept
 
 bool	HTTPrequest::isEndConn( void ) noexcept
 {
+	if (this->_headers.count(HEADER_CONN) == 0)
+		return (false);
 	return (this->_headers.find(HEADER_CONN)->second == "close");
 }
 

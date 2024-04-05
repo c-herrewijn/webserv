@@ -297,17 +297,26 @@ void	RequestValidate::_handleIndex( void )
 
 	for (auto indexFile : indexParam.getIndex())
 	{
-		indexFilePath = "";
-		if (_validLocation != nullptr)
-			indexFilePath = _validLocation->getFullPath();
-		if (*indexFile.begin() == "/")
-			indexFilePath += indexFile;
+		if (indexFile.is_absolute())
+			indexFilePath = indexFile;
 		else
-			indexFilePath /= indexFile;
-		indexFilePath = std::filesystem::weakly_canonical(indexFilePath);
+		{
+			indexFilePath = "";
+			if (_validLocation != nullptr)
+				indexFilePath = _validLocation->getFullPath();
+			if (*indexFile.begin() == "/")
+				indexFilePath += indexFile;
+			else
+				indexFilePath /= indexFile;
+			indexFilePath = std::filesystem::weakly_canonical(indexFilePath);
+		}
+		std::cout << "indexfile: " << indexFilePath << '\n';
 		solvePath(HTTP_GET, indexFilePath, this->_handlerServer->getPrimaryName());
 		if (solvePathFailed() == false)
+		{
+			std::cout << indexFilePath << " indexfile found\n";
 			return ;
+		}
 	}
 }
 
@@ -335,6 +344,7 @@ bool	RequestValidate::_handleReturns(void)
 // ╰───────────────────────────╯
 void	RequestValidate::solvePath( HTTPmethod method, t_path const& path, std::string const& hostName )
 {
+	std::cout << "check path: " << path << '\n';
 	_resetValues();
 	_setMethod(method);
 	_setPath(path);
@@ -364,28 +374,28 @@ void	RequestValidate::solvePath( HTTPmethod method, t_path const& path, std::str
 void	RequestValidate::solveErrorPath( int statusCode )
 {
 	t_path	errorPage;
+
 	try {
-		errorPage = this->_validParams->getErrorPages().at(statusCode);
-		if (this->_validLocation == nullptr)
-			this->_requestPath = std::string(errorPage);
-		else
-			this->_requestPath = t_path(this->_validLocation->getURL()) / std::string(errorPage).substr(1);
+		if (this->_validLocation != nullptr)
+			errorPage = t_path(this->_validLocation->getFullPath());
+		errorPage += this->_validParams->getErrorPages().at(statusCode);
 	}
 	catch(const std::out_of_range& e1) {
 		try {
 			_resetValues();
-			this->_requestPath = this->_handlerServer->getParams().getErrorPages().at(statusCode);
+			errorPage = this->_handlerServer->getParams().getErrorPages().at(statusCode);
 		}
 		catch(const std::out_of_range& e2) {
 			try {
 				this->_handlerServer = this->_defaultServer;
-				this->_requestPath = this->_handlerServer->getParams().getErrorPages().at(statusCode);
+				errorPage = this->_handlerServer->getParams().getErrorPages().at(statusCode);
 			}
 			catch(const std::out_of_range& e3) {
 				throw(RequestException({"config doesn't provide a page for code:", std::to_string(statusCode)}, statusCode));
 			}
 		}
 	}
+	_setPath(errorPage);
 	_setStatusCode(200);
 	_initTargetElements();
 	_handleFile();
