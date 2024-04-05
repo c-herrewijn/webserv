@@ -67,7 +67,8 @@ class HTTPstruct
 		HTTPstruct( int socket, int statusCode, HTTPtype type ) : 
 			_socket(socket),
 			_statusCode(statusCode),
-			_type(type) {}
+			_type(type),
+			_version({HTTP_DEF_SCHEME, 1, 1}) {}
 		virtual	~HTTPstruct( void ) {};
 
 		virtual std::string	toString( void ) const noexcept =0;

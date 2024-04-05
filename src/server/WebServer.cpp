@@ -367,7 +367,7 @@ t_path	WebServer::_getDefErrorPage( int statusCode ) const
 	catch(const std::exception& e) {
 		throw(ServerException({"path", SERVER_DEF_PAGES,"is not valid -", e.what()}));
 	}
-	throw(ServerException({"no default error found [seerver corruption], code:", std::to_string(statusCode)}));
+	throw(ServerException({"no default error page found for code", std::to_string(statusCode)}));
 }
 
 void	WebServer::handleNewConnections( int listenerFd )
@@ -558,16 +558,20 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 		statusCode = e1.getStatus();
 		try {
 			HTMLerrPage = _getDefErrorPage(statusCode);
+			response->errorReset(statusCode, false);
+			response->setTargetFile(HTMLerrPage);
+			_addConn(response->getHTMLfd(), STATIC_FILE, READ_STATIC_FILE, "", "");
+			this->_pollitems[clientSocket]->pollState = READ_STATIC_FILE;
 		}
-		catch(const std::exception& e) {
+		catch(const ServerException& e) {
 			std::cerr<< C_RED << e.what() << '\n' << C_RESET;
-			response->errorReset(500, true);
-			this->_pollitems[clientSocket]->pollState = WRITE_TO_CLIENT;
-			return ;
+			if (statusCode == 500)
+			{
+				response->errorReset(statusCode, true);
+				this->_pollitems[clientSocket]->pollState = WRITE_TO_CLIENT;
+			}
+			else
+				redirectToErrorPage(clientSocket, 500);
 		}
 	}
-	response->errorReset(statusCode, false);
-	response->setTargetFile(HTMLerrPage);
-	_addConn(response->getHTMLfd(), STATIC_FILE, READ_STATIC_FILE, "", "");
-	this->_pollitems[clientSocket]->pollState = READ_STATIC_FILE;
 }

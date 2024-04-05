@@ -310,13 +310,9 @@ void	RequestValidate::_handleIndex( void )
 				indexFilePath /= indexFile;
 			indexFilePath = std::filesystem::weakly_canonical(indexFilePath);
 		}
-		std::cout << "indexfile: " << indexFilePath << '\n';
 		solvePath(HTTP_GET, indexFilePath, this->_handlerServer->getPrimaryName());
 		if (solvePathFailed() == false)
-		{
-			std::cout << indexFilePath << " indexfile found\n";
 			return ;
-		}
 	}
 }
 
@@ -344,7 +340,6 @@ bool	RequestValidate::_handleReturns(void)
 // ╰───────────────────────────╯
 void	RequestValidate::solvePath( HTTPmethod method, t_path const& path, std::string const& hostName )
 {
-	std::cout << "check path: " << path << '\n';
 	_resetValues();
 	_setMethod(method);
 	_setPath(path);

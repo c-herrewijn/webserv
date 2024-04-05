@@ -1,19 +1,19 @@
 #pragma once
-#include <netdb.h>          // gai_strerror, getaddrinfo, freeaddrinfo
-#include <cerrno>           // errno
-#include <sys/poll.h>     	// poll
+#include <unordered_map>	
 #include <netinet/in.h>     // socket, accept, listen, bind, connect
 #include <arpa/inet.h>      // htons, htonl, ntohs, ntohl
+#include <sys/poll.h>     	// poll
+#include <algorithm>
 #include <signal.h>         // kill, signal
 #include <iostream>			// I/O streaming
 #include <fstream>			// file streaming
+#include <netdb.h>          // gai_strerror, getaddrinfo, freeaddrinfo
+#include <cerrno>           // errno
 #include <string>			// std::string class
 #include <vector>
-#include <unordered_map>	
-#include <algorithm>
 
-#include "HTTPrequest.hpp"
 #include "HTTPresponse.hpp"
+#include "HTTPrequest.hpp"
 #include "Exceptions.hpp"
 #include "Config.hpp"
 #include "CGI.hpp"
