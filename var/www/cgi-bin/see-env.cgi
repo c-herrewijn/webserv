@@ -2,12 +2,15 @@
 from os import environ
 import sys
 
-env_list_str = "".join(["<li>{0}: {1}</li>".format(name, value) for name, value in environ.items() if value])
-html_content = f'''<html><body>
-                <h1>meta properties of your request and server: </h1>
-                <ul>{env_list_str}</ul>
-                <a href="/">go home</a>
-                </body></html>'''
+env_list_str = "".join(["\t<li>{0}: {1}</li>\n".format(name, value) for name, value in environ.items() if value])
+html_content = (
+    "<!DOCTYPE html>\n"
+    "<html><body>\n"
+    "<h1>meta properties of your request and server: </h1>\n"
+    f"<ul>\n{env_list_str}</ul>\n"
+    "<a href='/'>go home</a>\n"
+    "</body></html>\n"
+)
 
 # print('Python debug line', file=sys.stderr)
 # for name, value in environ.items():

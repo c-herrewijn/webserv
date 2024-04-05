@@ -23,10 +23,13 @@ if (last_name):
 else:
     cookie_header += f"Set-Cookie: last_name=; Max-Age=0; SameSite=Lax; Path=/" + "\r\n"
 
-html_content = f'''<html><body>
-                <h1>Hello {f"{first_name} {last_name}".strip() if first_name or last_name else "anonymous user"}!</h1>
-                <a href="/">go home</a>
-                </body></html>'''
+html_content = (
+    "<!DOCTYPE html>\n"
+    "<html><body>\n"
+    f"<h1>Hello {f'{first_name} {last_name}'.strip() if first_name or last_name else 'anonymous user'}!</h1>\n"
+    "<a href='/'>go home</a>\n"
+    "</body></html>\n"
+)
 
 print("Status: 200 OK", end='\r\n')
 print("Content-Type: text/html", end='\r\n')

@@ -10,11 +10,14 @@ longSection =  ""
 for _ in range(1000):
     longSection += "<p>Twenty chars!</p>"
 
-html_content = f'''<html><body>
-                <a href="/">go home</a>
-                {longSection}
-                <a href="/">go home</a>
-                </body></html>'''
+html_content = (
+    "<!DOCTYPE html>\n"
+    "<html><body>\n"
+    "<a href='/'>go home</a>\n"
+    f"{longSection}\n"
+    "<a href='/'>go home</a>\n"
+    "</body></html>\n"
+)
 
 # print('Python debug line', file=sys.stderr)
 # for name, value in environ.items():

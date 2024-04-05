@@ -18,11 +18,14 @@ if ('HTTP_COOKIE' in environ.keys() and environ['HTTP_COOKIE'] != ""):
 now = datetime.now()
 now_str = now.strftime('%H:%M:%S')
 
-html_content = f'''<html><body>
-                <h1>Hello {f"{first_name} {last_name}".strip() if first_name or last_name else "anonymous user"}!</h1>
-                <h2>Current time: {now_str}</h2>
-                <a href="/">go home</a>
-                </body></html>'''
+html_content = (
+    "<!DOCTYPE html>\n"
+    "<html><body>\n"
+    f"<h1>Hello {f'{first_name} {last_name}'.strip() if first_name or last_name else 'anonymous user'}!</h1>\n"
+    f"<h2>Current time: {now_str}</h2>\n"
+    "<a href='/'>go home</a>\n"
+    "</body></html>\n"
+)
 
 # print('Python debug line', file=sys.stderr)
 # for name, value in environ.items():

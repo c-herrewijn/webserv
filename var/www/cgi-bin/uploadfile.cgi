@@ -34,12 +34,15 @@ else:
     message = 'No file found in request!'
     status_code = '400 Bad Request'
 
-html_content = f'''<html><body>
-                <h1>File upload</h1>
-                <p>{message}:</p>
-                <p>Current time: {now_str}</p>
-                <a href="/">go home</a>
-                </body></html>'''
+html_content = (
+    "<!DOCTYPE html>\n"
+    "<html><body>\n"
+    "<h1>File upload</h1>\n"
+    f"<p>{message}:</p>\n"
+    f"<p>Current time: {now_str}</p>\n"
+    "<a href='/'>go home</a>\n"
+    "</body></html>\n"
+)
 
 # todo: validate headers
 # if environ.has_key('SERVER_NAME'):
