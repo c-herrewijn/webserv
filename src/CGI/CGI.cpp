@@ -76,7 +76,8 @@ void CGI::run()
             std::cerr << "Error in running CGI script!" << std::endl;
             std::cerr << "path: " << CGIfilePath.c_str() << std::endl;
             perror("");
-            exit(1); // TODO: exit() is not allowed!
+            // throw uncaught standard exception to force the child process to quit
+            throw std::exception();
         }
     }
     else {
