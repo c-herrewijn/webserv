@@ -406,8 +406,8 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	response->setRoot(request->getRoot());
 	if (request->getMethod() == "DELETE")
 	{
-		// NB. TODO: what if std::remove fails?
-		std::remove(request->getRealPath().c_str());
+		if (std::remove(request->getRealPath().c_str()) < 0)
+			throw(ResponseException({"Resource could not be deleted"}, 500));
 		response->setBodylessProperties(request->getServName());
 	}
 	if (request->isCGI())
