@@ -49,7 +49,6 @@ typedef enum HTTPtype_s
 	HTTP_STATIC,
 	HTTP_REDIRECTION,
 	HTTP_AUTOINDEX,
-	HTTP_CHUNKED,
 	HTTP_CGI_STATIC,
 	HTTP_CGI_FILE_UPL,
 }	HTTPtype;
@@ -84,7 +83,6 @@ class HTTPstruct
 		bool				isStatic( void ) const noexcept;
 		bool				isRedirection( void ) const noexcept;
 		bool				isAutoIndex( void ) const noexcept;
-		bool				isChunked( void ) const noexcept;
 		bool				isFastCGI( void ) const noexcept;
 		bool				isFileUpload( void ) const noexcept;
 		bool				isCGI( void ) const noexcept;
@@ -102,12 +100,11 @@ class HTTPstruct
 
 		virtual void	_setHead( std::string const& ) {};
 		virtual void	_setHeaders( std::string const& );
-		void			_setBody( void );
 		virtual void	_setVersion( std::string const& );
+		virtual void	_setBody( std::string const& tmpBody );
 
 		void	_resetTimeout( void ) noexcept;
 		void	_checkTimeout( void );
 
 		void	_addHeader(std::string const&, std::string const& ) noexcept;
-		void	_unchunkBody( void );
 	};

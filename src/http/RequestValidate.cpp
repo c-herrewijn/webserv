@@ -265,17 +265,13 @@ bool	RequestValidate::_handleFolder(void)
 
 bool	RequestValidate::_handleFile(void)
 {
-	t_path dirPath = _validParams->getRoot().string() + "/" + targetDir.string() + "/";
+	t_path dirPath = _validParams->getRoot().string() + targetDir.string();
 	t_path filePath = dirPath.string() + "/" + targetFile.string();
 	_isCGI = false;
 	if (!std::filesystem::exists(filePath))
 		return (_setStatusCode(404), false);
 	if (std::filesystem::is_directory(filePath))
 		return (_setStatusCode(404), false);
-	// {
-	// 	_realPath = std::filesystem::weakly_canonical(dirPath);
-	// 	return (_handleFolder());
-	// }
 	_realPath = std::filesystem::weakly_canonical(filePath);
 	if (_validParams->getCgiAllowed() &&
 		filePath.has_extension() &&

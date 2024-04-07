@@ -404,7 +404,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	this->_responses[clientSocket] = response;
 	response->setTargetFile(request->getRealPath());
 	response->setRoot(request->getRoot());
-	if (request->getMethod() == "DELETE")		// NB: make better
+	if (request->getMethod() == "DELETE")		// NB: make it better
 	{
 		std::remove(request->getRealPath().c_str());
 		request->setRealPath("default/200_upload.html");
@@ -540,7 +540,7 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 
 	if (this->_pollitems[genericFd]->pollType > CLIENT_CONNECTION)	// when genericFd refers to a pipe or a static file
 		this->_emptyConns.push_back(genericFd);
-	else if (statusCode == 444)		// NGINX custom behaviour: kill the connection without response
+	else if (statusCode == 444)		// NGINX custom behaviour: close connection without sending a response
 	{
 		this->_emptyConns.push_back(clientSocket);
 		this->_pollitems[clientSocket]->pollState = READ_REQ_HEADER;
@@ -558,10 +558,6 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 		statusCode = e1.getStatus();
 		try {
 			HTMLerrPage = _getDefErrorPage(statusCode);
-			response->errorReset(statusCode, false);
-			response->setTargetFile(HTMLerrPage);
-			_addConn(response->getHTMLfd(), STATIC_FILE, READ_STATIC_FILE, "", "");
-			this->_pollitems[clientSocket]->pollState = READ_STATIC_FILE;
 		}
 		catch(const ServerException& e) {
 			std::cerr<< C_RED << e.what() << '\n' << C_RESET;
@@ -572,6 +568,11 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 			}
 			else
 				redirectToErrorPage(clientSocket, 500);
+			return ;
 		}
 	}
+	response->errorReset(statusCode, false);
+	response->setTargetFile(HTMLerrPage);
+	_addConn(response->getHTMLfd(), STATIC_FILE, READ_STATIC_FILE, "", "");
+	this->_pollitems[clientSocket]->pollState = READ_STATIC_FILE;
 }

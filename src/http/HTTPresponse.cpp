@@ -27,7 +27,7 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 	_setVersion(HTTP_DEF_VERSION);
 	_setHeaders(headers);
 	_addHeader(HEADER_DATE, _getDateTime());
-	HTTPstruct::_setBody();
+	HTTPstruct::_setBody(this->_tmpBody);
 	this->_state = HTTP_RESP_WRITING;
 	this->_strSelf = toString();
 }
@@ -47,7 +47,7 @@ void	HTTPresponse::parseFromStatic( std::string const& servName )
 			throw(ResponseException({"redirect file target not given"}, 500));
 		_addHeader(HEADER_LOC, this->_targetFile);
 	}
-	HTTPstruct::_setBody();
+	HTTPstruct::_setBody(this->_tmpBody);
 	this->_state = HTTP_RESP_WRITING;
 	this->_strSelf = toString();
 }

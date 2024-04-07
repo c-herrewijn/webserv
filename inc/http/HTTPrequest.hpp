@@ -67,6 +67,7 @@ class HTTPrequest : public HTTPstruct
 		t_path const&		getRoot( void ) const noexcept;
 
 		bool	isEndConn( void ) noexcept;
+		bool	isChunked( void ) const noexcept;
 		bool	isDoneReadingHead( void ) const noexcept;
 		bool	isDoneReadingBody( void ) const noexcept;
 
@@ -86,6 +87,7 @@ class HTTPrequest : public HTTPstruct
 		void	_setHead( std::string const& ) override;
 		void	_setHeaders(std::string const& ) override;
 		void	_setVersion( std::string const& ) override;
+		void	_setBody( std::string const& ) override;
 		void	_updateTypeAndState( void );
 		void	_checkMaxBodySize( void );
 
@@ -96,4 +98,5 @@ class HTTPrequest : public HTTPstruct
 		void	_setPath( std::string const& );
 		void	_setQuery( std::string const& );
 		void	_setFragment( std::string const& );
+		void	_unchunkBody( std::string const& );
 };

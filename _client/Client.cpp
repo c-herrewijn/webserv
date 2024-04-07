@@ -75,8 +75,6 @@ void	Client::sendRequest( const char *request ) const
 	recvBytes = recv(this->_sockfd, buf, sizeBuf, 0);
 	if (recvBytes < 0)
 		throw(ClientException({"error: failed to read message from", this->getAddress(&this->_serverAddr).c_str()}));
-	buf[recvBytes] = '\0';
-	std::cout << buf << '\n';
 	shutdown(this->_sockfd, SHUT_RDWR);
 	close(this->_sockfd);
 }

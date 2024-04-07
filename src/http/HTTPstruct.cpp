@@ -50,11 +50,6 @@ bool	HTTPstruct::isAutoIndex( void ) const noexcept
 	return (this->_type == HTTP_AUTOINDEX);
 }
 
-bool	HTTPstruct::isChunked( void ) const noexcept
-{
-	return (this->_type == HTTP_CHUNKED);
-}
-
 bool	HTTPstruct::isFastCGI( void ) const noexcept
 {
 	return (this->_type == HTTP_CGI_STATIC);
@@ -67,7 +62,7 @@ bool	HTTPstruct::isFileUpload( void ) const noexcept
 
 bool	HTTPstruct::isCGI( void ) const noexcept
 {
-	return (this->_type > HTTP_CHUNKED);
+	return (this->_type >= HTTP_CGI_STATIC);
 }
 
 void	HTTPstruct::_setHeaders( std::string const& headers )
@@ -91,13 +86,9 @@ void	HTTPstruct::_setHeaders( std::string const& headers )
 	}
 }
 
-void	HTTPstruct::_setBody( void )
+void	HTTPstruct::_setBody( std::string const& tmpBody )
 {
-	if (this->_tmpBody.empty() == true)
-		return;
-	else if (this->_type == HTTP_CHUNKED)
-		_unchunkBody();
-    this->_body = this->_tmpBody;
+    this->_body = tmpBody;
 }
 
 void	HTTPstruct::_setVersion( std::string const& strVersion )
@@ -148,27 +139,4 @@ void	HTTPstruct::_checkTimeout( void )
 void	HTTPstruct::_addHeader(std::string const& name, std::string const& content) noexcept
 {
 	this->_headers.insert({name, content});
-}
-
-void	HTTPstruct::_unchunkBody( void )
-{
-	size_t		sizeChunk=0, delimiter=0;
-	std::string	tmpChunkedBody;
-
-	tmpChunkedBody = this->_tmpBody;
-	this->_tmpBody.clear();
-	do
-	{
-		delimiter = tmpChunkedBody.find(HTTP_DEF_NL);
-		if (delimiter == std::string::npos)
-			throw(HTTPexception({"bad chunking"}, 400));
-		try {
-			sizeChunk = std::stoul(tmpChunkedBody.substr(0, delimiter), nullptr, 16);
-			this->_tmpBody += tmpChunkedBody.substr(delimiter + HTTP_DEF_NL.size(), sizeChunk);
-			tmpChunkedBody = tmpChunkedBody.substr(delimiter + sizeChunk + HTTP_DEF_NL.size() * 2);
-		}
-		catch(const std::exception& e){
-			throw(HTTPexception({"bad chunking"}, 400));
-		}
-	} while (sizeChunk != 0);
 }
