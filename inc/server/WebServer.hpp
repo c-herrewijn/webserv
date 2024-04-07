@@ -12,6 +12,7 @@
 #include <string>			// std::string class
 #include <vector>
 #include <cstdio> 			// to delete files
+#include <chrono>			// timeout handling
 
 #include "HTTPresponse.hpp"
 #include "HTTPrequest.hpp"
@@ -21,6 +22,7 @@
 
 #define BACKLOG 			10		// max pending connection queued up
 #define SERVER_DEF_PAGES	t_path("default/errors")
+#define CONN_MAX_TIMEOUT	7
 
 using namespace std::chrono;
 
@@ -48,14 +50,13 @@ enum fdState
 
 typedef struct PollItem
 {
-	int			fd;
-	fdType  	pollType;
-    fdState 	pollState;
-	std::string	IPaddr;
-	std::string	port;
-	int			errorCode;
+	int							fd;
+	fdType  					pollType;
+    fdState 					pollState;
+	std::string					IPaddr;
+	std::string					port;
+	steady_clock::time_point	lastActivity;
 } t_PollItem;
-
 
 class WebServer
 {
@@ -85,6 +86,9 @@ class WebServer
 		int			_getSocketFromFd( int );
 		t_serv_list	_getServersFromIP( std::string const&, std::string const& ) const noexcept;
 		t_path		_getDefErrorPage( int ) const ;
+
+		void	_resetTimeout( int );
+		void	_checkTimeout( int );
 
 		void	handleNewConnections( int ); // keep - DONE
 		void	readRequestHeaders( int ); // keep / rework

@@ -133,7 +133,6 @@ void	HTTPstruct::_checkTimeout( void )
 	time_span = duration_cast<duration<int>>(steady_clock::now() - this->_lastActivity);
 	if (time_span.count() > HTTP_MAX_TIMEOUT)
 		throw(RequestException({"timeout request"}, 408));
-	_resetTimeout();
 }
 
 void	HTTPstruct::_addHeader(std::string const& name, std::string const& content) noexcept
