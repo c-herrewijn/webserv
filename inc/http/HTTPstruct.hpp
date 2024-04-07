@@ -52,6 +52,7 @@ typedef enum HTTPtype_s
 	HTTP_CHUNKED,
 	HTTP_CGI_STATIC,
 	HTTP_CGI_FILE_UPL,
+	HTTP_DELETE_204,
 }	HTTPtype;
 
 typedef struct HTTPversion_f
@@ -64,7 +65,7 @@ typedef struct HTTPversion_f
 class HTTPstruct
 {
 	public:
-		HTTPstruct( int socket, int statusCode, HTTPtype type ) : 
+		HTTPstruct( int socket, int statusCode, HTTPtype type ) :
 			_socket(socket),
 			_statusCode(statusCode),
 			_type(type) {}

@@ -52,6 +52,18 @@ void	HTTPresponse::parseFromStatic( std::string const& servName )
 	this->_strSelf = toString();
 }
 
+// creates response with status code: "204 No Content"
+void	HTTPresponse::setBodylessProperties(std::string const& servName)
+{
+	_setVersion(HTTP_DEF_VERSION);
+	_addHeader(HEADER_DATE, _getDateTime());
+	_addHeader(HEADER_SERVER, servName);
+	_addHeader(HEADER_CONT_LEN, "0");
+	this->_statusCode = 204;
+	this->_state = HTTP_RESP_WRITING;
+	this->_strSelf = toString();
+}
+
 void	HTTPresponse::readStaticFile( void )
 {
     ssize_t 	readChar = -1;
@@ -345,6 +357,7 @@ bool	HTTPresponse::isDoneWriting( void ) const noexcept
 	return (this->_state == HTTP_RESP_DONE);
 }
 
+// only used for CGI
 void	HTTPresponse::_setHeaders( std::string const& strHeaders )
 {
 	size_t	delimiter = 0;

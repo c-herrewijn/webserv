@@ -403,12 +403,14 @@ void	HTTPrequest::_updateTypeAndState( void )
 		else
 			this->_state = HTTP_REQ_DONE;
 	}
-	else		// autoindex, bodyless CGI, GET reqs
+	else		// autoindex, bodyless CGI, GET reqs, method DELETE
 	{
 		if (this->_validator.isAutoIndex() == true)
 			this->_type = HTTP_AUTOINDEX;
 		else if (this->_validator.isCGI() == true)
 			this->_type = HTTP_CGI_STATIC;
+		else if (this->getMethod() == "DELETE")
+			this->_type = HTTP_DELETE_204;
 		else
 			this->_type = HTTP_STATIC;
 		this->_state = HTTP_REQ_DONE;

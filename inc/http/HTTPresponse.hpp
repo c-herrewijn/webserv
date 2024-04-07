@@ -36,6 +36,7 @@ class HTTPresponse : public HTTPstruct
 
 		void		parseFromCGI( std::string const& );
 		void		parseFromStatic( std::string const& );
+		void		setBodylessProperties( std::string const& );
 		void		readStaticFile( void );
 		void		listContentDirectory( t_path const&);
 		void		writeContent( void ) ;

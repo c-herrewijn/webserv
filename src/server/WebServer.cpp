@@ -406,9 +406,9 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	response->setRoot(request->getRoot());
 	if (request->getMethod() == "DELETE")
 	{
+		// NB. TODO: what if std::remove fails?
 		std::remove(request->getRealPath().c_str());
-		request->setRealPath("default/200_upload.html");
-		nextStatus = WRITE_TO_CLIENT;
+		response->setBodylessProperties(request->getServName());
 	}
 	if (request->isCGI())
 	{
@@ -425,7 +425,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	}
 	else if (request->isStatic())
 		_addConn(response->getHTMLfd(), STATIC_FILE, READ_STATIC_FILE);
-	if ((request->isAutoIndex()) or (request->isRedirection()))
+	if ((request->isAutoIndex()) or (request->isRedirection()) or (request->getMethod() == "DELETE"))
 		nextStatus = WRITE_TO_CLIENT;
 	else if (request->isFastCGI())
 		nextStatus = WAIT_FOR_CGI;
