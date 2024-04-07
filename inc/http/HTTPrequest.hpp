@@ -42,7 +42,6 @@ class HTTPrequest : public HTTPstruct
 			_method(HTTP_GET),
 			_validator(servers),
 			_contentLength(0) ,
-			_contentLengthRead(0),
 			_maxBodySize(-1) {};
 		virtual ~HTTPrequest( void ) override {};
 
@@ -50,7 +49,6 @@ class HTTPrequest : public HTTPstruct
 		void		parseBody( void );
 		std::string	toString( void ) const noexcept override;
 		void		updateErrorCode( int ) ;
-		bool		hasBodyToRead( void ) const noexcept;
 
 		std::string		 	getMethod( void ) const noexcept;
 		std::string			getHost( void ) const noexcept;
@@ -62,13 +60,13 @@ class HTTPrequest : public HTTPstruct
 		std::string const&	getServName( void ) const noexcept;
 		t_path const&		getRealPath( void ) const noexcept;
 		t_path const&		getRedirectPath( void ) const noexcept;
-		void				setRealPath( t_path const& ) noexcept;
 		t_path const&		getRoot( void ) const noexcept;
 
 		bool	isEndConn( void ) noexcept;
 		bool	isChunked( void ) const noexcept;
 		bool	isDoneReadingHead( void ) const noexcept;
 		bool	isDoneReadingBody( void ) const noexcept;
+		bool	hasBodyToRead( void ) const noexcept;
 
 	protected:
 		HTTPreqState	_state;
@@ -78,15 +76,14 @@ class HTTPrequest : public HTTPstruct
 		RequestValidate	_validator;
 
 		std::string _tmpHead;
-		size_t		_contentLength, _contentLengthRead, _maxBodySize;
+		size_t		_contentLength, _maxBodySize;
 
-		void	_readHead( void );
-		void	_readPlainBody( void );
-		void	_readChunkedBody( void );
 		void	_setHead( std::string const& ) override;
 		void	_setHeaders(std::string const& ) override;
 		void	_setVersion( std::string const& ) override;
 		void	_setBody( std::string const& ) override;
+		void	_readHead( void );
+		void	_readBody( void );
 		void	_updateTypeAndState( void );
 		void	_checkMaxBodySize( void );
 

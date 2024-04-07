@@ -375,21 +375,21 @@ void	WebServer::handleNewConnections( int listenerFd )
 	struct sockaddr_storage client;
 	unsigned int 			sizeAddr = sizeof(client);
 	int 					connFd = -1;
-	std::string				Ip, port;
+	std::string				ip, port;
 
-	Ip = this->_pollitems[listenerFd]->IPaddr;
+	ip = this->_pollitems[listenerFd]->IPaddr;
 	connFd = accept(listenerFd, (struct sockaddr *) &client, &sizeAddr);
 	if (client.ss_family == AF_INET)
 		port = std::to_string(ntohs(((struct sockaddr_in*) &client)->sin_port));
 	else if (client.ss_family == AF_INET6)
 		port = std::to_string(ntohs(((struct sockaddr_in6*) &client)->sin6_port));
 	if (connFd == -1)
-		std::cerr << C_RED  << "connection with: " << Ip << ":" << port << " failed" << C_RESET << '\n';
+		std::cerr << C_RED  << "connection with: " << ip << ":" << port << " failed" << C_RESET << '\n';
 	else
 	{
 		fcntl(connFd, F_SETFL, O_NONBLOCK);
 		this->_addConn(connFd, CLIENT_CONNECTION, READ_REQ_HEADER, this->_pollitems[listenerFd]->IPaddr, this->_pollitems[listenerFd]->port);
-		std::cout << C_GREEN << "connected to " << Ip << ":" << port << C_RESET << '\n';
+		std::cout << C_GREEN << "connected to " << ip << ":" << port << C_RESET << '\n';
 	}
 }
 
@@ -411,7 +411,6 @@ void	WebServer::readRequestHeaders( int clientSocket )
 	if (request->getMethod() == "DELETE")
 	{
 		std::remove(request->getRealPath().c_str());
-		request->setRealPath("default/200_upload.html");
 	}
 	response->setTargetFile(request->getRealPath());
 	response->setRoot(request->getRoot());

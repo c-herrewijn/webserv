@@ -35,15 +35,23 @@ void	HTTPrequest::parseHead( void )
 
 void	HTTPrequest::parseBody( void )
 {
+	size_t	bodySize = 0;
+
 	if (isDoneReadingBody())
 		throw(RequestException({"instance in wrong state or type"}, 500));
-
-	if (isChunked())
-		_readChunkedBody();
-	else if (isFileUpload())
-		_readPlainBody();
+	_readBody();
 	if (isDoneReadingBody())
-		_setBody(this->_tmpBody);
+	{
+		if (isChunked())
+		{
+			bodySize = this->_tmpBody.find(HTTP_DEF_TERM);
+			if (bodySize > this->_maxBodySize)
+				throw(RequestException({"content body is longer than the maximum allowed"}, 413));
+		}
+		else
+			bodySize = this->_contentLength;
+		_setBody(this->_tmpBody.substr(0, bodySize));
+	}
 }
 
 std::string	HTTPrequest::toString( void ) const noexcept
@@ -116,20 +124,6 @@ void	HTTPrequest::updateErrorCode( int errorCode )
 				throw(RequestException({"endless cross loop with code:", std::to_string(this->_statusCode)}, this->_statusCode));
 		}
 	}
-}
-
-bool	HTTPrequest::hasBodyToRead( void ) const noexcept
-{
-	try {
-		if (isDoneReadingBody())
-			return (false);
-		else if (isChunked() and ((this->_tmpBody.find(HTTP_DEF_TERM) == std::string::npos)))
-			return (true);
-		else if (isFileUpload() and (this->_tmpBody.size() < this->_contentLength))
-			return (true);
-	}
-	catch(const std::exception& e) {}
-	return (false);
 }
 
 std::string 	HTTPrequest::getMethod( void ) const noexcept
@@ -217,11 +211,6 @@ t_path const&	HTTPrequest::getRealPath( void ) const noexcept
 	return (this->_validator.getRealPath());
 }
 
-void	HTTPrequest::setRealPath( t_path const& newRealPath ) noexcept
-{
-	this->_validator.setRealPath(newRealPath);
-}
-
 t_path const&	HTTPrequest::getRedirectPath( void ) const noexcept
 {
 	return (this->_validator.getRedirectRealPath());
@@ -252,93 +241,21 @@ bool	HTTPrequest::isDoneReadingHead( void ) const noexcept
 
 bool	HTTPrequest::isDoneReadingBody( void ) const noexcept
 {
-	return(isFileUpload() and
-		(this->_state > HTTP_REQ_BODY_READING));
+	return(isFileUpload() and (this->_state > HTTP_REQ_BODY_READING));
 }
 
-void	HTTPrequest::_readHead( void )
+bool	HTTPrequest::hasBodyToRead( void ) const noexcept
 {
-	char				buffer[HTTP_BUF_SIZE];
-	ssize_t				charsRead = -1;
-
-	if (this->_tmpHead.size() == 0)
-		_resetTimeout();
-	std::fill(buffer, buffer + HTTP_BUF_SIZE, 0);
-	charsRead = recv(this->_socket, buffer, HTTP_BUF_SIZE, 0);
-	if (charsRead < 0)
-		throw(ServerException({"unavailable socket"}));
-	else if (charsRead == 0)
-		throw(EndConnectionException({}));
-	else if (this->_tmpHead.size() + charsRead > MAX_HEADER_SIZE)
-		throw(RequestException({"headers too large"}, 431));
-	else if (charsRead == 0)
-		_checkTimeout();
-	else
-	{
-		this->_tmpHead += std::string(buffer, buffer + charsRead);
-		if (this->_tmpHead.find(HTTP_DEF_TERM) != std::string::npos)	// look for terminator in request
-			this->_state = HTTP_REQ_HEAD_PARSING;
+	try {
+		if (isDoneReadingBody())
+			return (false);
+		else if (isChunked() and ((this->_tmpBody.find(HTTP_DEF_TERM) == std::string::npos)))
+			return (true);
+		else if (isFileUpload() and (this->_tmpBody.size() < this->_contentLength))
+			return (true);
 	}
-}
-
-void	HTTPrequest::_readPlainBody( void )
-{
-    ssize_t 			charsRead = -1;
-    char        		buffer[HTTP_BUF_SIZE];
-
-	if (this->_contentLengthRead == 0)
-	{
-		_resetTimeout();
-		this->_contentLengthRead += this->_tmpBody.size();
-	}
-	std::fill(buffer, buffer + HTTP_BUF_SIZE, 0);
-	charsRead = recv(this->_socket, buffer, HTTP_BUF_SIZE, 0);
-	if (charsRead < 0 )
-		throw(ServerException({"unavailable socket"}));
-	else if (charsRead == 0)
-		_checkTimeout();
-	else
-	{
-		if ((this->_contentLengthRead + charsRead) > this->_contentLength)
-		{
-			charsRead -= this->_contentLength - this->_contentLengthRead;
-			this->_state = HTTP_REQ_DONE;
-		}
-		this->_tmpBody += std::string(buffer, buffer + charsRead);
-		this->_contentLengthRead += charsRead;
-	}
-}
-
-void	HTTPrequest::_readChunkedBody( void )
-{
-    ssize_t charsRead = -1;
-	size_t	delimiter = 0;
-    char	buffer[HTTP_BUF_SIZE];
-
-	if (this->_contentLengthRead == 0)
-	{
-		_resetTimeout();
-		this->_contentLengthRead += this->_tmpBody.size();
-	}
-	std::fill(buffer, buffer + HTTP_BUF_SIZE, 0);
-	charsRead = recv(this->_socket, buffer, HTTP_BUF_SIZE, 0);
-	if (charsRead < 0 )
-		throw(ServerException({"unavailable socket"}));
-	else if (charsRead == 0)
-		_checkTimeout();
-	else
-	{
-		delimiter = std::string(buffer).find(HTTP_DEF_TERM);
-		if (delimiter != std::string::npos)
-		{
-			charsRead = delimiter + HTTP_DEF_TERM.size();
-			this->_state = HTTP_REQ_DONE;
-		}
-		if ((this->_contentLengthRead + charsRead) > this->_maxBodySize)
-			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
-		this->_contentLengthRead += charsRead;
-		this->_tmpBody += std::string(buffer, buffer + charsRead);
-	}
+	catch(const std::exception& e) {}
+	return (false);
 }
 
 void	HTTPrequest::_setHead( std::string const& header )
@@ -383,6 +300,8 @@ void	HTTPrequest::_setHeaders( std::string const& strHeaders )
 	}
 	else
 	{
+		if (this->_headers.count(HEADER_CONT_TYPE) == 0)
+			throw(RequestException({HEADER_CONT_TYPE, "required"}, 400));
 		try {
 			this->_contentLength = std::stoull(this->_headers.find(HEADER_CONT_LEN)->second);
 		}
@@ -409,6 +328,52 @@ void	HTTPrequest::_setBody( std::string const& body )
 	if (isChunked())
 		_unchunkBody(body);
 	HTTPstruct::_setBody(body);
+}
+
+void	HTTPrequest::_readHead( void )
+{
+	char				buffer[HTTP_BUF_SIZE];
+	ssize_t				charsRead = -1;
+
+	std::fill(buffer, buffer + HTTP_BUF_SIZE, 0);
+	charsRead = recv(this->_socket, buffer, HTTP_BUF_SIZE, 0);
+	if (charsRead < 0)
+		throw(ServerException({"unavailable socket"}));
+	else if (charsRead == 0)
+		throw(EndConnectionException({}));
+	else if (this->_tmpHead.size() + charsRead > MAX_HEADER_SIZE)
+		throw(RequestException({"headers too large"}, 431));
+	else if (charsRead == 0)
+		_checkTimeout();
+	else
+	{
+		this->_tmpHead += std::string(buffer, buffer + charsRead);
+		if (this->_tmpHead.find(HTTP_DEF_TERM) != std::string::npos)	// look for terminator in request
+			this->_state = HTTP_REQ_HEAD_PARSING;
+		else
+			_resetTimeout();
+	}
+}
+
+void	HTTPrequest::_readBody( void )
+{
+    ssize_t charsRead = -1;
+    char	buffer[HTTP_BUF_SIZE];
+
+	std::fill(buffer, buffer + HTTP_BUF_SIZE, 0);
+	charsRead = recv(this->_socket, buffer, HTTP_BUF_SIZE, 0);
+	if (charsRead < 0 )
+		throw(ServerException({"unavailable socket"}));
+	else if (charsRead == 0)
+		_checkTimeout();
+	else
+	{
+		this->_tmpBody += std::string(buffer, buffer + charsRead);
+		if (hasBodyToRead() == false)
+			this->_state = HTTP_REQ_DONE;
+		else
+			_resetTimeout();
+	}
 }
 
 void	HTTPrequest::_updateTypeAndState( void )
