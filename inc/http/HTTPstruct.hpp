@@ -81,12 +81,13 @@ class HTTPstruct
 		t_path const&		getRoot( void ) const noexcept;
 		void				setRoot( t_path const& ) noexcept;
 
-		bool				isStatic( void ) const noexcept;
-		bool				isRedirection( void ) const noexcept;
-		bool				isAutoIndex( void ) const noexcept;
-		bool				isFastCGI( void ) const noexcept;
-		bool				isFileUpload( void ) const noexcept;
-		bool				isCGI( void ) const noexcept;
+		bool	isStatic( void ) const noexcept;
+		bool	isRedirection( void ) const noexcept;
+		bool	isAutoIndex( void ) const noexcept;
+		bool	isFastCGI( void ) const noexcept;
+		bool	isFileUpload( void ) const noexcept;
+		bool	isDelete( void ) const noexcept;
+		bool	isCGI( void ) const noexcept;
 
 	protected:
 		int			_socket, _statusCode;

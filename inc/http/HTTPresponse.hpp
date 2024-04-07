@@ -33,11 +33,11 @@ class HTTPresponse : public HTTPstruct
 		HTTPresponse( int, int, HTTPtype type=HTTP_STATIC);
 		virtual ~HTTPresponse( void ) override {};
 
-		void		parseFromCGI( std::string const& );
-		void		parseFromStatic( std::string const& );
-		void		setBodylessProperties( std::string const& );
+		void		parseCGI( std::string const& );
+		void		parseNotCGI( std::string const& );
 		void		readStaticFile( void );
-		void		listContentDirectory( t_path const&);
+		void		listContentDirectory( void );
+		void		removeFile( void ) const;
 		void		writeContent( void ) ;
 		void		errorReset( int, bool hardCode ) noexcept;
 		std::string	toString( void ) const noexcept override;

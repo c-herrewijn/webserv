@@ -94,5 +94,6 @@ class HTTPrequest : public HTTPstruct
 		void	_setPath( std::string const& );
 		void	_setQuery( std::string const& );
 		void	_setFragment( std::string const& );
-		void	_unchunkBody( std::string const& );
+	
+		std::string	_unchunkBody( std::string const& );
 };

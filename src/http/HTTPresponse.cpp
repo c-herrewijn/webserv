@@ -11,7 +11,7 @@ HTTPresponse::HTTPresponse( int socket, int statusCode, HTTPtype type ) :
 		this->_state = HTTP_RESP_PARSING;
 }
 
-void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
+void	HTTPresponse::parseCGI( std::string const& CGIresp )
 {
 	std::string headers;
 	size_t		delimiter;
@@ -32,34 +32,27 @@ void	HTTPresponse::parseFromCGI( std::string const& CGIresp )
 	this->_strSelf = toString();
 }
 
-void	HTTPresponse::parseFromStatic( std::string const& servName )
+void	HTTPresponse::parseNotCGI( std::string const& servName )
 {
 	if ((isCGI() == true) or (isParsingNeeded() == false))
 		throw(ResponseException({"instance in wrong state or type to perfom action"}, 500));
 	_setVersion(HTTP_DEF_VERSION);
 	_addHeader(HEADER_DATE, _getDateTime());
 	_addHeader(HEADER_SERVER, servName);
-	_addHeader(HEADER_CONT_LEN, std::to_string(this->_tmpBody.size()));
-	_addHeader(HEADER_CONT_TYPE, _getContTypeFromFile(this->_targetFile));
-	if (isRedirection() == true)
+	if (isDelete())				// DELETE responses are bodyless
+		this->_statusCode = 204;
+	else
 	{
-		if (this->_targetFile.empty() == true)
-			throw(ResponseException({"redirect file target not given"}, 500));
-		_addHeader(HEADER_LOC, this->_targetFile);
+		_addHeader(HEADER_CONT_LEN, std::to_string(this->_tmpBody.size()));
+		_addHeader(HEADER_CONT_TYPE, _getContTypeFromFile(this->_targetFile));
+		if (isRedirection() == true)
+		{
+			if (this->_targetFile.empty() == true)
+				throw(ResponseException({"redirect file target not given"}, 500));
+			_addHeader(HEADER_LOC, this->_targetFile);
+		}
+		HTTPstruct::_setBody(this->_tmpBody);
 	}
-	HTTPstruct::_setBody(this->_tmpBody);
-	this->_state = HTTP_RESP_WRITING;
-	this->_strSelf = toString();
-}
-
-// creates response with status code: "204 No Content"
-void	HTTPresponse::setBodylessProperties(std::string const& servName)
-{
-	_setVersion(HTTP_DEF_VERSION);
-	_addHeader(HEADER_DATE, _getDateTime());
-	_addHeader(HEADER_SERVER, servName);
-	_addHeader(HEADER_CONT_LEN, "0");
-	this->_statusCode = 204;
 	this->_state = HTTP_RESP_WRITING;
 	this->_strSelf = toString();
 }
@@ -122,7 +115,7 @@ static std::string formatSize(uintmax_t size)
 	return oss.str();
 }
 
-void	HTTPresponse::listContentDirectory( t_path const& pathDir)
+void	HTTPresponse::listContentDirectory( void )
 {
 	// index of ....			[Header]
 	// ------------------------	[break]
@@ -134,7 +127,9 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 	std::set<std::filesystem::directory_entry> files;
 
 	// Populating folders and files sets
-	for (const auto& entry : std::filesystem::directory_iterator(pathDir))
+	if ((isAutoIndex() == false) or (this->_state != HTTP_RESP_PARSING))
+		throw(ResponseException({"instance in wrong state or type to perfom action2"}, 500));
+	for (const auto& entry : std::filesystem::directory_iterator(this->_targetFile))
 	{
 		if (std::filesystem::is_directory(entry))
 			folders.insert(entry);
@@ -206,8 +201,8 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 		</head>
 		<body>
 		<div class="container">
-		<h1>Index of )" + pathDir.string().substr(_root.string().length()) + "/" + "</h1><hr>";
-	std::string parentDir = pathDir.parent_path().string() + "/";
+		<h1>Index of )" + this->_targetFile.string().substr(_root.string().length()) + "/" + "</h1><hr>";
+	std::string parentDir = this->_targetFile.parent_path().string() + "/";
 	std::string tmpRoot = _root.string();
 	size_t i = 0;
 	while (i < tmpRoot.length() && parentDir[i] == tmpRoot[i])
@@ -232,6 +227,14 @@ void	HTTPresponse::listContentDirectory( t_path const& pathDir)
 		_tmpBody += "<tr><td><a href=\"" + path + "\">" + name + "</a></td><td>" + formatSize(std::filesystem::file_size(file)) +  "</td><td>" + fileTimeToString(std::filesystem::last_write_time(file)) + "</td></tr>";
 	}
 	_tmpBody += "</tbody></table></div></body></html>";
+}
+
+void	HTTPresponse::removeFile( void ) const
+{
+	if ((isDelete() == false) or (this->_state != HTTP_RESP_PARSING))
+		throw(ResponseException({"instance in wrong state or type to perfom action2"}, 500));
+	if (std::remove(this->_targetFile.c_str()) < 0)
+		throw(ResponseException({"resource", this->_targetFile, "could not be deleted"}, 500));
 }
 
 void	HTTPresponse::writeContent( void )

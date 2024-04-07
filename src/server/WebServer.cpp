@@ -405,44 +405,41 @@ void	WebServer::readRequestHeaders( int clientSocket )
 		this->_requests[clientSocket] = new HTTPrequest(clientSocket, _getServersFromIP(this->_pollitems[clientSocket]->IPaddr, this->_pollitems[clientSocket]->port));
 	request = this->_requests[clientSocket];
 	request->parseHead();
-	if (request->isDoneReadingHead() == false)
-		return;
-	response = new HTTPresponse(request->getSocket(), request->getStatusCode(), request->getType());
-	this->_responses[clientSocket] = response;
-	if (request->getMethod() == "DELETE")
+	if (request->isDoneReadingHead())
 	{
-		if (std::remove(request->getRealPath().c_str()) < 0)
-			throw(ResponseException({"Resource could not be deleted"}, 500));
-		response->setBodylessProperties(request->getServName());
-	}
-	response->setTargetFile(request->getRealPath());
-	response->setRoot(request->getRoot());
-	if (request->isCGI())
-	{
-		cgi = new CGI(*request);
-		if (request->isFastCGI() == true) {
-			close(cgi->getUploadPipe()[0]);
-			close(cgi->getUploadPipe()[1]);
+		response = new HTTPresponse(request->getSocket(), request->getStatusCode(), request->getType());
+		this->_responses[clientSocket] = response;
+		response->setTargetFile(request->getRealPath());
+		response->setRoot(request->getRoot());
+
+		if (request->isCGI())		// GET cgi, POST
+		{
+			cgi = new CGI(*request);
+			if (request->isFastCGI() == true) {
+				close(cgi->getUploadPipe()[0]);
+				close(cgi->getUploadPipe()[1]);
+			}
+			this->_addConn(cgi->getResponsePipe()[0], CGI_RESPONSE_PIPE_READ_END, READ_CGI_RESPONSE);
+			if (request->isFileUpload())
+				this->_addConn(cgi->getUploadPipe()[1], CGI_REQUEST_PIPE_WRITE_END, WRITE_TO_CGI);
+			this->_cgi[clientSocket] = cgi;
+			cgi->run();
 		}
-		this->_addConn(cgi->getResponsePipe()[0], CGI_RESPONSE_PIPE_READ_END, READ_CGI_RESPONSE);
-		if (request->isFileUpload())
-			this->_addConn(cgi->getUploadPipe()[1], CGI_REQUEST_PIPE_WRITE_END, WRITE_TO_CGI);
-		this->_cgi[clientSocket] = cgi;
-		cgi->run();
+		else if (request->isStatic())		// GET static
+			_addConn(response->getHTMLfd(), STATIC_FILE, READ_STATIC_FILE);
+		std::cout << request->toString() << '\n';
+		if (request->isAutoIndex() or request->isRedirection() or request->isDelete())
+			nextStatus = WRITE_TO_CLIENT;
+		else if (request->isFastCGI())
+			nextStatus = WAIT_FOR_CGI;
+		else if (request->hasBodyToRead())
+			nextStatus = READ_REQ_BODY;
+		else if (request->isStatic())
+			nextStatus = READ_STATIC_FILE;
+		else
+			nextStatus = READ_CGI_RESPONSE;
+		this->_pollitems[clientSocket]->pollState = nextStatus;
 	}
-	else if ((request->isStatic()) or (request->getMethod() == "DELETE"))
-		_addConn(response->getHTMLfd(), STATIC_FILE, READ_STATIC_FILE);
-	if ((request->isAutoIndex()) or (request->isRedirection()) or (request->getMethod() == "DELETE"))
-		nextStatus = WRITE_TO_CLIENT;
-	else if (request->isFastCGI())
-		nextStatus = WAIT_FOR_CGI;
-	else if (request->hasBodyToRead())
-		nextStatus = READ_REQ_BODY;
-	else if ((request->isStatic()) or (request->getMethod() == "DELETE"))
-		nextStatus = READ_STATIC_FILE;
-	else
-		nextStatus = READ_CGI_RESPONSE;
-	this->_pollitems[clientSocket]->pollState = nextStatus;
 }
 
 void	WebServer::readStaticFiles( int staticFileFd )
@@ -517,12 +514,14 @@ void	WebServer::writeToClients( int clientSocket )
 	if (response->isParsingNeeded())
 	{
 		if (response->isCGI())
-			response->parseFromCGI(this->_cgi.at(clientSocket)->getResponse());
+			response->parseCGI(this->_cgi.at(clientSocket)->getResponse());
 		else
 		{
 			if (response->isAutoIndex())
-				response->listContentDirectory(request->getRealPath());
-			response->parseFromStatic(request->getServName());
+				response->listContentDirectory();
+			else if (response->isDelete())
+				response->removeFile();
+			response->parseNotCGI(request->getServName());
 		}
 	}
 	response->writeContent();

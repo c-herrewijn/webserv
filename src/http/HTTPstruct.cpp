@@ -60,6 +60,11 @@ bool	HTTPstruct::isFileUpload( void ) const noexcept
 	return (this->_type == HTTP_CGI_FILE_UPL);
 }
 
+bool	HTTPstruct::isDelete( void ) const noexcept
+{
+	return (this->_type == HTTP_DELETE_204);
+}
+
 bool	HTTPstruct::isCGI( void ) const noexcept
 {
 	return (this->_type == HTTP_CGI_STATIC || this->_type == HTTP_CGI_FILE_UPL);

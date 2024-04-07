@@ -35,23 +35,11 @@ void	HTTPrequest::parseHead( void )
 
 void	HTTPrequest::parseBody( void )
 {
-	size_t	bodySize = 0;
-
 	if (isDoneReadingBody())
 		throw(RequestException({"instance in wrong state or type"}, 500));
 	_readBody();
 	if (isDoneReadingBody())
-	{
-		if (isChunked())
-		{
-			bodySize = this->_tmpBody.find(HTTP_DEF_TERM);
-			if (bodySize > this->_maxBodySize)
-				throw(RequestException({"content body is longer than the maximum allowed"}, 413));
-		}
-		else
-			bodySize = this->_contentLength;
-		_setBody(this->_tmpBody.substr(0, bodySize));
-	}
+		_setBody(this->_tmpBody);
 }
 
 std::string	HTTPrequest::toString( void ) const noexcept
@@ -325,9 +313,20 @@ void	HTTPrequest::_setVersion( std::string const& strVersion )
 
 void	HTTPrequest::_setBody( std::string const& body )
 {
+	size_t		delim = 0;
+	std::string	bodyToStore;
+
 	if (isChunked())
-		_unchunkBody(body);
-	HTTPstruct::_setBody(body);
+	{
+		delim = body.find(HTTP_DEF_TERM);
+		if (delim > this->_maxBodySize)
+			throw(RequestException({"content body is longer than the maximum allowed"}, 413));
+		delim += HTTP_DEF_TERM.size();
+		this->_tmpBody = _unchunkBody(body.substr(0, delim));
+	}
+	else
+		this->_tmpBody = body.substr(0, this->_contentLength);
+	HTTPstruct::_setBody(this->_tmpBody);
 }
 
 void	HTTPrequest::_readHead( void )
@@ -394,13 +393,13 @@ void	HTTPrequest::_updateTypeAndState( void )
 		else
 			this->_state = HTTP_REQ_DONE;
 	}
-	else		// autoindex, bodyless CGI, GET reqs, method DELETE
+	else		// autoindex, bodyless CGI, GET reqs, DELETE
 	{
 		if (this->_validator.isAutoIndex() == true)
 			this->_type = HTTP_AUTOINDEX;
 		else if (this->_validator.isCGI() == true)
 			this->_type = HTTP_CGI_STATIC;
-		else if (this->getMethod() == "DELETE")
+		else if (this->_method == HTTP_DELETE)
 			this->_type = HTTP_DELETE_204;
 		else
 			this->_type = HTTP_STATIC;
@@ -560,13 +559,12 @@ void	HTTPrequest::_setFragment( std::string const& strFragment)
 	this->_url.fragment = strFragment.substr(1);
 }
 
-void	HTTPrequest::_unchunkBody( std::string const& chunkedBody )
+std::string	HTTPrequest::_unchunkBody( std::string const& chunkedBody )
 {
 	size_t		sizeChunk=0, delimiter=0;
-	std::string	tmpChunkedBody;
+	std::string	tmpChunkedBody, unchunkedBody;
 
 	tmpChunkedBody = chunkedBody;
-	this->_tmpBody.clear();
 	do
 	{
 		delimiter = tmpChunkedBody.find(HTTP_DEF_NL);
@@ -574,11 +572,12 @@ void	HTTPrequest::_unchunkBody( std::string const& chunkedBody )
 			throw(HTTPexception({"bad chunking"}, 400));
 		try {
 			sizeChunk = std::stoul(tmpChunkedBody.substr(0, delimiter), nullptr, 16);
-			this->_tmpBody += tmpChunkedBody.substr(delimiter + HTTP_DEF_NL.size(), sizeChunk);
+			unchunkedBody += tmpChunkedBody.substr(delimiter + HTTP_DEF_NL.size(), sizeChunk);
 			tmpChunkedBody = tmpChunkedBody.substr(delimiter + sizeChunk + HTTP_DEF_NL.size() * 2);
 		}
 		catch(const std::exception& e){
 			throw(HTTPexception({"bad chunking"}, 400));
 		}
 	} while (sizeChunk != 0);
+	return (unchunkedBody);
 }
