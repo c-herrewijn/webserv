@@ -27,7 +27,6 @@ class RequestValidate
 		void	solveErrorPath( int );
 
 		t_path const&		getRealPath( void ) const;
-		void				setRealPath( t_path const& ) noexcept;
 		t_path const&		getRedirectRealPath( void ) const;
 		std::string const&	getServName( void ) const;
 		std::uintmax_t		getMaxBodySize( void ) const;

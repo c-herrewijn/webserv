@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <vector>
 #include <filesystem>
-#include <chrono>
+#include <chrono>			// timeout handling
 
 #include "Exceptions.hpp"
 
@@ -17,7 +17,7 @@
 #define HTTP_DEF_SP			' '							// shortcut for space
 #define HTTP_DEF_VERSION	HTTP_DEF_SCHEME + std::string("/1.1")
 #define HTTP_BUF_SIZE 		8192						// 8K
-#define HTTP_MAX_TIMEOUT	5
+#define HTTP_MAX_TIMEOUT	10
 
 // request headers
 #define	HEADER_CONT_LEN			"Content-Length"
@@ -49,7 +49,6 @@ typedef enum HTTPtype_s
 	HTTP_STATIC,
 	HTTP_REDIRECTION,
 	HTTP_AUTOINDEX,
-	HTTP_CHUNKED,
 	HTTP_CGI_STATIC,
 	HTTP_CGI_FILE_UPL,
 	HTTP_DELETE_204,
@@ -68,7 +67,8 @@ class HTTPstruct
 		HTTPstruct( int socket, int statusCode, HTTPtype type ) :
 			_socket(socket),
 			_statusCode(statusCode),
-			_type(type) {}
+			_type(type),
+			_version({HTTP_DEF_SCHEME, 1, 1}) {_resetTimeout();}
 		virtual	~HTTPstruct( void ) {};
 
 		virtual std::string	toString( void ) const noexcept =0;
@@ -84,7 +84,6 @@ class HTTPstruct
 		bool				isStatic( void ) const noexcept;
 		bool				isRedirection( void ) const noexcept;
 		bool				isAutoIndex( void ) const noexcept;
-		bool				isChunked( void ) const noexcept;
 		bool				isFastCGI( void ) const noexcept;
 		bool				isFileUpload( void ) const noexcept;
 		bool				isCGI( void ) const noexcept;
@@ -102,12 +101,11 @@ class HTTPstruct
 
 		virtual void	_setHead( std::string const& ) {};
 		virtual void	_setHeaders( std::string const& );
-		void			_setBody( void );
 		virtual void	_setVersion( std::string const& );
+		virtual void	_setBody( std::string const& tmpBody );
 
 		void	_resetTimeout( void ) noexcept;
 		void	_checkTimeout( void );
 
 		void	_addHeader(std::string const&, std::string const& ) noexcept;
-		void	_unchunkBody( void );
 	};

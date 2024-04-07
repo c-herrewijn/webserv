@@ -50,7 +50,6 @@ class Parameters
 		const bool& 						getCgiAllowed(void) const;
 
 	private:
-		bool						new_error_page;
 		std::uintmax_t				max_size;	// Will be overwriten by last found
 		bool						autoindex;	// FALSE in default, will be overwriten.
 		std::vector<t_path>			index;	// Will be searched in given order

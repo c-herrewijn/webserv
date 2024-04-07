@@ -27,11 +27,6 @@ t_path const&	RequestValidate::getRealPath( void ) const
 	return (_realPath);
 }
 
-void	RequestValidate::setRealPath( t_path const& newRealPath ) noexcept
-{
-	this->_realPath = newRealPath;
-}
-
 t_path const&	RequestValidate::getRedirectRealPath( void ) const
 {
 	return (_redirectRealPath);
@@ -265,17 +260,13 @@ bool	RequestValidate::_handleFolder(void)
 
 bool	RequestValidate::_handleFile(void)
 {
-	t_path dirPath = _validParams->getRoot().string() + "/" + targetDir.string() + "/";
+	t_path dirPath = _validParams->getRoot().string() + targetDir.string();
 	t_path filePath = dirPath.string() + "/" + targetFile.string();
 	_isCGI = false;
 	if (!std::filesystem::exists(filePath))
 		return (_setStatusCode(404), false);
 	if (std::filesystem::is_directory(filePath))
 		return (_setStatusCode(404), false);
-	// {
-	// 	_realPath = std::filesystem::weakly_canonical(dirPath);
-	// 	return (_handleFolder());
-	// }
 	_realPath = std::filesystem::weakly_canonical(filePath);
 	if (_validParams->getCgiAllowed() &&
 		filePath.has_extension() &&
@@ -297,14 +288,19 @@ void	RequestValidate::_handleIndex( void )
 
 	for (auto indexFile : indexParam.getIndex())
 	{
-		indexFilePath = "";
-		if (_validLocation != nullptr)
-			indexFilePath = _validLocation->getFullPath();
-		if (*indexFile.begin() == "/")
-			indexFilePath += indexFile;
+		if (indexFile.is_absolute())
+			indexFilePath = indexFile;
 		else
-			indexFilePath /= indexFile;
-		indexFilePath = std::filesystem::weakly_canonical(indexFilePath);
+		{
+			indexFilePath = "";
+			if (_validLocation != nullptr)
+				indexFilePath = _validLocation->getFullPath();
+			if (*indexFile.begin() == "/")
+				indexFilePath += indexFile;
+			else
+				indexFilePath /= indexFile;
+			indexFilePath = std::filesystem::weakly_canonical(indexFilePath);
+		}
 		solvePath(HTTP_GET, indexFilePath, this->_handlerServer->getPrimaryName());
 		if (solvePathFailed() == false)
 			return ;
@@ -364,28 +360,28 @@ void	RequestValidate::solvePath( HTTPmethod method, t_path const& path, std::str
 void	RequestValidate::solveErrorPath( int statusCode )
 {
 	t_path	errorPage;
+
 	try {
-		errorPage = this->_validParams->getErrorPages().at(statusCode);
-		if (this->_validLocation == nullptr)
-			this->_requestPath = std::string(errorPage);
-		else
-			this->_requestPath = t_path(this->_validLocation->getURL()) / std::string(errorPage).substr(1);
+		if (this->_validLocation != nullptr)
+			errorPage = t_path(this->_validLocation->getFullPath());
+		errorPage += this->_validParams->getErrorPages().at(statusCode);
 	}
 	catch(const std::out_of_range& e1) {
 		try {
 			_resetValues();
-			this->_requestPath = this->_handlerServer->getParams().getErrorPages().at(statusCode);
+			errorPage = this->_handlerServer->getParams().getErrorPages().at(statusCode);
 		}
 		catch(const std::out_of_range& e2) {
 			try {
 				this->_handlerServer = this->_defaultServer;
-				this->_requestPath = this->_handlerServer->getParams().getErrorPages().at(statusCode);
+				errorPage = this->_handlerServer->getParams().getErrorPages().at(statusCode);
 			}
 			catch(const std::out_of_range& e3) {
 				throw(RequestException({"config doesn't provide a page for code:", std::to_string(statusCode)}, statusCode));
 			}
 		}
 	}
+	_setPath(errorPage);
 	_setStatusCode(200);
 	_initTargetElements();
 	_handleFile();

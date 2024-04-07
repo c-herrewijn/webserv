@@ -18,10 +18,10 @@ void runClient( const char *host, const char *port )
 {
 	try
 	{
-		std::cout << "running client on process: " << getpid() << "\n" << STD_REQUEST_CHK << '\n'; 
+		std::cout << "running client on process: " << getpid() << "\n" << STD_REQUEST_CHK2 << '\n'; 
 		Client webClient;
 		webClient.connectTo(host, port);
-		webClient.sendRequest(STD_REQUEST_CHK);
+		webClient.sendRequest(STD_REQUEST_CHK2);
 	}
 	catch(ClientException const& e)
 	{
