@@ -11,6 +11,7 @@
 #include <cerrno>           // errno
 #include <string>			// std::string class
 #include <vector>
+#include <cstdio> 			// to delete files
 
 #include "HTTPresponse.hpp"
 #include "HTTPrequest.hpp"

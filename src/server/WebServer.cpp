@@ -1,6 +1,4 @@
 #include "WebServer.hpp"
-#include "CGI.hpp"
-#include <cstdio>  // to delete files
 
 WebServer::WebServer( t_serv_list const& servers )
 {
@@ -198,7 +196,7 @@ void	WebServer::_readData( int readFd )	// POLLIN
 
 		default:
 			// std::cout << C_RED << "UNEXPECTED POLLIN - " << readFd << " poll state = " << this->_pollitems[readFd]->pollState << C_RESET << std::endl;
-			break;		// NB: or throw exception?
+			break;
 	}
 }
 
@@ -402,14 +400,14 @@ void	WebServer::readRequestHeaders( int clientSocket )
 		return;
 	response = new HTTPresponse(request->getSocket(), request->getStatusCode(), request->getType());
 	this->_responses[clientSocket] = response;
-	response->setTargetFile(request->getRealPath());
-	response->setRoot(request->getRoot());
-	if (request->getMethod() == "DELETE")		// NB: make it better
+	if (request->getMethod() == "DELETE")
 	{
 		std::remove(request->getRealPath().c_str());
 		request->setRealPath("default/200_upload.html");
-		nextStatus = WRITE_TO_CLIENT;
+		// nextStatus = WRITE_TO_CLIENT;
 	}
+	response->setTargetFile(request->getRealPath());
+	response->setRoot(request->getRoot());
 	if (request->isCGI())
 	{
 		cgi = new CGI(*request);
@@ -423,7 +421,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 		this->_cgi[clientSocket] = cgi;
 		cgi->run();
 	}
-	else if (request->isStatic())
+	else if ((request->isStatic()) or (request->getMethod() == "DELETE"))
 		_addConn(response->getHTMLfd(), STATIC_FILE, READ_STATIC_FILE);
 	if ((request->isAutoIndex()) or (request->isRedirection()))
 		nextStatus = WRITE_TO_CLIENT;
@@ -431,7 +429,7 @@ void	WebServer::readRequestHeaders( int clientSocket )
 		nextStatus = WAIT_FOR_CGI;
 	else if (request->hasBodyToRead())
 		nextStatus = READ_REQ_BODY;
-	else if (request->isStatic())
+	else if ((request->isStatic()) or (request->getMethod() == "DELETE"))
 		nextStatus = READ_STATIC_FILE;
 	else
 		nextStatus = READ_CGI_RESPONSE;
@@ -456,7 +454,7 @@ void	WebServer::readStaticFiles( int staticFileFd )
 void	WebServer::readRequestBody( int clientSocket )
 {
 	HTTPrequest *request = this->_requests.at(clientSocket);
-	if (request->getTmpBody() == "")	// NB: this check is problematic in case of chunked requests
+	if (request->getTmpBody() == "")
 		request->parseBody();
 }
 
@@ -495,7 +493,6 @@ void	WebServer::readCGIResponses( int cgiPipe )
 	if (readChars < 0)
 		throw(ServerException({"unavailable socket"}));
 	cgi->appendResponse(std::string(buffer, buffer + readChars));
-
 	if (readChars < HTTP_BUF_SIZE)
 	{
 		this->_emptyConns.push_back(cgiPipe);
