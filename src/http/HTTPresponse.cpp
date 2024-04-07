@@ -59,7 +59,7 @@ void	HTTPresponse::readHTML( void )
 
 	if ((isStatic() == false) or (isDoneReadingHTML() == true))
 		throw(ResponseException({"instance in wrong state or type to perfom action2"}, 500));
-	bzero(buffer, HTTP_BUF_SIZE);
+	std::fill(buffer, buffer + HTTP_BUF_SIZE, 0);
 	readChar = read(this->_HTMLfd, buffer, HTTP_BUF_SIZE);
 	if (readChar < 0)
 	{

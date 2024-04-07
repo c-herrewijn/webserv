@@ -263,7 +263,7 @@ void	HTTPrequest::_readHead( void )
 
 	if (this->_tmpHead.size() == 0)
 		_resetTimeout();
-	bzero(buffer, HTTP_BUF_SIZE);
+	std::fill(buffer, buffer + HTTP_BUF_SIZE, 0);
 	charsRead = recv(this->_socket, buffer, HTTP_BUF_SIZE, 0);
 	if (charsRead < 0)
 		throw(ServerException({"unavailable socket"}));
@@ -291,7 +291,7 @@ void	HTTPrequest::_readPlainBody( void )
 		_resetTimeout();
 		this->_contentLengthRead += this->_tmpBody.size();
 	}
-	bzero(buffer, HTTP_BUF_SIZE);
+	std::fill(buffer, buffer + HTTP_BUF_SIZE, 0);
 	charsRead = recv(this->_socket, buffer, HTTP_BUF_SIZE, 0);
 	if (charsRead < 0 )
 		throw(ServerException({"unavailable socket"}));
@@ -320,7 +320,7 @@ void	HTTPrequest::_readChunkedBody( void )
 		_resetTimeout();
 		this->_contentLengthRead += this->_tmpBody.size();
 	}
-	bzero(buffer, HTTP_BUF_SIZE);
+	std::fill(buffer, buffer + HTTP_BUF_SIZE, 0);
 	charsRead = recv(this->_socket, buffer, HTTP_BUF_SIZE, 0);
 	if (charsRead < 0 )
 		throw(ServerException({"unavailable socket"}));

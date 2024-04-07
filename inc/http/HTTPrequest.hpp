@@ -2,7 +2,6 @@
 
 #include <sys/types.h>        // send, recv
 #include <sys/socket.h>       // send, recv
-#include <cstring>           // bzero
 #include <fstream>
 
 #include "HTTPstruct.hpp"

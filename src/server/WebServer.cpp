@@ -121,10 +121,8 @@ void	WebServer::run( void )
 void	WebServer::_listenTo( std::string const& hostname, std::string const& port )
 {
 	struct addrinfo *tmp, *list, filter;
-	struct sockaddr_storage	hostIP;
-	int yes=1, listenSocket=-1;
+	int 			yes=1, listenSocket=-1;
 
-	bzero(&filter, sizeof(struct addrinfo));
 	filter.ai_flags = AI_PASSIVE;
 	filter.ai_family = AF_UNSPEC;
 	filter.ai_protocol = IPPROTO_TCP;
@@ -145,18 +143,20 @@ void	WebServer::_listenTo( std::string const& hostname, std::string const& port 
 	if (tmp == nullptr)
 	{
 		freeaddrinfo(list);
-		std::cout << C_RED << "no available IP host found for " << hostname << " port " << port << '\n' << C_RESET;
+		std::cout << C_RED << "no available IP for " << hostname << ":" << port << '\n' << C_RESET;
 		return ;
 	}
-	memmove(&hostIP, tmp->ai_addr, std::min(sizeof(struct sockaddr), sizeof(struct sockaddr_storage)));
 	freeaddrinfo(list);
 	if (listen(listenSocket, BACKLOG) != 0)
 	{
 		close(listenSocket);
-		throw(ServerException({"failed listen on", this->_getAddress(&hostIP)}));
+		std::cout << C_RED << "failed listen on: " << hostname << ":" << port << "\n" << C_RESET;
 	}
-	std::cout << C_GREEN << "listening on: " << this->_getAddress(&hostIP) << "\n" << C_RESET;
-	this->_addConn(listenSocket, LISTENER, WAITING_FOR_CONNECTION, hostname, port);
+	else
+	{
+		this->_addConn(listenSocket, LISTENER, WAITING_FOR_CONNECTION, hostname, port);
+		std::cout << C_GREEN << "listening on: " << hostname << ":" << port << "\n" << C_RESET;
+	}
 }
 
 void	WebServer::_readData( int readFd )	// POLLIN
@@ -291,26 +291,6 @@ void	WebServer::_clearStructs( int toDrop, bool clearAll ) noexcept
 	}
 }
 
-std::string	WebServer::_getAddress( const struct sockaddr_storage *addr ) const noexcept
-{
-	std::string ipAddress;
-	if (addr->ss_family == AF_INET)
-	{
-		char ipv4[INET_ADDRSTRLEN];
-		struct sockaddr_in *addr_v4 = (struct sockaddr_in*) addr;
-		inet_ntop(addr_v4->sin_family, &(addr_v4->sin_addr), ipv4, sizeof(ipv4));
-		ipAddress = std::string(ipv4) + std::string(":") + std::to_string(ntohs(addr_v4->sin_port));
-	}
-	if (addr->ss_family == AF_INET6)
-	{
-		char ipv6[INET6_ADDRSTRLEN];
-		struct sockaddr_in6 *addr_v6 = (struct sockaddr_in6*) addr;
-		inet_ntop(addr_v6->sin6_family, &(addr_v6->sin6_addr), ipv6, sizeof(ipv6));
-		ipAddress = std::string(ipv6) + std::string(":") + std::to_string(ntohs(addr_v6->sin6_port));
-	}
-	return (ipAddress);
-}
-
 int		WebServer::_getSocketFromFd( int fd )
 {
 	if (this->_pollitems[fd]->pollType == CGI_REQUEST_PIPE_WRITE_END)
@@ -395,15 +375,21 @@ void	WebServer::handleNewConnections( int listenerFd )
 	struct sockaddr_storage client;
 	unsigned int 			sizeAddr = sizeof(client);
 	int 					connFd = -1;
+	std::string				Ip, port;
 
+	Ip = this->_pollitems[listenerFd]->IPaddr;
 	connFd = accept(listenerFd, (struct sockaddr *) &client, &sizeAddr);
+	if (client.ss_family == AF_INET)
+		port = std::to_string(ntohs(((struct sockaddr_in*) &client)->sin_port));
+	else if (client.ss_family == AF_INET6)
+		port = std::to_string(ntohs(((struct sockaddr_in6*) &client)->sin6_port));
 	if (connFd == -1)
-		std::cerr << C_RED  << "connection with: " << this->_getAddress(&client) << " failed" << C_RESET << '\n';
+		std::cerr << C_RED  << "connection with: " << Ip << ":" << port << " failed" << C_RESET << '\n';
 	else
 	{
-		std::cout << C_GREEN << "connected to " << this->_getAddress(&client) << C_RESET << '\n';
 		fcntl(connFd, F_SETFL, O_NONBLOCK);
 		this->_addConn(connFd, CLIENT_CONNECTION, READ_REQ_HEADER, this->_pollitems[listenerFd]->IPaddr, this->_pollitems[listenerFd]->port);
+		std::cout << C_GREEN << "connected to " << Ip << ":" << port << C_RESET << '\n';
 	}
 }
 
@@ -509,7 +495,7 @@ void	WebServer::readCGIResponses( int cgiPipe )
 	ssize_t	readChars = -1;
 	char 	buffer[HTTP_BUF_SIZE];
 
-	bzero(buffer, HTTP_BUF_SIZE);
+	std::fill(buffer, buffer + HTTP_BUF_SIZE, 0);
 	readChars = read(cgiPipe, buffer, HTTP_BUF_SIZE);
 	if (readChars < 0)
 		throw(ServerException({"unavailable socket"}));

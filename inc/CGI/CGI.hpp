@@ -6,7 +6,6 @@
 
 # include <array>
 # include <string>
-# include <strings.h> // bzero()
 # include <unistd.h>  // pipe(), fork()
 # include <sys/wait.h>  // waitpid()
 

@@ -81,7 +81,6 @@ class WebServer
 		void		_dropConn( int ) noexcept;
 		void		_clearEmptyConns( void ) noexcept;
 		void		_clearStructs( int, bool ) noexcept;
-		std::string	_getAddress( const struct sockaddr_storage*) const noexcept ;
 		int			_getSocketFromFd( int );
 		t_serv_list	_getServersFromIP( std::string const&, std::string const& ) const noexcept;
 		t_path		_getDefErrorPage( int ) const ;

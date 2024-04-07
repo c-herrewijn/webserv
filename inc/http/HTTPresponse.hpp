@@ -1,6 +1,5 @@
 #pragma once
 #include <ctime>
-#include <cstring>				// bzero
 #include <sys/types.h>        	// send, recv
 #include <sys/socket.h>       	// send, recv
 #include <unistd.h>				// read
