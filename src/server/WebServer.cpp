@@ -92,7 +92,7 @@ void	WebServer::run( void )
 						if (pollfdItem.revents & POLLHUP)
 							errStr = "POLLHUP";
 						std::cout << C_RED << "fd: " << pollfdItem.fd << " client-end side was closed: " << errStr << C_RESET << std::endl;
-						this->_emptyConns.push_back(pollfdItem.fd);	
+						_dropConn(pollfdItem.fd);	
 					}
 				}
 				if (!(pollfdItem.revents & POLLIN) and (this->_pollitems[pollfdItem.fd]->pollType == CLIENT_CONNECTION))
@@ -104,17 +104,17 @@ void	WebServer::run( void )
 			}
 			catch (const ServerException& e) {
 				std::cerr << C_RED << e.what() << C_RESET << '\n';
-				this->_emptyConns.push_back(pollfdItem.fd);
+				_dropConn(pollfdItem.fd);
 			}
 			catch (const std::out_of_range& e) {
 				std::cerr << C_RED << "entity not found"  << C_RESET << '\n';
-				this->_emptyConns.push_back(pollfdItem.fd);
+				_dropConn(pollfdItem.fd);
 			}
 			catch (const EndConnectionException& e) {
-				this->_emptyConns.push_back(pollfdItem.fd);
+				_dropConn(pollfdItem.fd);
 			}
-			_clearEmptyConns();
 		}
+		_clearEmptyConns();
 	}
 }
 
@@ -231,7 +231,6 @@ void	WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePoll
 		throw(ServerException({"invalid file descriptor"}));
 	this->_pollfds.push_back({newSocket, POLLIN | POLLOUT, 0});
 	newPollitem = new PollItem;
-	newPollitem->fd = newSocket;
 	newPollitem->pollType = typePollItem;
 	newPollitem->pollState = statePollItem;
 	newPollitem->IPaddr = ip;
@@ -242,25 +241,39 @@ void	WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePoll
 
 void	WebServer::_dropConn(int toDrop) noexcept
 {
-	shutdown(toDrop, SHUT_RDWR);
+	if ((this->_pollitems[toDrop]->pollType == LISTENER) or
+		(this->_pollitems[toDrop]->pollType == CLIENT_CONNECTION))
+		shutdown(toDrop, SHUT_RDWR);
 	close(toDrop);
-	for (auto curr=this->_pollfds.begin(); curr != this->_pollfds.end(); curr++)
-	{
-		if (curr->fd == toDrop)
-		{
-			this->_pollfds.erase(curr);
-			break;
-		}
-	}
+	this->_emptyConns.push_back(toDrop);
 	if (this->_pollitems[toDrop]->pollType == CLIENT_CONNECTION)
 		std::cout << C_GREEN << "CLOSED CONNECTION - " << toDrop << C_RESET << std::endl;
-	delete this->_pollitems[toDrop];
-	this->_pollitems.erase(toDrop);
-	_dropStructs(toDrop);
 }
 
-void	WebServer::_dropStructs( int toDrop ) noexcept
+void	WebServer::_clearEmptyConns( void ) noexcept
 {
+	while (this->_emptyConns.empty() == false)
+	{
+		_clearStructs(this->_emptyConns.back(), true);
+		this->_emptyConns.pop_back();
+	}
+}
+
+void	WebServer::_clearStructs( int toDrop, bool clearAll ) noexcept
+{
+	if (clearAll)
+	{
+		for (auto curr=this->_pollfds.begin(); curr != this->_pollfds.end(); curr++)
+		{
+			if (curr->fd == toDrop)
+			{
+				this->_pollfds.erase(curr);
+				break;
+			}
+		}
+		delete this->_pollitems[toDrop];
+		this->_pollitems.erase(toDrop);
+	}
 	if (this->_requests.count(toDrop) > 0)
 	{
 		delete this->_requests[toDrop];
@@ -275,15 +288,6 @@ void	WebServer::_dropStructs( int toDrop ) noexcept
 	{
 		delete this->_cgi[toDrop];
 		this->_cgi.erase(toDrop);
-	}
-}
-
-void	WebServer::_clearEmptyConns( void ) noexcept
-{
-	while (this->_emptyConns.empty() == false)
-	{
-		_dropConn(this->_emptyConns.back());
-		this->_emptyConns.pop_back();
 	}
 }
 
@@ -463,7 +467,7 @@ void	WebServer::readStaticFiles( int staticFileFd )
 	response->readHTML();
 	if (response->isDoneReadingHTML() == true)
 	{
-		this->_emptyConns.push_back(staticFileFd);
+		_dropConn(staticFileFd);
 		this->_pollitems[socket]->pollState = WRITE_TO_CLIENT;
 	}
 }
@@ -490,9 +494,9 @@ void	WebServer::writeToCGI( int cgiPipe )
 		request->setTmpBody("");
 
 		// drop from pollList after writing is done
-		if (request->isDoneReadingBody()) {
-			close(cgiPipe); // close write end of cgi upload pipe
-			this->_emptyConns.push_back(cgiPipe);
+		if (request->isDoneReadingBody())
+		{
+			_dropConn(cgiPipe);		// close write end of cgi upload pipe
 			this->_pollitems.at(request->getSocket())->pollState = WAIT_FOR_CGI;
 		}
 	}
@@ -512,7 +516,7 @@ void	WebServer::readCGIResponses( int cgiPipe )
 	cgi->appendResponse(std::string(buffer, buffer + readChars));
 	if (readChars < HTTP_BUF_SIZE)
 	{
-		this->_emptyConns.push_back(cgiPipe);
+		_dropConn(cgiPipe);
 		this->_pollitems[socket]->pollState = WRITE_TO_CLIENT;
 	}
 }
@@ -522,7 +526,7 @@ void	WebServer::writeToClients( int clientSocket )
 	HTTPrequest 	*request = this->_requests.at(clientSocket);
 	HTTPresponse 	*response = this->_responses.at(clientSocket);
 
-	if (response->isParsingNeeded() == true)
+	if (response->isParsingNeeded())
 	{
 		if (response->isCGI())
 			response->parseFromCGI(this->_cgi.at(clientSocket)->getResponse());
@@ -534,14 +538,15 @@ void	WebServer::writeToClients( int clientSocket )
 		}
 	}
 	response->writeContent();
-	if (response->isDoneWriting() == false)
-		return ;
-	else if ((request->isEndConn() == true) or (request->getStatusCode() == 444))		// NGINX custom behaviour, if code == 444 connection is closed as well
-		this->_emptyConns.push_back(clientSocket);
-	else
+	if (response->isDoneWriting())
 	{
-		_dropStructs(clientSocket);
-		this->_pollitems[clientSocket]->pollState = READ_REQ_HEADER;
+		if ((request->isEndConn()) or (request->getStatusCode() == 444))		// NGINX custom behaviour, if code == 444 connection is closed as well
+			_dropConn(clientSocket);
+		else
+		{
+			_clearStructs(clientSocket, false);
+			this->_pollitems[clientSocket]->pollState = READ_REQ_HEADER;
+		}
 	}
 }
 
@@ -553,10 +558,10 @@ void	WebServer::redirectToErrorPage( int genericFd, int statusCode ) noexcept
 	t_path			HTMLerrPage;
 
 	if (this->_pollitems[genericFd]->pollType > CLIENT_CONNECTION)	// when genericFd refers to a pipe or a static file
-		this->_emptyConns.push_back(genericFd);
+		_dropConn(genericFd);
 	else if (statusCode == 444)		// NGINX custom behaviour: close connection without sending a response
 	{
-		this->_emptyConns.push_back(clientSocket);
+		_dropConn(clientSocket);
 		this->_pollitems[clientSocket]->pollState = READ_REQ_HEADER;
 		return ;
 	}

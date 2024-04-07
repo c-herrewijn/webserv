@@ -50,7 +50,6 @@ enum fdState
 
 typedef struct PollItem
 {
-	int							fd;
 	fdType  					pollType;
     fdState 					pollState;
 	std::string					IPaddr;
@@ -80,8 +79,8 @@ class WebServer
 		void		_writeData( int );
 		void		_addConn( int , fdType , fdState, std::string const& ip="", std::string const& port="" );
 		void		_dropConn( int ) noexcept;
-		void		_dropStructs( int ) noexcept;
 		void		_clearEmptyConns( void ) noexcept;
+		void		_clearStructs( int, bool ) noexcept;
 		std::string	_getAddress( const struct sockaddr_storage*) const noexcept ;
 		int			_getSocketFromFd( int );
 		t_serv_list	_getServersFromIP( std::string const&, std::string const& ) const noexcept;
