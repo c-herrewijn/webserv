@@ -527,6 +527,7 @@ void	WebServer::writeToClients( int clientSocket )
 	response->writeContent();
 	if (response->isDoneWriting())
 	{
+		std::cout << response->toString() << '\n';
 		if ((request->isEndConn()) or (request->getStatusCode() == 444))		// NGINX custom behaviour, if code == 444 connection is closed as well
 			_dropConn(clientSocket);
 		else
