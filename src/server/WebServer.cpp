@@ -445,7 +445,7 @@ void	WebServer::readStaticFiles( int staticFileFd )
 
 	if (this->_pollitems[staticFileFd]->pollType != STATIC_FILE)
 		return ;
-	response->readHTML();
+	response->readStaticFile();
 	if (response->isDoneReadingHTML() == true)
 	{
 		this->_emptyConns.push_back(staticFileFd);

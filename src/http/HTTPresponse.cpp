@@ -52,7 +52,7 @@ void	HTTPresponse::parseFromStatic( std::string const& servName )
 	this->_strSelf = toString();
 }
 
-void	HTTPresponse::readHTML( void )
+void	HTTPresponse::readStaticFile( void )
 {
     ssize_t 	readChar = -1;
     char        buffer[HTTP_BUF_SIZE];
