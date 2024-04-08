@@ -78,11 +78,7 @@ void	HTTPresponse::readStaticFile( void )
 	}
 	this->_tmpBody += std::string(buffer, buffer + readChar);
 	if (readChar < HTTP_BUF_SIZE)
-	{
-		close(this->_HTMLfd);
-		this->_HTMLfd = -1;
 		this->_state = HTTP_RESP_PARSING;
-	}
 }
 
 // Function to convert file_time_type to string
@@ -272,11 +268,7 @@ void	HTTPresponse::writeContent( void )
 void	HTTPresponse::errorReset( int errorStatus, bool hardCode ) noexcept
 {
 	this->_statusCode = errorStatus;
-	if (this->_HTMLfd != -1)
-	{
-		close(this->_HTMLfd);
-		this->_HTMLfd = -1;
-	}
+	this->_HTMLfd = -1;
 	this->_contentLengthWrite = 0;
 	this->_targetFile.clear();
 	this->_headers.clear();

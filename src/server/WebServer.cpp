@@ -107,7 +107,7 @@ void	WebServer::run( void )
 				_dropConn(pollfdItem.fd);
 			}
 			catch (const std::out_of_range& e) {
-				std::cerr << C_RED << "entity not found"  << C_RESET << '\n';
+				std::cerr << C_RED << "resource not found"  << C_RESET << '\n';
 				_dropConn(pollfdItem.fd);
 			}
 			catch (const EndConnectionException& e) {
@@ -248,20 +248,20 @@ void	WebServer::_addConn( int newSocket , fdType typePollItem, fdState statePoll
 
 void	WebServer::_dropConn(int toDrop) noexcept
 {
-	if ((this->_pollitems[toDrop]->pollType == LISTENER) or
-		(this->_pollitems[toDrop]->pollType == CLIENT_CONNECTION))
-		shutdown(toDrop, SHUT_RDWR);
-	close(toDrop);
 	this->_emptyConns.push_back(toDrop);
-	if (this->_pollitems[toDrop]->pollType == CLIENT_CONNECTION)
-		std::cout << C_GREEN << "CLOSED CONNECTION - " << toDrop << C_RESET << std::endl;
 }
 
 void	WebServer::_clearEmptyConns( void ) noexcept
 {
+	int fdToDrop = -1;
 	while (this->_emptyConns.empty() == false)
 	{
-		_clearStructs(this->_emptyConns.back(), true);
+		fdToDrop = this->_emptyConns.back();
+		if ((this->_pollitems[fdToDrop]->pollType == LISTENER) or
+			(this->_pollitems[fdToDrop]->pollType == CLIENT_CONNECTION))		// it's a socket
+			shutdown(fdToDrop, SHUT_RDWR);
+		close(fdToDrop);
+		_clearStructs(fdToDrop, true);
 		this->_emptyConns.pop_back();
 	}
 }
@@ -278,6 +278,8 @@ void	WebServer::_clearStructs( int toDrop, bool clearAll ) noexcept
 				break;
 			}
 		}
+		if (this->_pollitems[toDrop]->pollType == CLIENT_CONNECTION)
+			std::cout << C_GREEN << "CLOSED CONNECTION - " << toDrop << C_RESET << std::endl;
 		delete this->_pollitems[toDrop];
 		this->_pollitems.erase(toDrop);
 	}
@@ -433,7 +435,6 @@ void	WebServer::readRequestHeaders( int clientSocket )
 		}
 		else if (request->isStatic())		// GET static
 			_addConn(response->getHTMLfd(), STATIC_FILE, READ_STATIC_FILE);
-		std::cout << request->toString() << '\n';
 		if (request->isAutoIndex() or request->isRedirection() or request->isDelete())
 			nextStatus = WRITE_TO_CLIENT;
 		else if (request->isFastCGI())
@@ -535,7 +536,6 @@ void	WebServer::writeToClients( int clientSocket )
 	response->writeContent();
 	if (response->isDoneWriting())
 	{
-		std::cout << response->toString() << '\n';
 		if ((request->isEndConn()) or (request->getStatusCode() == 444))		// NGINX custom behaviour, if code == 444 connection is closed as well
 			_dropConn(clientSocket);
 		else
