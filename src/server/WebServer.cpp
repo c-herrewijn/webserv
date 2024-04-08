@@ -92,7 +92,7 @@ void	WebServer::run( void )
 						if (pollfdItem.revents & POLLHUP)
 							errStr = "POLLHUP";
 						std::cout << C_RED << "fd: " << pollfdItem.fd << " client-end side was closed: " << errStr << C_RESET << std::endl;
-						_dropConn(pollfdItem.fd);	
+						_dropConn(pollfdItem.fd);
 					}
 				}
 				if (!(pollfdItem.revents & POLLIN) and (this->_pollitems[pollfdItem.fd]->pollType == CLIENT_CONNECTION))
@@ -501,6 +501,8 @@ void	WebServer::readCGIResponses( int cgiPipe )
 	char 	buffer[HTTP_BUF_SIZE];
 
 	std::fill(buffer, buffer + HTTP_BUF_SIZE, 0);
+	if (cgi->validatePid() == false)  // check if CGI process didn't crahs
+		throw(ResponseException({"CGI process error"}, 500));
 	readChars = read(cgiPipe, buffer, HTTP_BUF_SIZE);
 	if (readChars < 0)
 		throw(ServerException({"unavailable socket"}));

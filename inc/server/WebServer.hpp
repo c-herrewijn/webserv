@@ -1,5 +1,5 @@
 #pragma once
-#include <unordered_map>	
+#include <unordered_map>
 #include <netinet/in.h>     // socket, accept, listen, bind, connect
 #include <arpa/inet.h>      // htons, htonl, ntohs, ntohl
 #include <sys/poll.h>     	// poll
@@ -44,8 +44,7 @@ enum fdState
 	WAIT_FOR_CGI,					// CLIENT_CONNECTION (no action)
 	READ_CGI_RESPONSE,				// CGI_RESPONSE_PIPE (read)
 	WRITE_TO_CLIENT,				// CLIENT_CONNECTION (write)
-	WRITE_TO_CGI,					// CGI_REQUEST_PIPE (write)
-	IO_ERROR
+	WRITE_TO_CGI					// CGI_REQUEST_PIPE (write)
 };
 
 typedef struct PollItem

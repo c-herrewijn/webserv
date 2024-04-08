@@ -16,6 +16,7 @@ public:
     CGI(const HTTPrequest &req);
     ~CGI();
     void run();
+    bool validatePid() const;
     const std::array<int, 2> getUploadPipe() const;
     const std::array<int, 2> getResponsePipe() const;
     int getRequestSocket() const;
@@ -29,6 +30,7 @@ private:
     int _uploadPipe[2];
     int _responsePipe[2];
     std::string _response;
+    pid_t _pid;
 
     std::array<std::string, CGI_ENV_SIZE> _createCgiEnv(const HTTPrequest &req);
     char **_createCgiEnvCStyle();

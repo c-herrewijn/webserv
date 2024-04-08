@@ -81,8 +81,18 @@ void CGI::run()
         }
     }
     else {
+        this->_pid = childPid;
         close(this->_responsePipe[1]); // close write end of cgi response pipe
     }
+}
+
+bool CGI::validatePid() const {
+	int cgiExitCode = -1;
+	waitpid(this->_pid, &cgiExitCode, WNOHANG);
+    if (cgiExitCode == EXIT_SUCCESS)
+        return true;
+    else
+        return false;
 }
 
 int CGI::getRequestSocket() const {
