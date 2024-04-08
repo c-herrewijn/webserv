@@ -6,16 +6,16 @@ from pathlib import Path
 html_file_section = ""
 fetch_script = "<script>function deleteRequest(path) {fetch(path, {method: 'DELETE'});}</script>"
 
-p_var = ""
+p_www = ""
 
 path_tmp = Path(environ['SCRIPT_FILENAME']).parent
 while (path_tmp.__str__() != path_tmp.root):
     path_tmp = path_tmp.parent
-    if (path_tmp.name == "var"):
-        p_var = path_tmp
+    if (path_tmp.name == "www"):
+        p_www = path_tmp
 
-if (p_var != "" and (p_var / 'upload').is_dir()):
-    upload_dir = (p_var / 'upload').__str__()
+if (p_www != "" and (p_www / 'upload').is_dir()):
+    upload_dir = (p_www / 'upload').__str__()
     file_list = listdir(path=upload_dir)
     if (len(file_list) == 0):
         html_file_section += "<p>There are no uploaded files on the server</p>"
