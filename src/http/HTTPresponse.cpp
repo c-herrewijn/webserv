@@ -24,6 +24,8 @@ void	HTTPresponse::parseCGI( std::string const& CGIresp )
 	delimiter += HTTP_DEF_TERM.size();
 	headers = CGIresp.substr(0, delimiter - HTTP_DEF_NL.size());
 	this->_tmpBody = CGIresp.substr(delimiter);
+	if (this->_tmpBody.empty() == true)
+		throw(ResponseException({"CGI didn't provide any body"}, 500));
 	_setVersion(HTTP_DEF_VERSION);
 	_setHeaders(headers);
 	_addHeader(HEADER_DATE, _getDateTime());
