@@ -125,7 +125,13 @@ void	WebServer::_listenTo( std::string const& hostname, std::string const& port 
 
 	filter.ai_flags = AI_PASSIVE;
 	filter.ai_family = AF_UNSPEC;
+	filter.ai_socktype = 0;
 	filter.ai_protocol = IPPROTO_TCP;
+	filter.ai_addrlen = 0;
+	filter.ai_addr = 0;
+	filter.ai_canonname = 0;
+	filter.ai_next = 0;
+
 	if (getaddrinfo(hostname.c_str(), port.c_str(), &filter, &list) != 0)
 		throw(ServerException({"failed to get addresses for", hostname, ":", port}));
 	for (tmp=list; tmp!=nullptr; tmp=tmp->ai_next)
