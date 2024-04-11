@@ -22,9 +22,10 @@ class Config
 		Config(const Config& copy);
 		Config&	operator=(const Config& assign);
 		virtual ~Config(void);
-		
+
 		void							parseBlock(std::vector<std::string>& block);
 		const std::vector<Listen>& 		getListens(void) const;
+		std::vector<Listen>& 			getListensNonConst(void);
 		const std::vector<std::string>&	getNames(void) const;
 		const std::string&				getPrimaryName(void) const;
 		const Parameters&				getParams(void) const;

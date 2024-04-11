@@ -5,7 +5,6 @@
 # include <sstream>
 # include <string>
 # include <exception>
-# include <cctype>
 # include <vector>
 # include <stack>
 # include "Config.hpp"

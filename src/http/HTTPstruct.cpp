@@ -119,7 +119,7 @@ void	HTTPstruct::_setVersion( std::string const& strVersion )
 	catch (std::exception const& e) {
 		throw(HTTPexception({"invalid version numbers:", strVersion}, 400));
 	}
-	if (major + minor != 2)
+	if (major != 1 or minor != 1)
 		throw(HTTPexception({"unsupported HTTP version:", strVersion}, 505));
 	this->_version.scheme = scheme;
 	this->_version.major = major;

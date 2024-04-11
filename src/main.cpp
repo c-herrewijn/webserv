@@ -19,7 +19,6 @@ std::vector<Config>	parseServers(std::string const& fileName)
 	for (size_t i = 0; i < separated.size(); i++)
 	{
 		Config tmp;
-		std::cout << "--Parsing Server index " C_GREEN << i << C_RESET "--\n";
 		try {
 			tmp.parseBlock(separated[i]);
 			servers.push_back(tmp);
@@ -35,10 +34,10 @@ std::vector<Config>	parseServers(std::string const& fileName)
 
 static void assignDefaults(std::vector<Config>& servers)
 {
-	std::vector<Listen const*> candidates;
+	std::vector<Listen *> candidates;
 	for (auto& server : servers)
 	{
-		for (auto const& listen : server.getListens())
+		for (auto & listen : server.getListensNonConst())
 		{
 			bool	contains = false;
 			for (auto it = candidates.begin(); it != candidates.end(); ++it)
@@ -58,8 +57,8 @@ static void assignDefaults(std::vector<Config>& servers)
 				candidates.push_back(&listen);
 		}
 	}
-	for (auto const& candidate : candidates)
-		const_cast<Listen*>(candidate)->setDef(true);
+	for (auto & candidate : candidates)
+		candidate->setDef(true);
 }
 
 int main(int ac, char **av)
@@ -75,25 +74,12 @@ int main(int ac, char **av)
 		file = av[1];
 	std::cout << "Using config: " << C_GREEN << file << C_RESET << "\n";
 	servers = parseServers(file);
-	// Can be commented
-	std::cout << "Default listens:\n";
-	for (auto const& server : servers)
-	{
-		std::cout << "\t";
-		for (auto const& name : server.getNames())
-			std::cout << name << " ";
-		std::cout << "\n";
-		for (auto const& listen : server.getListens())
-			std::cout << "\t\t" << listen.getIpString() << ":" << listen.getPortString() << "\n";
-	}
 	if (servers.empty() && file != DEF_CONF)
 	{
 		std::cout << C_RED "No valid server configuration in " << file << C_RESET "\nSwitching to default configuration in " C_GREEN << DEF_CONF << C_RESET "\n";
 		servers = parseServers(DEF_CONF);
 	}
 	assignDefaults(servers);
-	std::cout << "Found " C_AZURE << servers.size() << C_RESET " valid server(s)\n";
-
 	try
 	{
 		WebServer	webserv(servers);

@@ -23,9 +23,9 @@ Listen&	Listen::operator=(const Listen& assign)
 
 Listen::Listen(void)
 {
-	i_ip = {127, 0, 0, 1};
+	i_ip = {0, 0, 0, 0};
 	i_port = std::stoi(DEF_PORT);
-	s_ip = "127.0.0.1";
+	s_ip = "0.0.0.0";
 	s_port = DEF_PORT;
 	def = false;
 }

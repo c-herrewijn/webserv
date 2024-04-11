@@ -1,15 +1,3 @@
-# **************************************************************************** #
-#                                                                              #
-#                                                         ::::::::             #
-#    Makefile                                           :+:    :+:             #
-#                                                      +:+                     #
-#    By: itopchu <itopchu@student.42.fr>              +#+                      #
-#                                                    +#+                       #
-#    Created: 2023/11/25 18:04:49 by fra           #+#    #+#                  #
-#    Updated: 2024/03/25 22:31:33 by fra           ########   odam.nl          #
-#                                                                              #
-# **************************************************************************** #
-
 SHELL := /bin/bash
 
 NAME := webserv
@@ -28,7 +16,7 @@ CLIENT_INCS := $(shell find $(CLI_DIR) -type f -name '*.hpp')
 
 CC := c++
 INC_FLAGS := -I$(INC_DIR) -I$(INC_DIR)/http -I$(INC_DIR)/parser -I$(INC_DIR)/server -I$(INC_DIR)/CGI
-CPP_FLAGS := -Wall -Wextra -Werror -Wshadow -Wpedantic -std=c++17 -g3 -fsanitize=address 
+CPP_FLAGS := -Wall -Wextra -Werror -Wshadow -Wpedantic -std=c++17 -g3
 DEP_FLAGS = -MMD -MF $(DEP_DIR)/$*.d
 
 GREEN := \x1b[32;01m

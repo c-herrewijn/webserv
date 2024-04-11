@@ -137,6 +137,11 @@ const std::vector<Listen>& Config::getListens(void) const
 	return (listens);
 }
 
+std::vector<Listen>& Config::getListensNonConst(void)
+{
+	return (listens);
+}
+
 const std::vector<std::string>& Config::getNames(void) const
 {
 	return (names);
