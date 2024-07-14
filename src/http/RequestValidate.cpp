@@ -261,7 +261,7 @@ bool	RequestValidate::_handleFolder(void)
 bool	RequestValidate::_handleFile(void)
 {
 	t_path dirPath = _validParams->getRoot().string() + targetDir.string();
-	t_path filePath = dirPath.string() + "/" + targetFile.string();
+	t_path filePath = dirPath.string() + "/" + targetFile.filename().string();
 	_isCGI = false;
 	if (!std::filesystem::exists(filePath))
 		return (_setStatusCode(404), false);
